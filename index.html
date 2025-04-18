@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="DJ Total Kaos - EDM Bangers Tracklist - Find and filter electronic music tracks by BPM, key, and genre">
+  <title>DJ Total Kaos - EDM Bangers</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+</head>
+<body>
+  <div class="header-container">
+    <h1>DJ Total Kaos - EDM Bangers (April 18, 2025)</h1>
+    <div class="app-controls">
+      <button id="theme-toggle">☀️ Light Mode</button>
+      <button id="export-all">📥 Export All</button>
+    </div>
+  </div>
+
+  <div id="search-container">
+    <div class="filter-label">
+      <span>Search</span>
+      <input type="text" id="search" placeholder="Search tracks or artists..." />
+    </div>
+    
+    <div class="filter-label">
+      <span>BPM</span>
+      <select id="bpm-filter">
+        <option value="">All BPMs</option>
+      </select>
+    </div>
+    
+    <div class="filter-label">
+      <span>Key</span>
+      <select id="key-filter">
+        <option value="">All Keys</option>
+      </select>
+    </div>
+    
+    <div class="filter-label">
+      <span>Genre</span>
+      <select id="genre-filter">
+        <option value="">All Genres</option>
+      </select>
+    </div>
+    
+    <div class="filter-label">
+      <span>Sort By</span>
+      <select id="sort-select">
+        <option value="name-asc">Artist (A-Z)</option>
+        <option value="name-desc">Artist (Z-A)</option>
+        <option value="tracks-desc">Most Tracks</option>
+        <option value="tracks-asc">Fewest Tracks</option>
+        <option value="bpm-asc">BPM (Low to High)</option>
+        <option value="bpm-desc">BPM (High to Low)</option>
+        <option value="key-asc">Key (A-Z)</option>
+        <option value="key-desc">Key (Z-A)</option>
+        <option value="title-asc">Title (A-Z)</option>
+        <option value="title-desc">Title (Z-A)</option>
+      </select>
+    </div>
+  </div>
+  
+  <div id="stats"></div>
+  
+  <div id="columns" class="columns">
+    <div class="loader"></div>
+  </div>
+  
+  <canvas id="audio-visualizer" width="800" height="60"></canvas>
+  
+  <footer>
+    <p>© DJ Total Kaos 2025 • Updated: April 18, 2025</p>
+  </footer>
+  
+  <script src="assets/script.js"></script>
+</body>
+</html>
