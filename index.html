@@ -10,11 +10,13 @@
 </head>
 <body>
   <div class="header-container">
-    <h1>DJ Total Kaos - EDM Bangers (April 18, 2025)</h1>
     <div class="app-controls">
-      <button id="theme-toggle">☀️ Light Mode</button>
-      <button id="export-all">📥 Export All</button>
+      <button id="theme-toggle" class="control-btn">☀️ Light Mode</button>
+      <button id="export-all" class="control-btn">📥 Export All</button>
+      <label for="tracklist-upload" class="control-btn upload-btn">📁 Upload Tracklist</label>
+      <input type="file" id="tracklist-upload" accept=".txt" style="display: none;">
     </div>
+    <h1>DJ Total Kaos - EDM Bangers</h1>
   </div>
 
   <div id="search-container">
@@ -34,13 +36,6 @@
       <span>Key</span>
       <select id="key-filter">
         <option value="">All Keys</option>
-      </select>
-    </div>
-    
-    <div class="filter-label">
-      <span>Genre</span>
-      <select id="genre-filter">
-        <option value="">All Genres</option>
       </select>
     </div>
     

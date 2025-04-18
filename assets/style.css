@@ -14,7 +14,7 @@ body.light-mode {
 
 h1 {
   text-align: center;
-  margin-bottom: 20px;
+  margin: 0;
   font-size: 2rem;
   color: #00ffff;
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
@@ -27,40 +27,58 @@ body.light-mode h1 {
 
 .header-container {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .app-controls {
   display: flex;
-  gap: 15px;
+  gap: 10px;
+  margin-bottom: 20px;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 10px 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-#theme-toggle, #export-all {
+body.light-mode .app-controls {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.control-btn {
   background-color: #333;
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 8px 12px;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
 }
 
-body.light-mode #theme-toggle, 
-body.light-mode #export-all {
+body.light-mode .control-btn {
   background-color: #ddd;
   color: #333;
 }
 
-#theme-toggle:hover, 
-#export-all:hover {
+.control-btn:hover {
   background-color: #444;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-body.light-mode #theme-toggle:hover,
-body.light-mode #export-all:hover {
+body.light-mode .control-btn:hover {
   background-color: #ccc;
+}
+
+.upload-btn {
+  display: inline-block;
+  text-align: center;
 }
 
 #search-container {
