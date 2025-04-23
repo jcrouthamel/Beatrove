@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EDM Tracklist Web App — User Guide</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #181818; color: #fff; padding: 40px; max-width: 820px; margin: auto; }
+    h1, h2, h3 { color: #00ffff; }
+    h1 { margin-bottom: 0.3em; }
+    h2 { margin-top: 2em; border-bottom: 1px solid #333; padding-bottom: 0.2em; }
+    a { color: #00ffff; text-decoration: underline; }
+    ul, ol { margin-left: 1.2em; }
+    code { background: #222; color: #0ff; padding: 2px 6px; border-radius: 4px; font-size: 0.98em; }
+    .toc { background: #222; border-radius: 8px; padding: 16px; margin-bottom: 2em; }
+    .toc ul { margin: 0; padding: 0; list-style: none; }
+    .toc li { margin: 0.3em 0; }
+    .tip { background: #222; color: #0ff; border-left: 5px solid #00ffff; padding: 10px 18px; margin: 18px 0; border-radius: 8px; }
+    @media (max-width: 600px) { body { padding: 10px; } }
+  </style>
+</head>
+<body>
+  <h1>EDM Tracklist Web App — User Guide</h1>
+  <div class="toc">
+    <strong>Table of Contents</strong>
+    <ul>
+      <li><a href="#getting-started">1. Getting Started</a></li>
+      <li><a href="#uploading-a-tracklist">2. Uploading a Tracklist</a></li>
+      <li><a href="#filtering-and-searching-tracks">3. Filtering and Searching Tracks</a></li>
+      <li><a href="#favorites">4. Favorites</a></li>
+      <li><a href="#copy-path-to-clipboard">5. Copy Path to Clipboard</a></li>
+      <li><a href="#audio-preview">6. Audio Preview</a></li>
+      <li><a href="#playlists">7. Playlists</a></li>
+      <li><a href="#tags">8. Tags</a></li>
+      <li><a href="#visualizer">9. Visualizer</a></li>
+      <li><a href="#troubleshooting">10. Troubleshooting</a></li>
+    </ul>
+  </div>
+
+  <h2 id="getting-started">1. Getting Started</h2>
+  <ul>
+    <li>Open the web app in your browser.</li>
+    <li>For the best experience, use a modern browser (Chrome, Firefox, Edge, Safari).</li>
+  </ul>
+
+  <h2 id="uploading-a-tracklist">2. Uploading a Tracklist</h2>
+  <ul>
+    <li>Click the <strong>Upload</strong> button or drag and drop your tracklist file (CSV or TXT) into the app.</li>
+    <li>The tracklist will be processed and displayed in the main area.</li>
+    <li>If the file is invalid, an error message will appear.</li>
+    <li>The tracklist format should be: artist - title - key - BPM.extension - track time - year - path</li>
+    <li>The track time and year are extracted from file metadata using tinytag.</li>
+  </ul>
+
+  <h2 id="filtering-and-searching-tracks">3. Filtering and Searching Tracks</h2>
+  <ul>
+    <li>Use the <strong>BPM</strong> and <strong>Key</strong> dropdowns at the top to filter tracks by tempo or musical key.</li>
+    <li>Use the <strong>search bar</strong> to find tracks by artist, title, or other info.</li>
+    <li>Clear filters to show all tracks again.</li>
+  </ul>
+
+  <h2 id="favorites">4. Favorites</h2>
+  <ul>
+    <li>Click the <strong>star icon (☆/★)</strong> next to a track to mark it as a favorite.</li>
+    <li>Favorites are saved in your browser and persist after refreshing.</li>
+    <li>Click the star again to remove a track from favorites.</li>
+  </ul>
+
+  <h2 id="copy-path-to-clipboard">5. Copy Path to Clipboard</h2>
+  <ul>
+    <li>Click the <strong>folder icon (📁)</strong> next to a track to copy the file path to your clipboard.</li>
+    <li>Paste the path into your file manager or terminal to locate the file.</li>
+  </ul>
+
+  <h2 id="audio-preview">6. Audio Preview</h2>
+  <ul>
+    <li>Click the <strong>preview icon (▶️)</strong> to listen to a track.</li>
+    <li>The first time, you’ll be prompted to select your audio files folder.</li>
+    <li>After loading, you can preview any track whose file is present.</li>
+  </ul>
+
+  <h2 id="playlists">7. Playlists</h2>
+  <ul>
+    <li>Create new playlists, add or remove tracks, and rename or delete playlists.</li>
+    <li>Use the playlist dropdown to switch between playlists.</li>
+    <li>Export playlists to save them, or import previously saved playlists.</li>
+  </ul>
+
+  <h2 id="tags">8. Tags</h2>
+  <ul>
+    <li>Click the <strong>tag icon (🏷️)</strong> to add or edit tags for a track.</li>
+    <li>Filter tracks by tag using the tag dropdown.</li>
+  </ul>
+
+  <h2 id="visualizer">9. Visualizer</h2>
+  <ul>
+    <li>When previewing audio, visualizer bars animate in sync with the music.</li>
+    <li>Both the top and bottom visualizers show the audio spectrum.</li>
+  </ul>
+
+  <h2 id="troubleshooting">10. Troubleshooting</h2>
+  <ul>
+    <li><b>Audio preview not working?</b> Make sure you have loaded the correct audio files folder and that filenames match the tracklist.</li>
+    <li><b>Nothing happens when clicking icons?</b> Try refreshing the page or clearing your browser cache.</li>
+    <li><b>Favorites, playlists, or tags missing?</b> These are stored in your browser. If you clear your browser data, they may be lost.</li>
+    <li><b>Still need help?</b> Contact the project maintainer or check the README for more info.</li>
+  </ul>
+
+  <hr>
+  <p>Enjoy managing your EDM music collection!</p>
+</body>
+</html>
