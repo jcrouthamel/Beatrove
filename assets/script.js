@@ -60,7 +60,8 @@ function processTracklist(text, fileName) {
       bpm: bpm,
       key: key,
       artist: artist,
-      title: title
+      title: title,
+      year: year
     };
 
     // Group by artist
@@ -212,6 +213,16 @@ const render = () => {
   const tagDropdown = document.getElementById('tag-dropdown');
   const tagSearch = tagDropdown ? tagDropdown.value.trim().toLowerCase() : '';
   const sortValue = window.sortSelect?.value || 'name-asc';
+  const yearSearch = document.getElementById('year-search')?.value.trim();
+  
+  let yearMin = null, yearMax = null;
+  if (yearSearch) {
+    const match = yearSearch.match(/^(\d{4})(?:\s*-\s*(\d{4}))?$/);
+    if (match) {
+      yearMin = parseInt(match[1], 10);
+      yearMax = match[2] ? parseInt(match[2], 10) : yearMin;
+    }
+  }
 
   if (!window.container) {
     return;
@@ -220,7 +231,7 @@ const render = () => {
   const tracksForUI = window.tracksForUI || [];
 
   // Filter tracks
-  let tracks = tracksForUI.filter(track => {
+  let filteredTracks = tracksForUI.filter(track => {
     // Search filter
     const matchSearch =
       !search ||
@@ -237,14 +248,18 @@ const render = () => {
       const tags = (window.trackTags && window.trackTags[track.display]) || [];
       matchTags = tags.map(t => t.toLowerCase()).includes(tagSearch);
     }
-    return matchSearch && matchBPM && matchKey && matchTags;
+    // Favorites filter
+    let matchFavorites = true;
+    if (window.showFavoritesOnly) {
+      matchFavorites = window.favoriteTracks && window.favoriteTracks[track.display];
+    }
+    // Year search logic
+    if (yearMin !== null && yearMax !== null) {
+      const trackYear = parseInt(track.year, 10);
+      if (isNaN(trackYear) || trackYear < yearMin || trackYear > yearMax) return false;
+    }
+    return matchSearch && matchBPM && matchKey && matchTags && matchFavorites;
   });
-
-  // --- FAVORITES FILTER: Apply after all other filters ---
-  let filteredTracks = tracks;
-  if (window.showFavoritesOnly) {
-    filteredTracks = filteredTracks.filter(track => window.favoriteTracks && window.favoriteTracks[track.display]);
-  }
 
   // Sort tracks
   filteredTracks.sort((a, b) => {
@@ -315,7 +330,7 @@ const render = () => {
   }
 
   // Show no results message if needed
-  if (filteredTracks.length === 0 && (search || selectedBPM || selectedKey || tagSearch || window.showFavoritesOnly)) {
+  if (filteredTracks.length === 0 && (search || selectedBPM || selectedKey || tagSearch || window.showFavoritesOnly || yearSearch)) {
     window.container.innerHTML = '<div class="no-results">No tracks found matching your filters.</div>';
   }
   renderAZBar();
@@ -860,24 +875,44 @@ async function playPreviewForTrack(track) {
   // Remove previous audio and visualizer, but do not close context
   if (currentAudio) {
     disconnectAudioVisualizer();
-    currentAudio.pause();
-    currentAudio.remove();
+    // Remove both audio and label if present
+    if (currentAudio.parentElement && currentAudio.parentElement.classList.contains('audio-player-container')) {
+      currentAudio.parentElement.remove();
+    } else {
+      currentAudio.remove();
+    }
     currentAudio = null;
   }
   const url = URL.createObjectURL(file);
+  // Create a container for track info and audio player
+  const container = document.createElement('div');
+  container.className = 'audio-player-container';
+  container.style.position = 'fixed';
+  container.style.left = '50%';
+  container.style.bottom = '80px';
+  container.style.transform = 'translateX(-50%)';
+  container.style.zIndex = 9999;
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.alignItems = 'center';
+  container.style.gap = '8px';
+
+  // Track info label
+  const label = document.createElement('div');
+  label.className = 'audio-player-label';
+  label.textContent = `${track.artist || ''} — ${track.title || ''}`;
+  container.appendChild(label);
+
   const audio = document.createElement('audio');
   audio.src = url;
   audio.controls = true;
   audio.autoplay = true;
   audio.className = 'custom-audio-player';
-  audio.style.position = 'fixed';
-  audio.style.bottom = '80px';
-  audio.style.left = '50%';
-  audio.style.transform = 'translateX(-50%)';
-  audio.style.zIndex = 9999;
-  document.body.appendChild(audio);
+  container.appendChild(audio);
+
+  document.body.appendChild(container);
   currentAudio = audio;
-  audio.onended = () => { disconnectAudioVisualizer(); audio.remove(); currentAudio = null; URL.revokeObjectURL(url); };
+  audio.onended = () => { disconnectAudioVisualizer(); container.remove(); currentAudio = null; URL.revokeObjectURL(url); };
   audio.onpause = () => disconnectAudioVisualizer();
   await connectAudioVisualizer(audio);
 }
