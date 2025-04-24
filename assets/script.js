@@ -32,26 +32,30 @@ function processTracklist(text, fileName) {
 
   // Treat as TXT-style: artist - title - key - BPM.extension - track time - year - path
   lines.forEach((line, index) => {
-    // Split on ' - ' but keep the path intact
+    // Accept both 6-part (no path) and 7+-part (with path) formats
     const parts = line.split(' - ');
-    if (parts.length < 7) {
+    if (parts.length < 6) {
       console.log('Skipping line (not enough parts):', line);
       return;
     }
-
     const artist = parts[0];
     const title = parts[1];
     const key = parts[2];
     const bpmExt = parts[3];
     const trackTime = parts[4];
     const year = parts[5];
-    const absPath = parts.slice(6).join(' - ').trim(); // Join remaining parts as path and trim
+    const absPath = parts.length > 6 ? parts.slice(6).join(' - ').trim() : '';
 
-    // Extract BPM from the format (e.g., "128.mp3")
-    const bpmMatch = bpmExt.match(/(\d+)/);
+    // Extract BPM from the format (e.g., "127.flac")
+    const bpmMatch = bpmExt.match(/(\d{2,3})/);
     const bpm = bpmMatch ? bpmMatch[1] : '';
     if (bpm) allBPMs.add(bpm);
     if (key) allKeys.add(key);
+
+    // Normalize year to 4-digit string if possible
+    let yearNorm = year;
+    const yearMatch = year && year.match(/(19\d{2}|20\d{2}|2025)/);
+    if (yearMatch) yearNorm = yearMatch[1];
 
     const display = `${artist} - ${title} - ${key} - ${bpmExt} - ${trackTime} - ${year}`;
     const trackObj = {
@@ -61,7 +65,7 @@ function processTracklist(text, fileName) {
       key: key,
       artist: artist,
       title: title,
-      year: year
+      year: yearNorm
     };
 
     // Group by artist
@@ -217,10 +221,16 @@ const render = () => {
   
   let yearMin = null, yearMax = null;
   if (yearSearch) {
-    const match = yearSearch.match(/^(\d{4})(?:\s*-\s*(\d{4}))?$/);
+    // Accept any 4-digit year or range, and match against year as string
+    const match = yearSearch.match(/^(19\d{2}|20\d{2}|2025)(?:\s*-\s*(19\d{2}|20\d{2}|2025))?$/);
     if (match) {
       yearMin = parseInt(match[1], 10);
       yearMax = match[2] ? parseInt(match[2], 10) : yearMin;
+      // Only accept years in the range 1900-2025
+      if (yearMin < 1900 || yearMax > 2025) {
+        yearMin = null;
+        yearMax = null;
+      }
     }
   }
 
@@ -229,6 +239,16 @@ const render = () => {
   }
 
   const tracksForUI = window.tracksForUI || [];
+
+  // --- DEBUG: Log all parsed tracks and their years ---
+  console.log('All parsed tracks:', tracksForUI.map(t => ({display: t.display, year: t.year})));
+  // --- DEBUG: Add event listener for year-search to trigger render ---
+  const yearInput = document.getElementById('year-search');
+  if (yearInput && !yearInput._cascadeYearListener) {
+    yearInput.addEventListener('input', () => { safeRender(); });
+    yearInput._cascadeYearListener = true;
+    console.log('DEBUG: Added year-search input event listener');
+  }
 
   // Filter tracks
   let filteredTracks = tracksForUI.filter(track => {
@@ -255,35 +275,54 @@ const render = () => {
     }
     // Year search logic
     if (yearMin !== null && yearMax !== null) {
-      const trackYear = parseInt(track.year, 10);
-      if (isNaN(trackYear) || trackYear < yearMin || trackYear > yearMax) return false;
+      // --- DEBUG: Log year filter values and candidate tracks ---
+      console.log('Year filter:', {yearSearch, yearMin, yearMax});
+      const trackYearStr = (track.year || '').trim();
+      const trackYear = /^(19\d{2}|20\d{2}|2025)$/.test(trackYearStr) ? parseInt(trackYearStr, 10) : NaN;
+      if (isNaN(trackYear) || trackYear < yearMin || trackYear > yearMax) {
+        // --- DEBUG: Log why track was skipped ---
+        console.log('Skipping track (year mismatch):', track.display, 'track.year:', track.year, 'parsed:', trackYear);
+        return false;
+      }
     }
     return matchSearch && matchBPM && matchKey && matchTags && matchFavorites;
   });
 
   // Sort tracks
-  filteredTracks.sort((a, b) => {
-    switch (sortValue) {
-      case 'name-asc':
-        return a.artist.localeCompare(b.artist);
-      case 'name-desc':
-        return b.artist.localeCompare(a.artist);
-      case 'bpm-asc':
-        return Number(a.bpm) - Number(b.bpm);
-      case 'bpm-desc':
-        return Number(b.bpm) - Number(a.bpm);
-      case 'key-asc':
-        return a.key.localeCompare(b.key);
-      case 'key-desc':
-        return b.key.localeCompare(a.key);
-      case 'title-asc':
-        return a.title.localeCompare(b.title);
-      case 'title-desc':
-        return b.title.localeCompare(a.title);
-      default:
-        return a.artist.localeCompare(b.artist);
-    }
-  });
+  if (sortValue === 'most-tracks' || sortValue === 'fewest-tracks') {
+    // Sort by number of tracks per artist
+    const artistCounts = {};
+    filteredTracks.forEach(t => {
+      artistCounts[t.artist] = (artistCounts[t.artist] || 0) + 1;
+    });
+    filteredTracks.sort((a, b) => {
+      const diff = artistCounts[b.artist] - artistCounts[a.artist];
+      return sortValue === 'most-tracks' ? diff : -diff;
+    });
+  } else {
+    filteredTracks.sort((a, b) => {
+      switch (sortValue) {
+        case 'name-asc':
+          return a.artist.localeCompare(b.artist);
+        case 'name-desc':
+          return b.artist.localeCompare(a.artist);
+        case 'bpm-asc':
+          return Number(a.bpm) - Number(b.bpm);
+        case 'bpm-desc':
+          return Number(b.bpm) - Number(a.bpm);
+        case 'key-asc':
+          return a.key.localeCompare(b.key);
+        case 'key-desc':
+          return b.key.localeCompare(a.key);
+        case 'title-asc':
+          return a.title.localeCompare(b.title);
+        case 'title-desc':
+          return b.title.localeCompare(a.title);
+        default:
+          return a.artist.localeCompare(b.artist);
+      }
+    });
+  }
 
   // Group tracks by artist again for display
   const groupedSorted = {};
