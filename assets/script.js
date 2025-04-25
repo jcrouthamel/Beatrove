@@ -32,7 +32,7 @@ function processTracklist(text, fileName) {
 
   // Treat as TXT-style: artist - title - key - BPM.extension - track time - year - path
   lines.forEach((line, index) => {
-    // Accept both 6-part (no path) and 7+-part (with path) formats
+    // Accept both 6-part (no path) and 7+-part (with path/genre) formats
     const parts = line.split(' - ');
     if (parts.length < 6) {
       console.log('Skipping line (not enough parts):', line);
@@ -44,7 +44,31 @@ function processTracklist(text, fileName) {
     const bpmExt = parts[3];
     const trackTime = parts[4];
     const year = parts[5];
-    const absPath = parts.length > 6 ? parts.slice(6).join(' - ').trim() : '';
+    let genre = '';
+    let absPath = '';
+    if (parts.length === 7) {
+      // Could be genre or absPath (detect by extension or by value)
+      if (/\.(mp3|wav|flac|aiff|ogg)$/i.test(parts[6])) {
+        absPath = parts[6].trim();
+      } else if (/^[a-zA-Z][a-zA-Z0-9\- ]*$/i.test(parts[6])) {
+        genre = parts[6].trim();
+      } else {
+        // If it's not a known extension and not a genre-like string, treat as genre
+        genre = parts[6].trim();
+      }
+    } else if (parts.length > 7) {
+      // If any of the later parts contains a file extension, treat all up to that as absPath, last as genre
+      let lastPart = parts[parts.length - 1].trim();
+      let pathParts = parts.slice(6, parts.length - 1);
+      let pathCandidate = pathParts.join(' - ').trim();
+      if (/\.(mp3|wav|flac|aiff|ogg)$/i.test(lastPart)) {
+        absPath = [pathCandidate, lastPart].filter(Boolean).join(' - ');
+        genre = '';
+      } else {
+        absPath = pathCandidate;
+        genre = lastPart;
+      }
+    }
 
     // Extract BPM from the format (e.g., "127.flac")
     const bpmMatch = bpmExt.match(/(\d{2,3})/);
@@ -57,7 +81,7 @@ function processTracklist(text, fileName) {
     const yearMatch = year && year.match(/(19\d{2}|20\d{2}|2025)/);
     if (yearMatch) yearNorm = yearMatch[1];
 
-    const display = `${artist} - ${title} - ${key} - ${bpmExt} - ${trackTime} - ${year}`;
+    const display = `${artist} - ${title} - ${key} - ${bpmExt} - ${trackTime} - ${year}` + (genre ? ` - ${genre}` : '');
     const trackObj = {
       display: display,
       absPath: absPath,
@@ -65,7 +89,9 @@ function processTracklist(text, fileName) {
       key: key,
       artist: artist,
       title: title,
-      year: yearNorm
+      year: yearNorm,
+      trackTime: trackTime,
+      genre: genre
     };
 
     // Group by artist
@@ -386,10 +412,46 @@ function createTrackHTML(track) {
   }
   trackDiv.setAttribute('data-artist', track.artist || '');
 
-  // Track name on top
-  const trackName = document.createElement('span');
-  trackName.className = 'track-name';
-  trackName.textContent = track.display;
+  // Track name on top (now split into two lines)
+  const trackMain = document.createElement('span');
+  trackMain.className = 'track-main';
+  trackMain.textContent = `${track.artist} - ${track.title} - ${track.key} - ${track.bpm ? track.bpm + (track.absPath ? '.' + getFileExtension(track.absPath) : '') : ''}`;
+
+  // Genre line (above Length)
+  const trackGenre = document.createElement('span');
+  trackGenre.className = 'track-details';
+  if (track.genre) {
+    trackGenre.textContent = `Genre: ${track.genre}`;
+  } else {
+    trackGenre.textContent = '';
+  }
+
+  // Second line: Length: time, third line: Year: YYYY
+  const trackLength = document.createElement('span');
+  trackLength.className = 'track-details';
+  if (track.trackTime || track.time) {
+    trackLength.textContent = `Length: ${track.trackTime || track.time}`;
+  } else if (track.display) {
+    // Fallback: try to extract from display string
+    const match = track.display.match(/ - (\d{1,2}:\d{2}) -/);
+    trackLength.textContent = match ? `Length: ${match[1]}` : '';
+  }
+
+  const trackYear = document.createElement('span');
+  trackYear.className = 'track-details';
+  if (track.year) {
+    trackYear.textContent = `Year: ${track.year}`;
+  } else {
+    trackYear.textContent = '';
+  }
+
+  // Container for all lines
+  const nameContainer = document.createElement('div');
+  nameContainer.appendChild(trackMain);
+  // No <br> between details for zero spacing
+  nameContainer.appendChild(trackGenre);
+  nameContainer.appendChild(trackLength);
+  nameContainer.appendChild(trackYear);
 
   // Icons below
   const iconRow = document.createElement('div');
@@ -461,7 +523,7 @@ function createTrackHTML(track) {
   addPreviewButtonToRow(iconRow, track);
 
   // Add name and icons in order
-  trackDiv.appendChild(trackName);
+  trackDiv.appendChild(nameContainer);
   trackDiv.appendChild(iconRow);
 
   // Add tags (if any) as a separate row below

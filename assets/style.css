@@ -396,13 +396,26 @@ body.light-mode .export-btn:hover {
   margin-bottom: 12px;
 }
 
-.track-name {
+.track-main {
   display: block;
   font-size: 1.08em;
   font-weight: 600;
-  margin-bottom: 10px;
-  line-height: 1.3;
+  margin-bottom: 0;
+  line-height: 1.2;
   word-break: break-word;
+}
+
+.track-details {
+  display: block;
+  font-size: 0.98em;
+  color: #bbb;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  line-height: 1.02;
+}
+
+.track-name {
+  margin-bottom: 0;
 }
 
 .track-icons-row {
