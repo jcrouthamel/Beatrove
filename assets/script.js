@@ -1265,3 +1265,44 @@ if (document.readyState === 'loading') {
 } else {
   attachThemeToggle();
 }
+
+// (Removed per user request)
+
+// --- Auto-load tracklist.csv if present ---
+window.addEventListener('DOMContentLoaded', function() {
+  fetch('tracklist.csv')
+    .then(response => {
+      if (!response.ok) throw new Error('No CSV found');
+      return response.text();
+    })
+    .then(text => {
+      // Use existing processTracklist logic
+      const result = processTracklist(text, 'tracklist.csv');
+      window.grouped = result.grouped;
+      window.totalTracks = result.totalTracks;
+      window.duplicateTracks = result.duplicateTracks;
+      window.tracksForUI = result.tracksForUI;
+      // Update BPM filter options
+      if (window.bpmFilter) {
+        window.bpmFilter.innerHTML = '<option value="">All BPMs</option>';
+        Array.from(result.allBPMs).sort((a, b) => Number(a) - Number(b)).forEach(bpm => {
+          const option = document.createElement('option');
+          option.value = bpm;
+          option.textContent = bpm + ' BPM';
+          window.bpmFilter.appendChild(option);
+        });
+      }
+      // Update Key filter options
+      if (window.keyFilter) {
+        window.keyFilter.innerHTML = '<option value="">All Keys</option>';
+        Array.from(result.allKeys).sort().forEach(key => {
+          const option = document.createElement('option');
+          option.value = key;
+          option.textContent = key;
+          window.keyFilter.appendChild(option);
+        });
+      }
+      safeRender();
+    })
+    .catch(() => {/* Silently ignore if not present */});
+});

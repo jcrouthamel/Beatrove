@@ -776,6 +776,8 @@ body.light-mode .custom-audio-player::-webkit-media-controls-panel {
   background: #f5f5f5;
 }
 
+/* Album art styles removed per user request */
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   body {
