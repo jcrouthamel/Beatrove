@@ -18,6 +18,33 @@ body.light-mode {
   --input-bg: #fff;
 }
 
+.logo-container {
+  text-align: center;
+  margin: 0 0 20px 0;
+  padding: 20px 0;
+}
+
+.logo-image {
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* Responsive logo sizing */
+@media (max-width: 768px) {
+  .logo-image {
+    max-width: 140px;
+  }
+}
+
+@media (max-width: 480px) {
+  .logo-image {
+    max-width: 100px;
+  }
+}
+
 h1 {
   text-align: center;
   margin: 0;
