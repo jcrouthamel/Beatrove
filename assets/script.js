@@ -1,6 +1,80 @@
+// ============= SECURITY UTILITIES =============
+
+// Sanitize text content to prevent XSS
+function sanitizeText(text) {
+  if (typeof text !== 'string') return '';
+  // Only sanitize the most dangerous characters, leave & alone for artist names
+  return text.replace(/[<>"']/g, function(match) {
+    const escape = {
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return escape[match] || match;
+  });
+}
+
+// Sanitize for HTML insertion (more aggressive)
+function sanitizeForHTML(text) {
+  if (typeof text !== 'string') return '';
+  return text.replace(/[<>"'&]/g, function(match) {
+    const escape = {
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+      '&': '&amp;'
+    };
+    return escape[match] || match;
+  });
+}
+
+// Create safe DOM element with text content
+function createSafeElement(tagName, textContent = '', className = '') {
+  const element = document.createElement(tagName);
+  if (className) element.className = className;
+  if (textContent) element.textContent = textContent;
+  return element;
+}
+
+// Validate file extension
+function validateFileExtension(filename, allowedExtensions = ['.csv', '.txt', '.yaml', '.yml']) {
+  if (!filename || typeof filename !== 'string') return false;
+  const parts = filename.split('.');
+  if (parts.length < 2) return false;
+  const extension = '.' + parts.pop().toLowerCase();
+  return allowedExtensions.includes(extension);
+}
+
+// Validate BPM range
+function validateBPM(bpm) {
+  const bpmNum = parseInt(bpm, 10);
+  return !isNaN(bpmNum) && bpmNum >= 60 && bpmNum <= 200;
+}
+
+// Validate year
+function validateYear(year) {
+  if (!year) return true; // Optional field
+  const yearNum = parseInt(year, 10);
+  return !isNaN(yearNum) && yearNum >= 1900 && yearNum <= 2030;
+}
+
+// Safe error display
+function displayError(container, message) {
+  if (!container) return;
+  const errorDiv = createSafeElement('div', `Error: ${sanitizeForHTML(message)}`, 'no-results');
+  container.innerHTML = '';
+  container.appendChild(errorDiv);
+}
+
+// ============= ORIGINAL UTILITIES =============
+
 // Utility to detect file extension
 function getFileExtension(filename) {
-  return filename.split('.').pop().toLowerCase();
+  if (!filename || typeof filename !== 'string') return '';
+  const parts = filename.split('.');
+  return parts.length > 1 ? parts.pop().toLowerCase() : '';
 }
 
 // Parse CSV line (simple, not RFC-complete)
@@ -11,14 +85,31 @@ function parseCSVLine(line) {
 
 // Function to process tracklist data
 function processTracklist(text, fileName) {
-  let lines = text.split('\n').filter(line => line.trim() !== '');
-  const grouped = {};
-  const allBPMs = new Set();
-  const allKeys = new Set();
-  let totalTracks = 0;
-  const tracksForUI = [];
-  const seenTracks = new Map(); // Map of duplicateKey -> [trackObj]
-  const duplicateTracks = [];
+  try {
+    // Input validation
+    if (!text || typeof text !== 'string') {
+      throw new Error('Invalid file content');
+    }
+    
+    // Skip file extension validation for auto-loaded tracklist.csv
+    if (fileName !== 'tracklist.csv' && !validateFileExtension(fileName)) {
+      throw new Error('Invalid file type. Please use CSV, TXT, YAML, or YML files.');
+    }
+    
+    let lines = text.split('\n').filter(line => line.trim() !== '');
+    
+    if (lines.length === 0) {
+      throw new Error('File is empty or contains no valid data');
+    }
+    
+    const grouped = {};
+    const allBPMs = new Set();
+    const allKeys = new Set();
+    let totalTracks = 0;
+    const tracksForUI = [];
+    const seenTracks = new Map(); // Map of duplicateKey -> [trackObj]
+    const duplicateTracks = [];
+    const errors = [];
 
   // Hide any previous warning
   const warningDiv = document.getElementById('duplicate-warning');
@@ -38,12 +129,35 @@ function processTracklist(text, fileName) {
       console.log('Skipping line (not enough parts):', line);
       return;
     }
-    const artist = parts[0];
-    const title = parts[1];
-    const key = parts[2];
-    const bpmExt = parts[3];
-    const trackTime = parts[4];
-    const year = parts[5];
+    // Clean and trim input parts (minimal sanitization for data integrity)
+    let artist = (parts[0]?.trim() || '');
+    let title = (parts[1]?.trim() || '');
+    let key = (parts[2]?.trim() || '');
+    let bpmExt = (parts[3]?.trim() || '');
+    let trackTime = (parts[4]?.trim() || '');
+    let year = (parts[5]?.trim() || '');
+    
+    // Validate required fields (be more lenient for auto-loaded files)
+    if (!artist && !title) {
+      errors.push(`Line ${index + 1}: Missing both artist and title`);
+      return;
+    }
+    
+    // Use fallback values for missing fields
+    if (!artist) {
+      console.warn(`Line ${index + 1}: Missing artist field, using 'Unknown Artist'`);
+      artist = 'Unknown Artist';
+    }
+    if (!title) {
+      console.warn(`Line ${index + 1}: Missing title field, using 'Unknown Title'`);
+      title = 'Unknown Title';
+    }
+    if (!key) {
+      console.warn(`Line ${index + 1}: Missing key field, using empty string`);
+    }
+    if (!bpmExt) {
+      console.warn(`Line ${index + 1}: Missing BPM field, using empty string`);
+    }
     let genre = '';
     let absPath = '';
     if (parts.length === 7) {
@@ -73,6 +187,17 @@ function processTracklist(text, fileName) {
     // Extract BPM from the format (e.g., "127.flac")
     const bpmMatch = bpmExt.match(/(\d{2,3})/);
     const bpm = bpmMatch ? bpmMatch[1] : '';
+    
+    // Validate BPM (warn but don't reject)
+    if (bpm && !validateBPM(bpm)) {
+      console.warn(`Line ${index + 1}: Unusual BPM value (${bpm}). Expected 60-200.`);
+    }
+    
+    // Validate year (warn but don't reject)
+    if (year && !validateYear(year)) {
+      console.warn(`Line ${index + 1}: Unusual year (${year}). Expected 1900-2030.`);
+    }
+    
     if (bpm) allBPMs.add(bpm);
     if (key) allKeys.add(key);
 
@@ -81,6 +206,7 @@ function processTracklist(text, fileName) {
     const yearMatch = year && year.match(/(19\d{2}|20\d{2}|2025)/);
     if (yearMatch) yearNorm = yearMatch[1];
 
+    // Create safe display string
     const display = `${artist} - ${title} - ${key} - ${bpmExt} - ${trackTime} - ${year}` + (genre ? ` - ${genre}` : '');
     const trackObj = {
       display: display,
@@ -112,6 +238,17 @@ function processTracklist(text, fileName) {
     }
   });
 
+  // Display validation errors if any (only for manual uploads)
+  if (errors.length > 0) {
+    console.warn('Validation errors found:', errors);
+    // Only show alert for manual uploads, not auto-loaded files
+    if (fileName !== 'tracklist.csv') {
+      const errorSummary = errors.slice(0, 5).join('\n');
+      const moreErrors = errors.length > 5 ? `\n... and ${errors.length - 5} more errors` : '';
+      alert(`Warning: Found ${errors.length} validation errors:\n${errorSummary}${moreErrors}`);
+    }
+  }
+
   // Debug final results
   const groupedKeys = Object.keys(grouped);
   let sampleArtist = null;
@@ -125,49 +262,299 @@ function processTracklist(text, fileName) {
     artistCount: groupedKeys.length,
     sampleArtist,
     sampleTracks,
-    duplicateTracks
+    duplicateTracks,
+    validationErrors: errors.length
   });
 
   return { grouped, allBPMs, allKeys, totalTracks, tracksForUI, duplicateTracks };
+  
+  } catch (error) {
+    console.error('Error processing tracklist:', error);
+    throw error;
+  }
 }
 
 // Defensive: Ensure render is only called after DOMContentLoaded and grouped is available
 function safeRender() {
   try {
-    if (!window.grouped || typeof window.grouped !== 'object') {
-      document.getElementById('columns').innerHTML = '<div class="no-results">No track data loaded.</div>';
+    // Use AppState data if available, fallback to window references for compatibility
+    const dataSource = AppState?.data || window;
+    const groupedData = dataSource.grouped || window.grouped;
+    const duplicateData = dataSource.duplicateTracks || window.duplicateTracks;
+    
+    if (!groupedData || typeof groupedData !== 'object') {
+      const container = AppState?.elements?.container || document.getElementById('columns');
+      if (container) {
+        displayError(container, 'No track data loaded.');
+      }
       renderDuplicateList([]);
       return;
     }
     render();
     // Also render duplicates if available
-    if (window.duplicateTracks) {
-      renderDuplicateList(window.duplicateTracks);
+    if (duplicateData) {
+      renderDuplicateList(duplicateData);
     }
   } catch (err) {
-    document.getElementById('columns').innerHTML = '<div class="no-results">Error: ' + err.message + '</div>';
+    const container = AppState?.elements?.container || document.getElementById('columns');
+    if (container) {
+      displayError(container, err.message);
+    }
     renderDuplicateList([]);
     console.error('Render error:', err);
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Define filter and container elements inside DOMContentLoaded
-  window.bpmFilter = document.getElementById('bpm-filter');
-  window.keyFilter = document.getElementById('key-filter');
-  window.container = document.getElementById('columns');
-  window.statsElement = document.getElementById('stats');
-  window.sortSelect = document.getElementById('sort-select');
+// ============= APPLICATION STATE MANAGER =============
+const AppState = {
+  elements: {
+    bpmFilter: null,
+    keyFilter: null,
+    container: null,
+    statsElement: null,
+    sortSelect: null
+  },
+  data: {
+    grouped: {},
+    totalTracks: 0,
+    duplicateTracks: [],
+    tracksForUI: [],
+    trackTags: {},
+    favoriteTracks: {},
+    playlists: {},
+    currentPlaylist: '',
+    showFavoritesOnly: false
+  },
+  eventListeners: new Map(),
+  audioResources: new Set(),
+  
+  // Performance optimization caches
+  cache: {
+    filterResults: new Map(),
+    sortResults: new Map(),
+    lastFilterHash: null,
+    lastSortHash: null,
+    domUpdateQueue: [],
+    isUpdating: false
+  }
+};
 
-  // Only call safeRender after DOM is ready
+// ============= MEMOIZATION UTILITIES =============
+
+function createHash(obj) {
+  return JSON.stringify(obj);
+}
+
+function memoize(fn, cache, keyGenerator) {
+  return function(...args) {
+    const key = keyGenerator ? keyGenerator(...args) : createHash(args);
+    
+    if (cache.has(key)) {
+      return cache.get(key);
+    }
+    
+    const result = fn.apply(this, args);
+    
+    // Limit cache size to prevent memory issues
+    if (cache.size > 50) {
+      const firstKey = cache.keys().next().value;
+      cache.delete(firstKey);
+    }
+    
+    cache.set(key, result);
+    return result;
+  };
+}
+
+function clearFilterCache() {
+  AppState.cache.filterResults.clear();
+  AppState.cache.sortResults.clear();
+  AppState.cache.lastFilterHash = null;
+  AppState.cache.lastSortHash = null;
+}
+
+// Clear cache when data changes
+function invalidateCache(reason = 'data-change') {
+  clearFilterCache();
+  console.log(`Cache invalidated: ${reason}`);
+}
+
+// ============= DOM BATCHING UTILITIES =============
+
+function queueDOMUpdate(updateFn) {
+  AppState.cache.domUpdateQueue.push(updateFn);
+  
+  if (!AppState.cache.isUpdating) {
+    AppState.cache.isUpdating = true;
+    requestAnimationFrame(flushDOMUpdates);
+  }
+}
+
+function flushDOMUpdates() {
+  const startTime = performance.now();
+  
+  // Process all queued updates in a single frame
+  while (AppState.cache.domUpdateQueue.length > 0) {
+    const updateFn = AppState.cache.domUpdateQueue.shift();
+    updateFn();
+    
+    // Yield if we've been processing for too long (>16ms for 60fps)
+    if (performance.now() - startTime > 16) {
+      if (AppState.cache.domUpdateQueue.length > 0) {
+        requestAnimationFrame(flushDOMUpdates);
+        return;
+      }
+    }
+  }
+  
+  AppState.cache.isUpdating = false;
+}
+
+// ============= EVENT LISTENER MANAGEMENT =============
+function addManagedEventListener(element, event, handler, key) {
+  if (!element) return;
+  
+  // Remove existing listener if present
+  removeManagedEventListener(key);
+  
+  element.addEventListener(event, handler);
+  AppState.eventListeners.set(key, { element, event, handler });
+}
+
+function removeManagedEventListener(key) {
+  if (AppState.eventListeners.has(key)) {
+    const { element, event, handler } = AppState.eventListeners.get(key);
+    element.removeEventListener(event, handler);
+    AppState.eventListeners.delete(key);
+  }
+}
+
+function cleanupAllEventListeners() {
+  AppState.eventListeners.forEach(({ element, event, handler }) => {
+    element.removeEventListener(event, handler);
+  });
+  AppState.eventListeners.clear();
+  console.log('Cleaned up all event listeners');
+}
+
+// ============= AUDIO RESOURCE MANAGEMENT =============
+function addAudioResource(resource) {
+  AppState.audioResources.add(resource);
+}
+
+function removeAudioResource(resource) {
+  if (AppState.audioResources.has(resource)) {
+    if (resource.src && resource.src.startsWith('blob:')) {
+      URL.revokeObjectURL(resource.src);
+    }
+    if (resource.parentElement) {
+      resource.parentElement.remove();
+    }
+    AppState.audioResources.delete(resource);
+  }
+}
+
+function cleanupAllAudioResources() {
+  AppState.audioResources.forEach(resource => {
+    if (resource.src && resource.src.startsWith('blob:')) {
+      URL.revokeObjectURL(resource.src);
+    }
+    if (resource.parentElement) {
+      resource.parentElement.remove();
+    }
+  });
+  AppState.audioResources.clear();
+  console.log('Cleaned up all audio resources');
+}
+
+// ============= APPLICATION INITIALIZATION =============
+function initializeApp() {
+  // Define filter and container elements
+  AppState.elements.bpmFilter = document.getElementById('bpm-filter');
+  AppState.elements.keyFilter = document.getElementById('key-filter');
+  AppState.elements.container = document.getElementById('columns');
+  AppState.elements.statsElement = document.getElementById('stats');
+  AppState.elements.sortSelect = document.getElementById('sort-select');
+  
+  // Set up legacy global references for backward compatibility
+  window.bpmFilter = AppState.elements.bpmFilter;
+  window.keyFilter = AppState.elements.keyFilter;
+  window.container = AppState.elements.container;
+  window.statsElement = AppState.elements.statsElement;
+  window.sortSelect = AppState.elements.sortSelect;
+  
+  // Load stored data
+  try {
+    AppState.data.trackTags = JSON.parse(localStorage.getItem('trackTags') || '{}');
+    AppState.data.favoriteTracks = JSON.parse(localStorage.getItem('favoriteTracks') || '{}');
+    AppState.data.playlists = JSON.parse(localStorage.getItem('playlists') || '{}');
+    AppState.data.currentPlaylist = localStorage.getItem('currentPlaylist') || '';
+  } catch (error) {
+    console.error('Error loading stored data:', error);
+  }
+  
+  // Set up legacy global references for stored data
+  window.trackTags = AppState.data.trackTags;
+  window.favoriteTracks = AppState.data.favoriteTracks;
+  window.playlists = AppState.data.playlists;
+  window.currentPlaylist = AppState.data.currentPlaylist;
+  window.showFavoritesOnly = AppState.data.showFavoritesOnly;
+  
+  // Attach event listeners with proper cleanup tracking
+  const searchElement = document.getElementById('search');
+  const yearElement = document.getElementById('year-search');
+  
+  addManagedEventListener(searchElement, 'input', safeRender, 'search-input');
+  
+  // Add debugging for BPM filter
+  console.log('BPM Filter element:', AppState.elements.bpmFilter);
+  if (AppState.elements.bpmFilter) {
+    console.log('BPM Filter options:', AppState.elements.bpmFilter.innerHTML);
+  }
+  
+  addManagedEventListener(AppState.elements.bpmFilter, 'change', function(event) {
+    console.log('BPM Filter changed to:', event.target.value);
+    safeRender();
+  }, 'bpm-filter');
+  
+  addManagedEventListener(AppState.elements.keyFilter, 'change', safeRender, 'key-filter');
+  addManagedEventListener(AppState.elements.sortSelect, 'change', safeRender, 'sort-select');
+  addManagedEventListener(yearElement, 'input', safeRender, 'year-search');
+  
+  // Initial render
   safeRender();
+}
 
-  // Attach all event listeners using safeRender
-  document.getElementById('search').addEventListener('input', safeRender);
-  window.bpmFilter.addEventListener('change', safeRender);
-  window.keyFilter.addEventListener('change', safeRender);
-  if (window.sortSelect) {
-    window.sortSelect.addEventListener('change', safeRender);
+// ============= CLEANUP FUNCTION =============
+function cleanupApp() {
+  cleanupAllEventListeners();
+  cleanupAllAudioResources();
+  
+  // Clear global references
+  delete window.bpmFilter;
+  delete window.keyFilter;
+  delete window.container;
+  delete window.statsElement;
+  delete window.sortSelect;
+  delete window.trackTags;
+  delete window.favoriteTracks;
+  delete window.playlists;
+  delete window.currentPlaylist;
+  delete window.showFavoritesOnly;
+  
+  console.log('Application cleanup complete');
+}
+
+// ============= PAGE LIFECYCLE =============
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+// Cleanup when page is about to unload
+window.addEventListener('beforeunload', cleanupApp);
+
+// Cleanup when page becomes hidden (mobile/tab switching)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    cleanupAllAudioResources(); // Stop audio when page hidden
   }
 });
 
@@ -178,21 +565,49 @@ if (uploadInput) {
     const file = e.target.files[0];
     if (!file) return;
     
+    // Validate file before processing
+    if (!validateFileExtension(file.name)) {
+      alert('Invalid file type. Please select a CSV, TXT, YAML, or YML file.');
+      e.target.value = ''; // Clear the input
+      return;
+    }
+    
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File is too large. Please select a file smaller than 10MB.');
+      e.target.value = ''; // Clear the input
+      return;
+    }
+    
     const reader = new FileReader();
+    
+    reader.onerror = function() {
+      alert('Error reading file. Please try again.');
+      e.target.value = ''; // Clear the input
+    };
+    
     reader.onload = function(evt) {
-      const text = evt.target.result;
-      console.log('File loaded, processing...');
-      
-      const result = processTracklist(text, file.name);
-      console.log('Process result:', {
-        totalTracks: result.totalTracks,
-        artistCount: Object.keys(result.grouped).length
-      });
-      
-      window.grouped = result.grouped;
-      window.totalTracks = result.totalTracks;
-      window.duplicateTracks = result.duplicateTracks;
-      window.tracksForUI = result.tracksForUI;
+      try {
+        const text = evt.target.result;
+        console.log('File loaded, processing...');
+        
+        const result = processTracklist(text, file.name);
+        console.log('Process result:', {
+          totalTracks: result.totalTracks,
+          artistCount: Object.keys(result.grouped).length
+        });
+        
+        window.grouped = result.grouped;
+        window.totalTracks = result.totalTracks;
+        window.duplicateTracks = result.duplicateTracks;
+        window.tracksForUI = result.tracksForUI;
+        
+      } catch (error) {
+        console.error('Error processing file:', error);
+        alert(`Error processing file: ${error.message}`);
+        e.target.value = ''; // Clear the input
+        return;
+      }
       
       // Update BPM filter options
       if (window.bpmFilter) {
@@ -244,6 +659,15 @@ const render = () => {
   const tagSearch = tagDropdown ? tagDropdown.value.trim().toLowerCase() : '';
   const sortValue = window.sortSelect?.value || 'name-asc';
   const yearSearch = document.getElementById('year-search')?.value.trim();
+  
+  // Debug logging for filter values
+  console.log('Render filter values:', { 
+    search, 
+    selectedBPM, 
+    selectedKey, 
+    bpmFilterElement: window.bpmFilter,
+    bpmFilterValue: window.bpmFilter?.value
+  });
   
   let yearMin = null, yearMax = null;
   if (yearSearch) {
@@ -396,7 +820,9 @@ const render = () => {
 
   // Show no results message if needed
   if (filteredTracks.length === 0 && (search || selectedBPM || selectedKey || tagSearch || window.showFavoritesOnly || yearSearch)) {
-    window.container.innerHTML = '<div class="no-results">No tracks found matching your filters.</div>';
+    const noResultsDiv = createSafeElement('div', 'No tracks found matching your filters.', 'no-results');
+    window.container.innerHTML = '';
+    window.container.appendChild(noResultsDiv);
   }
   renderAZBar();
 };
@@ -544,19 +970,15 @@ function createTrackHTML(track) {
 }
 
 // --- Favorite/Starred Tracks System ---
-let favoriteTracks = JSON.parse(localStorage.getItem('favoriteTracks') || '{}');
-window.favoriteTracks = favoriteTracks;
-window.showFavoritesOnly = false;
-
 function toggleFavorite(trackDisplay) {
-  favoriteTracks = JSON.parse(localStorage.getItem('favoriteTracks') || '{}');
-  if (favoriteTracks[trackDisplay]) {
-    delete favoriteTracks[trackDisplay];
+  if (AppState.data.favoriteTracks[trackDisplay]) {
+    delete AppState.data.favoriteTracks[trackDisplay];
   } else {
-    favoriteTracks[trackDisplay] = true;
+    AppState.data.favoriteTracks[trackDisplay] = true;
   }
-  localStorage.setItem('favoriteTracks', JSON.stringify(favoriteTracks));
-  window.favoriteTracks = favoriteTracks;
+  
+  localStorage.setItem('favoriteTracks', JSON.stringify(AppState.data.favoriteTracks));
+  window.favoriteTracks = AppState.data.favoriteTracks; // Keep legacy reference
   safeRender();
 }
 
@@ -564,32 +986,51 @@ function toggleFavorite(trackDisplay) {
 function setupFavoritesToggle() {
   const btn = document.getElementById('favorites-toggle-btn');
   if (!btn) return;
-  btn.onclick = function() {
-    window.showFavoritesOnly = !window.showFavoritesOnly;
-    btn.classList.toggle('active', window.showFavoritesOnly);
+  
+  const handler = function() {
+    AppState.data.showFavoritesOnly = !AppState.data.showFavoritesOnly;
+    window.showFavoritesOnly = AppState.data.showFavoritesOnly; // Keep legacy reference
+    btn.classList.toggle('active', AppState.data.showFavoritesOnly);
+    
+    // Invalidate cache since filter changed
+    invalidateCache('favorites-filter-toggle');
     safeRender();
   };
+  
+  addManagedEventListener(btn, 'click', handler, 'favorites-toggle');
 }
+
 window.addEventListener('DOMContentLoaded', setupFavoritesToggle);
 
 // --- Tagging System ---
-let trackTags = JSON.parse(localStorage.getItem('trackTags') || '{}');
-window.trackTags = trackTags;
+// trackTags now managed through AppState.data.trackTags
 
 function showTagInput(track, anchorElement) {
   // Remove any existing popup
   document.querySelectorAll('.tag-popup').forEach(el => el.remove());
 
-  // Create popup
+  // Create popup safely
   const popup = document.createElement('div');
   popup.className = 'tag-popup';
   popup.style.position = 'absolute';
   popup.style.zIndex = 1000;
-  popup.innerHTML = `
-    <input type="text" id="tag-input-field" placeholder="Add tag (comma separated)" style="width: 180px;" />
-    <button id="save-tag-btn">Save</button>
-    <button id="cancel-tag-btn">Cancel</button>
-  `;
+  
+  // Create elements safely instead of using innerHTML
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.id = 'tag-input-field';
+  input.placeholder = 'Add tag (comma separated)';
+  input.style.width = '180px';
+  
+  const saveBtn = createSafeElement('button', 'Save');
+  saveBtn.id = 'save-tag-btn';
+  
+  const cancelBtn = createSafeElement('button', 'Cancel');
+  cancelBtn.id = 'cancel-tag-btn';
+  
+  popup.appendChild(input);
+  popup.appendChild(saveBtn);
+  popup.appendChild(cancelBtn);
 
   // Position popup near the anchor
   const rect = anchorElement.getBoundingClientRect();
@@ -600,17 +1041,32 @@ function showTagInput(track, anchorElement) {
 
   // Fill with existing tags
   const field = popup.querySelector('#tag-input-field');
-  const existingTags = (window.trackTags[track.display] || []).join(', ');
+  const existingTags = (AppState.data.trackTags[track.display] || []).join(', ');
   field.value = existingTags;
   field.focus();
 
   // Save handler
   popup.querySelector('#save-tag-btn').onclick = function() {
-    const tags = field.value.split(',').map(t => t.trim()).filter(Boolean);
-    window.trackTags[track.display] = tags;
-    localStorage.setItem('trackTags', JSON.stringify(window.trackTags));
-    popup.remove();
-    safeRender();
+    try {
+      const tags = field.value.split(',').map(t => t.trim()).filter(Boolean);
+      // Validate tags (no dangerous characters, reasonable length)
+      const validTags = tags.filter(tag => {
+        return tag.length <= 50 && !/[<>"']/.test(tag);
+      });
+      
+      if (validTags.length !== tags.length) {
+        alert('Some tags were invalid and have been removed. Tags can only contain letters, numbers, spaces, hyphens, and underscores.');
+      }
+      
+      AppState.data.trackTags[track.display] = validTags;
+      window.trackTags = AppState.data.trackTags; // Keep legacy reference
+      localStorage.setItem('trackTags', JSON.stringify(AppState.data.trackTags));
+      popup.remove();
+      safeRender();
+    } catch (error) {
+      console.error('Error saving tags:', error);
+      alert('Error saving tags. Please try again.');
+    }
   };
   // Cancel handler
   popup.querySelector('#cancel-tag-btn').onclick = function() {
@@ -630,17 +1086,15 @@ function showTagInput(track, anchorElement) {
 // --- End Tagging System ---
 
 // --- Playlist System ---
-let playlists = JSON.parse(localStorage.getItem('playlists') || '{}');
-let currentPlaylist = localStorage.getItem('currentPlaylist') || '';
-window.playlists = playlists;
-window.currentPlaylist = currentPlaylist;
+// playlists and currentPlaylist now managed through AppState.data
 
 function savePlaylists() {
-  localStorage.setItem('playlists', JSON.stringify(playlists));
+  window.playlists = AppState.data.playlists; // Keep legacy reference
+  localStorage.setItem('playlists', JSON.stringify(AppState.data.playlists));
 }
 function setCurrentPlaylist(name) {
-  currentPlaylist = name;
-  window.currentPlaylist = name;
+  AppState.data.currentPlaylist = name;
+  window.currentPlaylist = name; // Keep legacy reference
   localStorage.setItem('currentPlaylist', name);
   updatePlaylistDropdown();
   updatePlaylistButtonStates();
@@ -649,17 +1103,17 @@ function updatePlaylistDropdown() {
   const dropdown = document.getElementById('playlist-select');
   if (!dropdown) return;
   dropdown.innerHTML = '';
-  Object.keys(playlists).forEach(name => {
+  Object.keys(AppState.data.playlists).forEach(name => {
     const opt = document.createElement('option');
     opt.value = name;
     opt.textContent = name;
-    if (name === currentPlaylist) opt.selected = true;
+    if (name === AppState.data.currentPlaylist) opt.selected = true;
     dropdown.appendChild(opt);
   });
 }
 function createPlaylist(name) {
-  if (!playlists[name]) {
-    playlists[name] = [];
+  if (!AppState.data.playlists[name]) {
+    AppState.data.playlists[name] = [];
     savePlaylists();
     setCurrentPlaylist(name);
     updatePlaylistDropdown();
@@ -667,10 +1121,10 @@ function createPlaylist(name) {
   }
 }
 function deletePlaylist(name) {
-  delete playlists[name];
+  delete AppState.data.playlists[name];
   savePlaylists();
-  if (currentPlaylist === name) {
-    currentPlaylist = '';
+  if (AppState.data.currentPlaylist === name) {
+    AppState.data.currentPlaylist = '';
     window.currentPlaylist = '';
     localStorage.removeItem('currentPlaylist');
   }
@@ -678,11 +1132,11 @@ function deletePlaylist(name) {
   updatePlaylistButtonStates();
 }
 function renamePlaylist(oldName, newName) {
-  if (!playlists[oldName] || playlists[newName]) return;
-  playlists[newName] = playlists[oldName];
-  delete playlists[oldName];
+  if (!AppState.data.playlists[oldName] || AppState.data.playlists[newName]) return;
+  AppState.data.playlists[newName] = AppState.data.playlists[oldName];
+  delete AppState.data.playlists[oldName];
   savePlaylists();
-  if (currentPlaylist === oldName) setCurrentPlaylist(newName);
+  if (AppState.data.currentPlaylist === oldName) setCurrentPlaylist(newName);
   updatePlaylistDropdown();
   updatePlaylistButtonStates();
 }
@@ -693,7 +1147,7 @@ function updatePlaylistButtonStates() {
   const deleteBtn = document.getElementById('delete-playlist-btn');
   const exportBtn = document.getElementById('export-playlist-btn');
   const selected = dropdown && dropdown.value;
-  const hasTracks = selected && playlists[selected] && playlists[selected].length > 0;
+  const hasTracks = selected && AppState.data.playlists[selected] && AppState.data.playlists[selected].length > 0;
   if (renameBtn) renameBtn.disabled = !selected;
   if (deleteBtn) deleteBtn.disabled = !selected;
   if (exportBtn) exportBtn.disabled = !hasTracks;
@@ -731,8 +1185,8 @@ function attachPlaylistHandlers() {
   const deleteBtn = document.getElementById('delete-playlist-btn');
   if (deleteBtn) {
     deleteBtn.onclick = function() {
-      if (currentPlaylist && confirm('Delete playlist?')) {
-        deletePlaylist(currentPlaylist);
+      if (AppState.data.currentPlaylist && confirm('Delete playlist?')) {
+        deletePlaylist(AppState.data.currentPlaylist);
         updatePlaylistDropdown();
         setCurrentPlaylist('');
         updatePlaylistButtonStates();
@@ -742,14 +1196,14 @@ function attachPlaylistHandlers() {
   const renameBtn = document.getElementById('rename-playlist-btn');
   if (renameBtn) {
     renameBtn.onclick = function() {
-      if (!currentPlaylist) return;
-      const newName = prompt('New playlist name?', currentPlaylist);
-      if (!newName || newName === currentPlaylist) return;
-      if (playlists[newName]) {
+      if (!AppState.data.currentPlaylist) return;
+      const newName = prompt('New playlist name?', AppState.data.currentPlaylist);
+      if (!newName || newName === AppState.data.currentPlaylist) return;
+      if (AppState.data.playlists[newName]) {
         alert('A playlist with this name already exists!');
         return;
       }
-      renamePlaylist(currentPlaylist, newName);
+      renamePlaylist(AppState.data.currentPlaylist, newName);
       updatePlaylistDropdown();
       setCurrentPlaylist(newName);
       updatePlaylistButtonStates();
@@ -761,11 +1215,11 @@ function attachPlaylistHandlers() {
     exportBtn.onclick = function() {
       const dropdown = document.getElementById('playlist-select');
       const selected = dropdown && dropdown.value;
-      if (!selected || !playlists[selected] || playlists[selected].length === 0) {
+      if (!selected || !AppState.data.playlists[selected] || AppState.data.playlists[selected].length === 0) {
         alert('No playlist selected or playlist is empty!');
         return;
       }
-      const data = playlists[selected].join('\n');
+      const data = AppState.data.playlists[selected].join('\n');
       const blob = new Blob([data], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -797,18 +1251,52 @@ if (importPlaylistsBtn && importPlaylistsInput) {
   importPlaylistsInput.addEventListener('change', function(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      alert('Please select a valid JSON file.');
+      e.target.value = '';
+      return;
+    }
+    
+    // Check file size (2MB limit for playlist imports)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File is too large. Please select a file smaller than 2MB.');
+      e.target.value = '';
+      return;
+    }
+    
     const reader = new FileReader();
+    
+    reader.onerror = function() {
+      alert('Error reading file. Please try again.');
+      e.target.value = '';
+    };
+    
     reader.onload = function(evt) {
       try {
         const playlists = JSON.parse(evt.target.result);
         if (typeof playlists === 'object' && playlists !== null) {
-          localStorage.setItem('playlists', JSON.stringify(playlists));
+          // Sanitize playlist data
+          const sanitizedPlaylists = {};
+          Object.keys(playlists).forEach(key => {
+            if (Array.isArray(playlists[key])) {
+              const validTracks = playlists[key]
+                .map(track => sanitizeText(track))
+                .filter(Boolean);
+              if (validTracks.length > 0) {
+                sanitizedPlaylists[sanitizeText(key)] = validTracks;
+              }
+            }
+          });
+          localStorage.setItem('playlists', JSON.stringify(sanitizedPlaylists));
           alert('Playlists imported successfully!');
         } else {
           alert('Invalid playlist data.');
         }
       } catch (err) {
-        alert('Failed to import playlists: ' + err.message);
+        console.error('Playlist import error:', err);
+        alert(`Failed to import playlists: ${sanitizeText(err.message)}`);
       }
     };
     reader.readAsText(file);
@@ -821,11 +1309,11 @@ function attachExportAllHandler() {
   const btn = document.getElementById('export-all');
   if (btn) {
     btn.onclick = function() {
-      if (!window.playlists || Object.keys(window.playlists).length === 0) {
+      if (!AppState.data.playlists || Object.keys(AppState.data.playlists).length === 0) {
         alert('No playlists to export!');
         return;
       }
-      const data = JSON.stringify(window.playlists, null, 2);
+      const data = JSON.stringify(AppState.data.playlists, null, 2);
       const blob = new Blob([data], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -852,7 +1340,7 @@ function exportAll() {
   // Get tags
   let tags = window.trackTags || {};
   // Get playlists
-  let playlists = JSON.parse(localStorage.getItem('playlists') || '{}');
+  let playlists = AppState.data.playlists;
   // Get tracks (visible in UI)
   let tracks = [];
   if (window.tracksForUI && Array.isArray(window.tracksForUI)) {
@@ -892,35 +1380,104 @@ if (importAllInput) {
   importAllInput.addEventListener('change', function(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
+    
+    // Validate file type
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      alert('Please select a valid JSON file.');
+      e.target.value = '';
+      return;
+    }
+    
+    // Check file size (5MB limit for JSON imports)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File is too large. Please select a file smaller than 5MB.');
+      e.target.value = '';
+      return;
+    }
+    
     const reader = new FileReader();
+    
+    reader.onerror = function() {
+      alert('Error reading file. Please try again.');
+      e.target.value = '';
+    };
+    
     reader.onload = function(evt) {
       try {
         const data = JSON.parse(evt.target.result);
-        // Restore tracks
+        
+        // Validate JSON structure
+        if (!data || typeof data !== 'object') {
+          throw new Error('Invalid JSON format');
+        }
+        
+        // Restore tracks with validation
         if (Array.isArray(data.tracks)) {
-          window.tracksForUI = data.tracks;
+          // Sanitize track data
+          const sanitizedTracks = data.tracks.map(track => {
+            if (!track || typeof track !== 'object') return null;
+            return {
+              display: sanitizeText(track.display || ''),
+              absPath: sanitizeText(track.absPath || ''),
+              bpm: sanitizeText(track.bpm || ''),
+              key: sanitizeText(track.key || ''),
+              artist: sanitizeText(track.artist || ''),
+              title: sanitizeText(track.title || ''),
+              year: sanitizeText(track.year || ''),
+              trackTime: sanitizeText(track.trackTime || ''),
+              genre: sanitizeText(track.genre || '')
+            };
+          }).filter(Boolean);
+          
+          window.tracksForUI = sanitizedTracks;
           // Group by artist for window.grouped
           window.grouped = {};
-          data.tracks.forEach(track => {
+          sanitizedTracks.forEach(track => {
             if (!window.grouped[track.artist]) window.grouped[track.artist] = [];
             window.grouped[track.artist].push(track);
           });
         }
-        // Restore tags
+        
+        // Restore tags with validation
         if (data.tags && typeof data.tags === 'object') {
-          window.trackTags = data.tags;
+          const sanitizedTags = {};
+          Object.keys(data.tags).forEach(key => {
+            if (Array.isArray(data.tags[key])) {
+              const validTags = data.tags[key]
+                .map(tag => sanitizeText(tag))
+                .filter(tag => tag.length <= 50 && /^[a-zA-Z0-9\s\-_]+$/.test(tag));
+              if (validTags.length > 0) {
+                sanitizedTags[sanitizeText(key)] = validTags;
+              }
+            }
+          });
+          window.trackTags = sanitizedTags;
           localStorage.setItem('trackTags', JSON.stringify(window.trackTags));
         }
-        // Restore playlists
+        
+        // Restore playlists with validation
         if (data.playlists && typeof data.playlists === 'object') {
-          localStorage.setItem('playlists', JSON.stringify(data.playlists));
+          const sanitizedPlaylists = {};
+          Object.keys(data.playlists).forEach(key => {
+            if (Array.isArray(data.playlists[key])) {
+              const validTracks = data.playlists[key]
+                .map(track => sanitizeText(track))
+                .filter(Boolean);
+              if (validTracks.length > 0) {
+                sanitizedPlaylists[sanitizeText(key)] = validTracks;
+              }
+            }
+          });
+          localStorage.setItem('playlists', JSON.stringify(sanitizedPlaylists));
         }
+        
         // Update UI
         updateTagDropdown && updateTagDropdown();
         safeRender();
         alert('Import successful!');
       } catch (err) {
-        alert('Failed to import: ' + err.message);
+        console.error('Import error:', err);
+        alert(`Failed to import: ${sanitizeText(err.message)}`);
       }
     };
     reader.readAsText(file);
@@ -930,49 +1487,78 @@ if (importAllInput) {
 }
 
 // --- Audio Preview System ---
-let audioFileMap = {};
-let currentAudio = null;
-let audioCtx = null;
-let analyser = null;
-let sourceNode = null;
-let audioDataArray = null;
-let reactToAudio = false;
+const AudioManager = {
+  fileMap: {},
+  currentAudio: null,
+  audioCtx: null,
+  analyser: null,
+  sourceNode: null,
+  audioDataArray: null,
+  reactToAudio: false,
+  
+  cleanup() {
+    if (this.currentAudio) {
+      removeAudioResource(this.currentAudio);
+      this.currentAudio = null;
+    }
+    this.disconnectVisualizer();
+    if (this.audioCtx && this.audioCtx.state !== 'closed') {
+      this.audioCtx.close();
+    }
+    this.fileMap = {};
+    console.log('Audio manager cleanup complete');
+  },
+  
+  disconnectVisualizer() {
+    this.reactToAudio = false;
+    this.sourceNode = null;
+    this.analyser = null;
+    this.audioDataArray = null;
+    this.audioCtx = null;
+  }
+};
 
 async function connectAudioVisualizer(audioElem) {
-  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 64;
-  audioDataArray = new Uint8Array(analyser.frequencyBinCount);
-  sourceNode = audioCtx.createMediaElementSource(audioElem);
-  sourceNode.connect(analyser);
-  analyser.connect(audioCtx.destination);
-  reactToAudio = true;
+  AudioManager.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  AudioManager.analyser = AudioManager.audioCtx.createAnalyser();
+  AudioManager.analyser.fftSize = 64;
+  AudioManager.audioDataArray = new Uint8Array(AudioManager.analyser.frequencyBinCount);
+  AudioManager.sourceNode = AudioManager.audioCtx.createMediaElementSource(audioElem);
+  AudioManager.sourceNode.connect(AudioManager.analyser);
+  AudioManager.analyser.connect(AudioManager.audioCtx.destination);
+  AudioManager.reactToAudio = true;
   try {
-    await audioCtx.resume();
-    // For debugging: log state
-    // console.log('AudioContext state:', audioCtx.state);
+    await AudioManager.audioCtx.resume();
   } catch (e) {
     console.error('AudioContext resume failed:', e);
   }
 }
 
 function disconnectAudioVisualizer() {
-  reactToAudio = false;
-  sourceNode = null;
-  analyser = null;
-  audioDataArray = null;
-  audioCtx = null;
+  AudioManager.disconnectVisualizer();
 }
 
 async function playPreviewForTrack(track) {
-  // Try to find the file by filename from absPath
-  if (!track.absPath) return alert('No file path for this track.');
-  const fileName = track.absPath.split(/[\\/]/).pop().toLowerCase();
-  const file = audioFileMap[fileName];
-  if (!file) {
-    alert('Audio file not found in selected folder: ' + fileName);
-    return;
-  }
+  try {
+    // Try to find the file by filename from absPath
+    if (!track.absPath) {
+      alert('No file path for this track.');
+      return;
+    }
+    
+    const fileName = track.absPath.split(/[\\/]/).pop().toLowerCase();
+    const file = AudioManager.fileMap[fileName];
+    if (!file) {
+      alert(`Audio file not found in selected folder: ${sanitizeText(fileName)}`);
+      return;
+    }
+    
+    // Validate file type
+    const allowedAudioTypes = ['audio/mpeg', 'audio/wav', 'audio/flac', 'audio/ogg', 'audio/aiff'];
+    if (!allowedAudioTypes.includes(file.type) && !file.name.match(/\.(mp3|wav|flac|ogg|aiff)$/i)) {
+      alert('Unsupported audio file type.');
+      return;
+    }
   // Remove previous audio and visualizer, but do not close context
   if (currentAudio) {
     disconnectAudioVisualizer();
@@ -984,25 +1570,23 @@ async function playPreviewForTrack(track) {
     }
     currentAudio = null;
   }
-  const url = URL.createObjectURL(file);
-  // Create a container for track info and audio player
-  const container = document.createElement('div');
-  container.className = 'audio-player-container';
-  container.style.position = 'fixed';
-  container.style.left = '50%';
-  container.style.bottom = '80px';
-  container.style.transform = 'translateX(-50%)';
-  container.style.zIndex = 9999;
-  container.style.display = 'flex';
-  container.style.flexDirection = 'column';
-  container.style.alignItems = 'center';
-  container.style.gap = '8px';
+    const url = URL.createObjectURL(file);
+    // Create a container for track info and audio player
+    const container = document.createElement('div');
+    container.className = 'audio-player-container';
+    container.style.position = 'fixed';
+    container.style.left = '50%';
+    container.style.bottom = '80px';
+    container.style.transform = 'translateX(-50%)';
+    container.style.zIndex = 9999;
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.alignItems = 'center';
+    container.style.gap = '8px';
 
-  // Track info label
-  const label = document.createElement('div');
-  label.className = 'audio-player-label';
-  label.textContent = `${track.artist || ''} — ${track.title || ''}`;
-  container.appendChild(label);
+    // Track info label (sanitized)
+    const label = createSafeElement('div', `${track.artist || ''} — ${track.title || ''}`, 'audio-player-label');
+    container.appendChild(label);
 
   const audio = document.createElement('audio');
   audio.src = url;
@@ -1013,9 +1597,19 @@ async function playPreviewForTrack(track) {
 
   document.body.appendChild(container);
   currentAudio = audio;
-  audio.onended = () => { disconnectAudioVisualizer(); container.remove(); currentAudio = null; URL.revokeObjectURL(url); };
-  audio.onpause = () => disconnectAudioVisualizer();
-  await connectAudioVisualizer(audio);
+    audio.onended = () => { disconnectAudioVisualizer(); container.remove(); currentAudio = null; URL.revokeObjectURL(url); };
+    audio.onpause = () => disconnectAudioVisualizer();
+    audio.onerror = () => {
+      alert('Error playing audio file.');
+      container.remove();
+      currentAudio = null;
+      URL.revokeObjectURL(url);
+    };
+    await connectAudioVisualizer(audio);
+  } catch (error) {
+    console.error('Error playing preview:', error);
+    alert('Error playing audio preview.');
+  }
 }
 
 // --- Audio Preview: Retry logic for first click ---
@@ -1030,16 +1624,16 @@ function promptAudioFolderAndPreview(track) {
 
 function handleAudioFolderInput(e) {
   const files = Array.from(e.target.files);
-  audioFileMap = {};
+  AudioManager.fileMap = {};
   files.forEach(file => {
     // Map by filename only (case-insensitive)
-    audioFileMap[file.name.toLowerCase()] = file;
+    AudioManager.fileMap[file.name.toLowerCase()] = file;
   });
   alert('Audio files loaded! You can now preview tracks.');
   // If a preview was pending, play it now
-  if (pendingPreviewTrack) {
-    playPreviewForTrack(pendingPreviewTrack);
-    pendingPreviewTrack = null;
+  if (AudioManager.pendingPreviewTrack) {
+    playPreviewForTrack(AudioManager.pendingPreviewTrack);
+    AudioManager.pendingPreviewTrack = null;
   }
 }
 
@@ -1050,7 +1644,7 @@ function addPreviewButtonToRow(row, track) {
   btn.innerHTML = '▶️';
   btn.onclick = (e) => {
     e.stopPropagation();
-    if (!Object.keys(audioFileMap).length) {
+    if (!Object.keys(AudioManager.fileMap).length) {
       promptAudioFolderAndPreview(track); // Synchronous call
     } else {
       playPreviewForTrack(track);
@@ -1085,14 +1679,14 @@ function animateVisualizer() {
     ctx.fillRect(0, 0, w, h);
     ctx.globalAlpha = 1;
     let spectrum = [];
-    if (reactToAudio && analyser && audioDataArray) {
-      analyser.getByteFrequencyData(audioDataArray);
+    if (AudioManager.reactToAudio && AudioManager.analyser && AudioManager.audioDataArray) {
+      AudioManager.analyser.getByteFrequencyData(AudioManager.audioDataArray);
       for (let i = 0; i < barCount; i++) {
-        const idx = Math.floor(i * audioDataArray.length / barCount);
-        spectrum.push(audioDataArray[idx] / 255);
+        const idx = Math.floor(i * AudioManager.audioDataArray.length / barCount);
+        spectrum.push(AudioManager.audioDataArray[idx] / 255);
       }
     } else {
-      for (let i = 0; i < barCount; i++) spectrum.push(Math.random());
+      for (let i = 0; i < barCount; i++) spectrum.push(Math.random() * 0.3);
     }
     for (let i = 0; i < barCount; i++) {
       const amplitude = spectrum[i];
@@ -1194,13 +1788,32 @@ function renderDuplicateList(duplicateTracks) {
     container.innerHTML = '';
     return;
   }
-  let html = `<div style="color:#ffb300;font-weight:bold;margin-bottom:6px;">Duplicate Tracks Detected (${duplicateTracks.length}):</div>`;
-  html += '<ul style="max-height:200px;overflow:auto;background:#181818;padding:10px 16px 10px 22px;border-radius:8px;font-size:1em;">';
+  
+  // Create elements safely
+  container.innerHTML = '';
+  
+  const headerDiv = createSafeElement('div', `Duplicate Tracks Detected (${duplicateTracks.length}):`);
+  headerDiv.style.color = '#ffb300';
+  headerDiv.style.fontWeight = 'bold';
+  headerDiv.style.marginBottom = '6px';
+  
+  const ul = document.createElement('ul');
+  ul.style.maxHeight = '200px';
+  ul.style.overflow = 'auto';
+  ul.style.background = '#181818';
+  ul.style.padding = '10px 16px 10px 22px';
+  ul.style.borderRadius = '8px';
+  ul.style.fontSize = '1em';
+  
   duplicateTracks.forEach(track => {
-    html += `<li style='word-break:break-all;margin-bottom:3px;'>${track.display}</li>`;
+    const li = createSafeElement('li', track.display);
+    li.style.wordBreak = 'break-all';
+    li.style.marginBottom = '3px';
+    ul.appendChild(li);
   });
-  html += '</ul>';
-  container.innerHTML = html;
+  
+  container.appendChild(headerDiv);
+  container.appendChild(ul);
 }
 
 // --- Populate tag dropdown and handle filtering ---
@@ -1276,33 +1889,48 @@ window.addEventListener('DOMContentLoaded', function() {
       return response.text();
     })
     .then(text => {
-      // Use existing processTracklist logic
-      const result = processTracklist(text, 'tracklist.csv');
-      window.grouped = result.grouped;
-      window.totalTracks = result.totalTracks;
-      window.duplicateTracks = result.duplicateTracks;
-      window.tracksForUI = result.tracksForUI;
-      // Update BPM filter options
-      if (window.bpmFilter) {
-        window.bpmFilter.innerHTML = '<option value="">All BPMs</option>';
-        Array.from(result.allBPMs).sort((a, b) => Number(a) - Number(b)).forEach(bpm => {
-          const option = document.createElement('option');
-          option.value = bpm;
-          option.textContent = bpm + ' BPM';
-          window.bpmFilter.appendChild(option);
-        });
-      }
-      // Update Key filter options
-      if (window.keyFilter) {
-        window.keyFilter.innerHTML = '<option value="">All Keys</option>';
-        Array.from(result.allKeys).sort().forEach(key => {
-          const option = document.createElement('option');
-          option.value = key;
-          option.textContent = key;
-          window.keyFilter.appendChild(option);
-        });
+      try {
+        // Use existing processTracklist logic
+        const result = processTracklist(text, 'tracklist.csv');
+        window.grouped = result.grouped;
+        window.totalTracks = result.totalTracks;
+        window.duplicateTracks = result.duplicateTracks;
+        window.tracksForUI = result.tracksForUI;
+        
+        // Update BPM filter options
+        if (window.bpmFilter && result.allBPMs) {
+          window.bpmFilter.innerHTML = '<option value="">All BPMs</option>';
+          Array.from(result.allBPMs).sort((a, b) => Number(a) - Number(b)).forEach(bpm => {
+            const option = document.createElement('option');
+            option.value = bpm;
+            option.textContent = bpm + ' BPM';
+            window.bpmFilter.appendChild(option);
+          });
+        }
+        // Update Key filter options
+        if (window.keyFilter && result.allKeys) {
+          window.keyFilter.innerHTML = '<option value="">All Keys</option>';
+          Array.from(result.allKeys).sort().forEach(key => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = key;
+            window.keyFilter.appendChild(option);
+          });
+        }
+        
+        safeRender();
+      } catch (error) {
+        console.error('Error processing default tracklist:', error);
+        // Don't show alert for auto-loaded file errors, but still try to render empty state
+        safeRender();
+        return;
       }
       safeRender();
     })
-    .catch(() => {/* Silently ignore if not present */});
+    .catch((error) => {
+      // Silently ignore if file not present, but log network errors
+      if (error.message !== 'No CSV found') {
+        console.warn('Error loading default tracklist:', error);
+      }
+    });
 });
