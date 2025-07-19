@@ -105,6 +105,7 @@ function processTracklist(text, fileName) {
     const grouped = {};
     const allBPMs = new Set();
     const allKeys = new Set();
+    const allGenres = new Set();
     let totalTracks = 0;
     const tracksForUI = [];
     const seenTracks = new Map(); // Map of duplicateKey -> [trackObj]
@@ -200,6 +201,7 @@ function processTracklist(text, fileName) {
     
     if (bpm) allBPMs.add(bpm);
     if (key) allKeys.add(key);
+    if (genre) allGenres.add(genre);
 
     // Normalize year to 4-digit string if possible
     let yearNorm = year;
@@ -266,7 +268,7 @@ function processTracklist(text, fileName) {
     validationErrors: errors.length
   });
 
-  return { grouped, allBPMs, allKeys, totalTracks, tracksForUI, duplicateTracks };
+  return { grouped, allBPMs, allKeys, allGenres, totalTracks, tracksForUI, duplicateTracks };
   
   } catch (error) {
     console.error('Error processing tracklist:', error);
@@ -310,6 +312,7 @@ const AppState = {
   elements: {
     bpmFilter: null,
     keyFilter: null,
+    genreFilter: null,
     container: null,
     statsElement: null,
     sortSelect: null
@@ -472,6 +475,7 @@ function initializeApp() {
   // Define filter and container elements
   AppState.elements.bpmFilter = document.getElementById('bpm-filter');
   AppState.elements.keyFilter = document.getElementById('key-filter');
+  AppState.elements.genreFilter = document.getElementById('genre-filter');
   AppState.elements.container = document.getElementById('columns');
   AppState.elements.statsElement = document.getElementById('stats');
   AppState.elements.sortSelect = document.getElementById('sort-select');
@@ -479,6 +483,7 @@ function initializeApp() {
   // Set up legacy global references for backward compatibility
   window.bpmFilter = AppState.elements.bpmFilter;
   window.keyFilter = AppState.elements.keyFilter;
+  window.genreFilter = AppState.elements.genreFilter;
   window.container = AppState.elements.container;
   window.statsElement = AppState.elements.statsElement;
   window.sortSelect = AppState.elements.sortSelect;
@@ -518,6 +523,7 @@ function initializeApp() {
   }, 'bpm-filter');
   
   addManagedEventListener(AppState.elements.keyFilter, 'change', safeRender, 'key-filter');
+  addManagedEventListener(AppState.elements.genreFilter, 'change', safeRender, 'genre-filter');
   addManagedEventListener(AppState.elements.sortSelect, 'change', safeRender, 'sort-select');
   addManagedEventListener(yearElement, 'input', safeRender, 'year-search');
   
@@ -533,6 +539,7 @@ function cleanupApp() {
   // Clear global references
   delete window.bpmFilter;
   delete window.keyFilter;
+  delete window.genreFilter;
   delete window.container;
   delete window.statsElement;
   delete window.sortSelect;
@@ -630,6 +637,17 @@ if (uploadInput) {
           window.keyFilter.appendChild(option);
         });
       }
+
+      // Update Genre filter options
+      if (window.genreFilter) {
+        window.genreFilter.innerHTML = '<option value="">All Genres</option>';
+        Array.from(result.allGenres).sort().forEach(genre => {
+          const option = document.createElement('option');
+          option.value = genre;
+          option.textContent = genre;
+          window.genreFilter.appendChild(option);
+        });
+      }
       
       // Debug: Verify data is stored
       console.log('Data stored in window:', {
@@ -655,6 +673,7 @@ const render = () => {
   const search = document.getElementById('search')?.value.toLowerCase() || '';
   const selectedBPM = window.bpmFilter?.value || '';
   const selectedKey = window.keyFilter?.value || '';
+  const selectedGenre = window.genreFilter?.value || '';
   const tagDropdown = document.getElementById('tag-dropdown');
   const tagSearch = tagDropdown ? tagDropdown.value.trim().toLowerCase() : '';
   const sortValue = window.sortSelect?.value || 'name-asc';
@@ -665,6 +684,7 @@ const render = () => {
     search, 
     selectedBPM, 
     selectedKey, 
+    selectedGenre,
     bpmFilterElement: window.bpmFilter,
     bpmFilterValue: window.bpmFilter?.value
   });
@@ -712,6 +732,8 @@ const render = () => {
     const matchBPM = !selectedBPM || track.bpm === selectedBPM;
     // Key filter
     const matchKey = !selectedKey || track.key === selectedKey;
+    // Genre filter
+    const matchGenre = !selectedGenre || track.genre === selectedGenre;
     // Tag filter
     let matchTags = true;
     if (tagSearch) {
@@ -735,7 +757,7 @@ const render = () => {
         return false;
       }
     }
-    return matchSearch && matchBPM && matchKey && matchTags && matchFavorites;
+    return matchSearch && matchBPM && matchKey && matchGenre && matchTags && matchFavorites;
   });
 
   // Sort tracks
@@ -819,7 +841,7 @@ const render = () => {
   }
 
   // Show no results message if needed
-  if (filteredTracks.length === 0 && (search || selectedBPM || selectedKey || tagSearch || window.showFavoritesOnly || yearSearch)) {
+  if (filteredTracks.length === 0 && (search || selectedBPM || selectedKey || selectedGenre || tagSearch || window.showFavoritesOnly || yearSearch)) {
     const noResultsDiv = createSafeElement('div', 'No tracks found matching your filters.', 'no-results');
     window.container.innerHTML = '';
     window.container.appendChild(noResultsDiv);
@@ -1915,6 +1937,16 @@ window.addEventListener('DOMContentLoaded', function() {
             option.value = key;
             option.textContent = key;
             window.keyFilter.appendChild(option);
+          });
+        }
+        // Update Genre filter options
+        if (window.genreFilter && result.allGenres) {
+          window.genreFilter.innerHTML = '<option value="">All Genres</option>';
+          Array.from(result.allGenres).sort().forEach(genre => {
+            const option = document.createElement('option');
+            option.value = genre;
+            option.textContent = genre;
+            window.genreFilter.appendChild(option);
           });
         }
         

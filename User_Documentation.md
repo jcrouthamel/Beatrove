@@ -35,7 +35,11 @@ Welcome to the EDM Tracklist Web App! This guide will help you get the most out 
 
 ## 3. Filtering and Searching Tracks
 - Use the **BPM** and **Key** dropdowns at the top to filter tracks by tempo or musical key.
+- Use the **Genre** dropdown to filter tracks by musical genre (e.g., Techno, House, Trance).
 - Use the **search bar** to find tracks by artist, title, or other info.
+- Use the **Year** field to search by release year or year ranges (e.g., "2023" or "2020-2023").
+- Use the **Tag** dropdown to filter tracks by custom tags you've added.
+- All filters work together - you can combine BPM, genre, key, and other filters simultaneously.
 - Clear filters to show all tracks again.
 
 ---
