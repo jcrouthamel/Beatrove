@@ -1582,15 +1582,15 @@ async function playPreviewForTrack(track) {
       return;
     }
   // Remove previous audio and visualizer, but do not close context
-  if (currentAudio) {
+  if (AudioManager.currentAudio) {
     disconnectAudioVisualizer();
     // Remove both audio and label if present
-    if (currentAudio.parentElement && currentAudio.parentElement.classList.contains('audio-player-container')) {
-      currentAudio.parentElement.remove();
+    if (AudioManager.currentAudio.parentElement && AudioManager.currentAudio.parentElement.classList.contains('audio-player-container')) {
+      AudioManager.currentAudio.parentElement.remove();
     } else {
-      currentAudio.remove();
+      AudioManager.currentAudio.remove();
     }
-    currentAudio = null;
+    AudioManager.currentAudio = null;
   }
     const url = URL.createObjectURL(file);
     // Create a container for track info and audio player
@@ -1618,13 +1618,13 @@ async function playPreviewForTrack(track) {
   container.appendChild(audio);
 
   document.body.appendChild(container);
-  currentAudio = audio;
-    audio.onended = () => { disconnectAudioVisualizer(); container.remove(); currentAudio = null; URL.revokeObjectURL(url); };
+  AudioManager.currentAudio = audio;
+    audio.onended = () => { disconnectAudioVisualizer(); container.remove(); AudioManager.currentAudio = null; URL.revokeObjectURL(url); };
     audio.onpause = () => disconnectAudioVisualizer();
     audio.onerror = () => {
       alert('Error playing audio file.');
       container.remove();
-      currentAudio = null;
+      AudioManager.currentAudio = null;
       URL.revokeObjectURL(url);
     };
     await connectAudioVisualizer(audio);
