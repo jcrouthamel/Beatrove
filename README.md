@@ -1,6 +1,6 @@
 # Beatrove - EDM Tracklist Web App
 
-A powerful web application for DJs to manage, filter, and preview their EDM music collections. Built with vanilla HTML, CSS, and JavaScript for fast, responsive performance.
+A powerful web application for DJs to manage, filter, and preview their music collections. Built with vanilla HTML, CSS, and JavaScript for fast, responsive performance.
 
 ## ✨ Features
 
