@@ -208,8 +208,8 @@ function processTracklist(text, fileName) {
     const yearMatch = year && year.match(/(19\d{2}|20\d{2}|2025)/);
     if (yearMatch) yearNorm = yearMatch[1];
 
-    // Create safe display string
-    const display = `${artist} - ${title} - ${key} - ${bpmExt} - ${trackTime} - ${year}` + (genre ? ` - ${genre}` : '');
+    // Create safe display string (now without key and BPM for cleaner display)
+    const display = `${artist} - ${title} - ${trackTime} - ${year}` + (genre ? ` - ${genre}` : '');
     const trackObj = {
       display: display,
       absPath: absPath,
@@ -866,10 +866,20 @@ function createTrackHTML(track) {
   }
   trackDiv.setAttribute('data-artist', track.artist || '');
 
-  // Track name on top (now split into two lines)
+  // Track name on top (artist and title only)
   const trackMain = document.createElement('span');
   trackMain.className = 'track-main';
-  trackMain.textContent = `${track.artist} - ${track.title} - ${track.key} - ${track.bpm ? track.bpm + (track.absPath ? '.' + getFileExtension(track.absPath) : '') : ''}`;
+  trackMain.textContent = `${track.artist} - ${track.title}`;
+
+  // Key line
+  const trackKey = document.createElement('span');
+  trackKey.className = 'track-details';
+  trackKey.textContent = track.key ? `Key: ${track.key}` : '';
+
+  // BPM line  
+  const trackBPM = document.createElement('span');
+  trackBPM.className = 'track-details';
+  trackBPM.textContent = track.bpm ? `BPM: ${track.bpm}` : '';
 
   // Genre line (above Length)
   const trackGenre = document.createElement('span');
@@ -903,6 +913,8 @@ function createTrackHTML(track) {
   const nameContainer = document.createElement('div');
   nameContainer.appendChild(trackMain);
   // No <br> between details for zero spacing
+  nameContainer.appendChild(trackKey);
+  nameContainer.appendChild(trackBPM);
   nameContainer.appendChild(trackGenre);
   nameContainer.appendChild(trackLength);
   nameContainer.appendChild(trackYear);
