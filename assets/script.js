@@ -233,8 +233,14 @@ function processTracklist(text, fileName) {
     // Duplicate detection (by artist, title, key, bpm)
     const duplicateKey = `${artist} - ${title} - ${key} - ${bpm}`;
     if (seenTracks.has(duplicateKey)) {
-      // Store all duplicates
+      // First occurrence - add the original track to duplicates if not already added
+      const originalTrack = seenTracks.get(duplicateKey)[0];
+      if (!duplicateTracks.some(track => track === originalTrack)) {
+        duplicateTracks.push(originalTrack);
+      }
+      // Then add this duplicate track
       duplicateTracks.push(trackObj);
+      seenTracks.get(duplicateKey).push(trackObj);
     } else {
       seenTracks.set(duplicateKey, [trackObj]);
     }
@@ -1914,6 +1920,13 @@ window.addEventListener('DOMContentLoaded', function() {
       try {
         // Use existing processTracklist logic
         const result = processTracklist(text, 'tracklist.csv');
+        
+        // Update both AppState and window for compatibility
+        AppState.data.grouped = result.grouped;
+        AppState.data.totalTracks = result.totalTracks;
+        AppState.data.duplicateTracks = result.duplicateTracks;
+        AppState.data.tracksForUI = result.tracksForUI;
+        
         window.grouped = result.grouped;
         window.totalTracks = result.totalTracks;
         window.duplicateTracks = result.duplicateTracks;
@@ -1957,7 +1970,6 @@ window.addEventListener('DOMContentLoaded', function() {
         safeRender();
         return;
       }
-      safeRender();
     })
     .catch((error) => {
       // Silently ignore if file not present, but log network errors
