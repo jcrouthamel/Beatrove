@@ -9,6 +9,14 @@
   <link rel="icon" type="image/png" href="assets/favicon.png" />
 </head>
 <body id="top">
+  <div class="top-right-controls">
+    <div class="theme-toggle-container">
+      <label class="theme-switch" for="theme-toggle" title="Toggle Light/Dark Mode">
+        <input type="checkbox" id="theme-toggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
   <div class="logo-container">
     <img src="beatrove-logo.png" alt="Beatrove" class="logo-image" />
   </div>
@@ -27,7 +35,6 @@
         <input type="file" id="audio-folder-input" webkitdirectory directory multiple style="display:none;">
       </div>
       <div class="top-controls-row" style="margin-top:4px;">
-        <button id="theme-toggle" class="control-btn">☀️ Light Mode</button>
         <a href="#duplicate-list" id="duplicate-link" class="control-btn" style="text-decoration:none;">Duplicate Tracks</a>
         <button id="favorites-toggle-btn" class="control-btn">★ Favorites</button>
         <a href="User_Documentation.html" id="help-btn" class="control-btn" target="_blank" style="text-decoration:none;">❓ Help</a>
