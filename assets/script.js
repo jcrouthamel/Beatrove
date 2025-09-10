@@ -2767,6 +2767,12 @@ class UIController {
 
     // Create a comprehensive cleanup function
     const cleanupPopup = () => {
+      // Clear timeout if it exists to prevent memory leaks
+      if (popup._timeoutId) {
+        clearTimeout(popup._timeoutId);
+        popup._timeoutId = null;
+      }
+      
       if (popup && popup.parentElement) {
         popup.remove();
       }
@@ -2820,11 +2826,15 @@ class UIController {
     };
 
     // Add document listener after a short delay to prevent immediate trigger
-    setTimeout(() => {
+    // Store the timeout ID for cleanup if needed
+    const timeoutId = setTimeout(() => {
       if (this.tagPopup === popup) { // Only add if popup is still active
         document.addEventListener('mousedown', this.tagPopupClickHandler);
       }
     }, 10);
+    
+    // Store timeout ID on popup for cleanup
+    popup._timeoutId = timeoutId;
 
     // Store cleanup function on popup for emergency cleanup
     popup._cleanup = cleanupPopup;
@@ -2832,6 +2842,12 @@ class UIController {
 
   cleanupTagPopup() {
     if (this.tagPopup) {
+      // Clear any pending timeouts to prevent memory leaks
+      if (this.tagPopup._timeoutId) {
+        clearTimeout(this.tagPopup._timeoutId);
+        this.tagPopup._timeoutId = null;
+      }
+      
       // Call stored cleanup function if available
       if (this.tagPopup._cleanup) {
         this.tagPopup._cleanup();
