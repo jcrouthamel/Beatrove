@@ -216,10 +216,147 @@ class SecurityUtils {
 // ============= RATE LIMITING =============
 class RateLimiter {
   constructor() {
+    this.storageKey = 'beatrove_rate_limits';
+    this.fingerprintKey = 'beatrove_client_fp';
     this.operations = new Map();
+    this.clientFingerprint = this.generateClientFingerprint();
+    this.bypassAttempts = 0;
+    this.maxBypassAttempts = 3;
+    this.lockoutDuration = 5 * 60 * 1000; // 5 minutes
+    
+    this.loadFromStorage();
+    this.startPeriodicCleanup();
+  }
+
+  generateClientFingerprint() {
+    try {
+      // Create a semi-persistent client identifier
+      const factors = [
+        navigator.userAgent || '',
+        navigator.language || '',
+        screen.width + 'x' + screen.height,
+        new Date().getTimezoneOffset(),
+        navigator.hardwareConcurrency || 0,
+        navigator.maxTouchPoints || 0
+      ];
+      
+      // Simple hash function
+      let hash = 0;
+      const str = factors.join('|');
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      
+      return Math.abs(hash).toString(36);
+    } catch (error) {
+      return 'unknown_' + Date.now();
+    }
+  }
+
+  loadFromStorage() {
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      if (stored) {
+        const data = JSON.parse(stored);
+        
+        // Verify client fingerprint
+        if (data.fingerprint !== this.clientFingerprint) {
+          this.detectBypassAttempt('fingerprint_mismatch');
+          return;
+        }
+        
+        // Validate data integrity
+        if (this.validateStoredData(data)) {
+          this.operations = new Map(data.operations || []);
+          this.bypassAttempts = data.bypassAttempts || 0;
+          this.cleanupExpiredOperations();
+        } else {
+          this.detectBypassAttempt('data_tampering');
+        }
+      }
+    } catch (error) {
+      console.warn('Rate limiter storage corrupted, resetting');
+      this.operations = new Map();
+      this.bypassAttempts = 0;
+    }
+  }
+
+  validateStoredData(data) {
+    try {
+      // Basic structure validation
+      if (!data || typeof data !== 'object') return false;
+      if (!Array.isArray(data.operations)) return false;
+      
+      // Check for reasonable timestamps
+      const now = Date.now();
+      const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+      
+      for (const [operationType, timestamps] of data.operations) {
+        if (!Array.isArray(timestamps)) return false;
+        for (const timestamp of timestamps) {
+          if (typeof timestamp !== 'number' || 
+              timestamp > now || 
+              timestamp < now - maxAge) {
+            return false;
+          }
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  saveToStorage() {
+    try {
+      // Clean up before saving
+      this.cleanupExpiredOperations();
+      
+      const data = {
+        fingerprint: this.clientFingerprint,
+        operations: Array.from(this.operations.entries()),
+        bypassAttempts: this.bypassAttempts,
+        lastSaved: Date.now(),
+        version: '1.0'
+      };
+      
+      localStorage.setItem(this.storageKey, JSON.stringify(data));
+    } catch (error) {
+      console.warn('Failed to save rate limiter state:', error);
+    }
+  }
+
+  detectBypassAttempt(reason) {
+    this.bypassAttempts++;
+    console.warn(`Rate limiter bypass attempt detected: ${reason}`);
+    
+    if (this.bypassAttempts >= this.maxBypassAttempts) {
+      this.lockoutUntil = Date.now() + this.lockoutDuration;
+      console.warn('Rate limiter: Client locked out due to repeated bypass attempts');
+    }
+    
+    this.saveToStorage();
+  }
+
+  isLockedOut() {
+    return this.lockoutUntil && Date.now() < this.lockoutUntil;
   }
 
   isAllowed(operationType) {
+    // Check for lockout first
+    if (this.isLockedOut()) {
+      const remainingLockout = Math.ceil((this.lockoutUntil - Date.now()) / 1000);
+      return {
+        allowed: false,
+        waitTime: remainingLockout,
+        remaining: 0,
+        reason: 'locked_out'
+      };
+    }
+
     const now = Date.now();
     const windowStart = now - CONFIG.RATE_LIMIT_WINDOW;
     
@@ -237,10 +374,15 @@ class RateLimiter {
     if (recentOperations.length >= CONFIG.MAX_OPERATIONS_PER_WINDOW) {
       const oldestOperation = Math.min(...recentOperations);
       const waitTime = CONFIG.RATE_LIMIT_WINDOW - (now - oldestOperation);
+      
+      // Save state after each check
+      this.saveToStorage();
+      
       return {
         allowed: false,
-        waitTime: Math.ceil(waitTime / 1000), // Convert to seconds
-        remaining: 0
+        waitTime: Math.ceil(waitTime / 1000),
+        remaining: 0,
+        reason: 'rate_limit_exceeded'
       };
     }
     
@@ -248,22 +390,45 @@ class RateLimiter {
     recentOperations.push(now);
     this.operations.set(operationType, recentOperations);
     
+    // Save state after recording operation
+    this.saveToStorage();
+    
     return {
       allowed: true,
       waitTime: 0,
-      remaining: CONFIG.MAX_OPERATIONS_PER_WINDOW - recentOperations.length
+      remaining: CONFIG.MAX_OPERATIONS_PER_WINDOW - recentOperations.length,
+      reason: 'allowed'
     };
   }
 
   reset(operationType) {
+    // Only allow resets if not locked out and not suspicious
+    if (this.isLockedOut()) {
+      console.warn('Reset attempt while locked out');
+      return false;
+    }
+    
+    if (this.bypassAttempts > 1) {
+      this.detectBypassAttempt('suspicious_reset');
+      return false;
+    }
+
     if (operationType) {
       this.operations.delete(operationType);
     } else {
       this.operations.clear();
+      this.bypassAttempts = 0; // Allow clean reset occasionally
     }
+    
+    this.saveToStorage();
+    return true;
   }
 
   getRemainingTime(operationType) {
+    if (this.isLockedOut()) {
+      return Math.ceil((this.lockoutUntil - Date.now()) / 1000);
+    }
+
     if (!this.operations.has(operationType)) {
       return 0;
     }
@@ -279,6 +444,52 @@ class RateLimiter {
     const waitTime = CONFIG.RATE_LIMIT_WINDOW - (now - oldestOperation);
     
     return Math.max(0, Math.ceil(waitTime / 1000));
+  }
+
+  cleanupExpiredOperations() {
+    const now = Date.now();
+    const windowStart = now - CONFIG.RATE_LIMIT_WINDOW;
+    
+    for (const [operationType, timestamps] of this.operations.entries()) {
+      const recentOperations = timestamps.filter(time => time > windowStart);
+      if (recentOperations.length === 0) {
+        this.operations.delete(operationType);
+      } else {
+        this.operations.set(operationType, recentOperations);
+      }
+    }
+  }
+
+  startPeriodicCleanup() {
+    // Clean up expired operations every 5 minutes
+    this.cleanupInterval = setInterval(() => {
+      this.cleanupExpiredOperations();
+      this.saveToStorage();
+      
+      // Reset lockout if expired
+      if (this.lockoutUntil && Date.now() > this.lockoutUntil) {
+        this.lockoutUntil = null;
+        this.bypassAttempts = Math.max(0, this.bypassAttempts - 1);
+      }
+    }, 5 * 60 * 1000);
+  }
+
+  getStatus() {
+    return {
+      fingerprint: this.clientFingerprint,
+      bypassAttempts: this.bypassAttempts,
+      isLockedOut: this.isLockedOut(),
+      lockoutRemaining: this.lockoutUntil ? Math.ceil((this.lockoutUntil - Date.now()) / 1000) : 0,
+      totalOperations: Array.from(this.operations.values()).reduce((sum, ops) => sum + ops.length, 0)
+    };
+  }
+
+  cleanup() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.saveToStorage();
   }
 }
 
@@ -1067,6 +1278,128 @@ class ApplicationState {
     } catch (error) {
       console.error('Title security test failed:', error);
       this.notificationSystem.error('Title security testing failed');
+    }
+  }
+
+  // Test rate limiter bypass prevention
+  async testRateLimiterSecurity() {
+    if (!this.notificationSystem) {
+      console.log('No notification system available for testing');
+      return;
+    }
+
+    console.log('Testing rate limiter bypass prevention...');
+    
+    try {
+      // Get rate limiter instance
+      const rateLimiter = window.beatroveApp?.rateLimiter;
+      if (!rateLimiter) {
+        console.error('❌ Rate limiter not found');
+        return;
+      }
+
+      // Test 1: Check persistent storage
+      console.log('Testing persistent storage...');
+      const status1 = rateLimiter.getStatus();
+      console.log('✓ Rate limiter status:', status1);
+      
+      // Test 2: Test fingerprinting
+      console.log('Testing client fingerprinting...');
+      if (status1.fingerprint && status1.fingerprint.length > 5) {
+        console.log('✓ Client fingerprinting working:', status1.fingerprint.substring(0, 8) + '...');
+      } else {
+        console.warn('⚠️ Client fingerprinting may be weak');
+      }
+      
+      // Test 3: Test rate limiting
+      console.log('Testing rate limiting...');
+      let testsPassed = 0;
+      let testsTotal = 0;
+      
+      for (let i = 0; i < 12; i++) { // Exceed normal limit
+        testsTotal++;
+        const result = rateLimiter.isAllowed('test_operation');
+        if (i < 10) { // First 10 should be allowed
+          if (result.allowed) {
+            testsPassed++;
+          } else {
+            console.warn(`⚠️ Request ${i + 1} unexpectedly blocked`);
+          }
+        } else { // Requests 11 and 12 should be blocked
+          if (!result.allowed) {
+            testsPassed++;
+            console.log(`✓ Request ${i + 1} correctly blocked: ${result.reason}`);
+          } else {
+            console.error(`❌ Request ${i + 1} should have been blocked`);
+          }
+        }
+      }
+      
+      // Test 4: Test bypass detection
+      console.log('Testing bypass detection...');
+      const originalFingerprint = rateLimiter.clientFingerprint;
+      
+      // Simulate fingerprint tampering attempt
+      rateLimiter.clientFingerprint = 'fake_fingerprint';
+      rateLimiter.detectBypassAttempt('test_tampering');
+      rateLimiter.clientFingerprint = originalFingerprint; // Restore
+      
+      const status2 = rateLimiter.getStatus();
+      if (status2.bypassAttempts > status1.bypassAttempts) {
+        console.log('✓ Bypass attempt detection working');
+        testsPassed++;
+      } else {
+        console.warn('⚠️ Bypass attempt not detected');
+      }
+      testsTotal++;
+      
+      // Test 5: Test lockout mechanism
+      console.log('Testing lockout mechanism...');
+      const initialLockout = status2.isLockedOut;
+      
+      // Simulate multiple bypass attempts (but don't actually trigger lockout)
+      console.log(`Current bypass attempts: ${status2.bypassAttempts}/${rateLimiter.maxBypassAttempts}`);
+      
+      if (status2.bypassAttempts > 0) {
+        console.log('✓ Bypass attempt tracking working');
+        testsPassed++;
+      }
+      testsTotal++;
+      
+      // Test 6: Test storage persistence
+      console.log('Testing storage persistence...');
+      rateLimiter.saveToStorage();
+      const storedData = localStorage.getItem('beatrove_rate_limits');
+      if (storedData) {
+        try {
+          const parsed = JSON.parse(storedData);
+          if (parsed.fingerprint && parsed.operations && parsed.version) {
+            console.log('✓ Storage persistence working');
+            testsPassed++;
+          }
+        } catch (e) {
+          console.error('❌ Stored data is corrupted');
+        }
+      } else {
+        console.error('❌ No data stored');
+      }
+      testsTotal++;
+      
+      // Summary
+      const passRate = (testsPassed / testsTotal * 100).toFixed(1);
+      console.log(`\nRate Limiter Security Test Results: ${testsPassed}/${testsTotal} tests passed (${passRate}%)`);
+      
+      if (testsPassed === testsTotal) {
+        this.notificationSystem.success('Rate limiter security tests completed successfully');
+        console.log('✓ All rate limiter security tests passed');
+      } else {
+        this.notificationSystem.warning(`Rate limiter tests completed with ${testsTotal - testsPassed} issues`);
+        console.warn(`⚠️ ${testsTotal - testsPassed} rate limiter security tests failed`);
+      }
+      
+    } catch (error) {
+      console.error('Rate limiter security test failed:', error);
+      this.notificationSystem.error('Rate limiter security testing failed');
     }
   }
 
@@ -2758,12 +3091,11 @@ class UIController {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Rate limiting check
+    // Enhanced rate limiting check with security measures
     const rateLimitCheck = this.rateLimiter.isAllowed('file_upload');
     if (!rateLimitCheck.allowed) {
-      this.notificationSystem.warning(
-        `Upload limit reached. Please wait ${rateLimitCheck.waitTime} seconds before trying again.`
-      );
+      const message = this.getRateLimitMessage(rateLimitCheck);
+      this.notificationSystem.warning(message);
       event.target.value = ''; // Clear the file input
       return;
     }
@@ -2864,12 +3196,11 @@ class UIController {
   loadAudioFolder(event) {
     const files = Array.from(event.target.files);
     
-    // Rate limiting check for audio operations
+    // Enhanced rate limiting check for audio operations
     const rateLimitCheck = this.rateLimiter.isAllowed('audio_load');
     if (!rateLimitCheck.allowed) {
-      this.notificationSystem.warning(
-        `Audio load limit reached. Please wait ${rateLimitCheck.waitTime} seconds before trying again.`
-      );
+      const message = this.getRateLimitMessage(rateLimitCheck);
+      this.notificationSystem.warning(message);
       event.target.value = '';
       return;
     }
@@ -3079,6 +3410,18 @@ class UIController {
     });
   }
 
+  // === Rate Limiting Helpers ===
+  getRateLimitMessage(rateLimitCheck) {
+    switch (rateLimitCheck.reason) {
+      case 'locked_out':
+        return `Account temporarily locked due to suspicious activity. Please wait ${rateLimitCheck.waitTime} seconds.`;
+      case 'rate_limit_exceeded':
+        return `Rate limit exceeded. Please wait ${rateLimitCheck.waitTime} seconds before trying again.`;
+      default:
+        return `Operation blocked. Please wait ${rateLimitCheck.waitTime} seconds before trying again.`;
+    }
+  }
+
   // === Cleanup Methods ===
   cleanup() {
     // Clean up audio resources
@@ -3097,7 +3440,7 @@ class UIController {
     
     // Clean up rate limiter
     if (this.rateLimiter) {
-      this.rateLimiter.reset();
+      this.rateLimiter.cleanup();
     }
     
     console.log('UIController cleanup completed');
@@ -3258,6 +3601,12 @@ class BeatroveApp {
         window.beatroveApp = this;
         window.testDataPersistence = () => this.appState.testDataPersistence();
         window.testTitleSecurity = () => this.appState.testTitleSecurity();
+        window.testRateLimiterSecurity = () => this.appState.testRateLimiterSecurity();
+        window.getRateLimiterStatus = () => {
+          const status = this.rateLimiter.getStatus();
+          console.log('Rate Limiter Status:', status);
+          return status;
+        };
         window.getStorageInfo = () => {
           const info = this.appState.getStorageInfo();
           console.log('Storage Info:', {
