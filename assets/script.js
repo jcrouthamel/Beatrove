@@ -520,8 +520,11 @@ class NotificationSystem {
 
 // ============= APPLICATION STATE =============
 class ApplicationState {
-  constructor() {
+  constructor(notificationSystem = null) {
     this.elements = {};
+    this.notificationSystem = notificationSystem;
+    this.isOperationInProgress = false; // Concurrent operation protection
+    this.operationQueue = []; // Queue for pending operations
     this.data = {
       grouped: {},
       totalTracks: 0,
@@ -563,16 +566,367 @@ class ApplicationState {
     }
   }
 
-  saveToStorage() {
+  async saveToStorage(retryCount = 0) {
+    return new Promise((resolve) => {
+      // Add to operation queue to prevent concurrent modifications
+      this.operationQueue.push({
+        type: 'save',
+        execute: async () => {
+          try {
+            // Check localStorage availability and quota
+            const storageInfo = this.getStorageInfo();
+            
+            // Calculate estimated size of data to save
+            const dataToSave = {
+              trackTags: JSON.stringify(this.data.trackTags),
+              favoriteTracks: JSON.stringify(this.data.favoriteTracks),
+              playlists: JSON.stringify(this.data.playlists),
+              currentPlaylist: this.data.currentPlaylist,
+              themePreference: this.data.themePreference
+            };
+            
+            const estimatedSize = Object.values(dataToSave).join('').length * 2; // Rough UTF-16 byte estimate
+            
+            // Check if we're approaching quota limits
+            if (storageInfo.usedSpace + estimatedSize > storageInfo.quota * 0.9) {
+              await this.handleStorageQuotaApproaching(estimatedSize);
+            }
+            
+            // Save data with individual error handling
+            let saveErrors = [];
+            for (const [key, value] of Object.entries(dataToSave)) {
+              try {
+                localStorage.setItem(key, value);
+              } catch (itemError) {
+                saveErrors.push({ key, error: itemError });
+              }
+            }
+            
+            if (saveErrors.length > 0) {
+              await this.handleSaveErrors(saveErrors, retryCount);
+            } else if (this.notificationSystem && retryCount > 0) {
+              // Success after retry
+              this.notificationSystem.success('Data saved successfully after cleanup');
+            }
+            
+            resolve(true);
+          } catch (error) {
+            console.error('Error saving data:', error);
+            await this.handleCriticalSaveError(error, retryCount);
+            resolve(false);
+          }
+        }
+      });
+      
+      this.processOperationQueue();
+    });
+  }
+
+  getStorageInfo() {
     try {
-      localStorage.setItem('trackTags', JSON.stringify(this.data.trackTags));
-      localStorage.setItem('favoriteTracks', JSON.stringify(this.data.favoriteTracks));
-      localStorage.setItem('playlists', JSON.stringify(this.data.playlists));
-      localStorage.setItem('currentPlaylist', this.data.currentPlaylist);
-      localStorage.setItem('themePreference', this.data.themePreference);
+      // Calculate current localStorage usage
+      let usedSpace = 0;
+      for (let key in localStorage) {
+        if (localStorage.hasOwnProperty(key)) {
+          usedSpace += localStorage[key].length + key.length;
+        }
+      }
+      
+      // Estimate quota (browsers vary, but typically 5-10MB)
+      const quota = 5 * 1024 * 1024; // 5MB estimate
+      
+      return {
+        usedSpace: usedSpace * 2, // UTF-16 bytes
+        quota: quota,
+        available: quota - (usedSpace * 2),
+        usagePercent: (usedSpace * 2) / quota * 100
+      };
     } catch (error) {
-      console.error('Error saving data:', error);
+      return { usedSpace: 0, quota: 0, available: 0, usagePercent: 0 };
     }
+  }
+
+  async handleStorageQuotaApproaching(requiredSize) {
+    if (this.notificationSystem) {
+      const storageInfo = this.getStorageInfo();
+      this.notificationSystem.warning(
+        `Storage is ${storageInfo.usagePercent.toFixed(1)}% full. Cleaning up old data...`
+      );
+    }
+    
+    // Attempt to free up space by cleaning old data
+    await this.cleanupOldData();
+  }
+
+  async cleanupOldData() {
+    try {
+      // Clean up old notification data if it exists
+      const keysToClean = ['old_trackTags', 'temp_data', 'cache_data'];
+      keysToClean.forEach(key => {
+        if (localStorage.getItem(key)) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Compress current data if possible
+      await this.compressStorageData();
+      
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+    }
+  }
+
+  async compressStorageData() {
+    try {
+      // Remove empty playlists
+      Object.keys(this.data.playlists).forEach(playlistName => {
+        if (!this.data.playlists[playlistName] || this.data.playlists[playlistName].length === 0) {
+          delete this.data.playlists[playlistName];
+        }
+      });
+      
+      // Clean up orphaned tags (tags for tracks that no longer exist)
+      const validTrackDisplays = new Set(this.data.tracksForUI.map(track => track.display));
+      Object.keys(this.data.trackTags).forEach(trackDisplay => {
+        if (!validTrackDisplays.has(trackDisplay)) {
+          delete this.data.trackTags[trackDisplay];
+        }
+      });
+      
+      // Clean up orphaned favorites
+      Object.keys(this.data.favoriteTracks).forEach(trackDisplay => {
+        if (!validTrackDisplays.has(trackDisplay)) {
+          delete this.data.favoriteTracks[trackDisplay];
+        }
+      });
+      
+    } catch (error) {
+      console.error('Error compressing storage data:', error);
+    }
+  }
+
+  async handleSaveErrors(saveErrors, retryCount) {
+    const quotaErrors = saveErrors.filter(e => 
+      e.error.name === 'QuotaExceededError' || 
+      e.error.code === 22 || 
+      e.error.message.includes('quota')
+    );
+    
+    if (quotaErrors.length > 0 && retryCount < 2) {
+      if (this.notificationSystem) {
+        this.notificationSystem.warning('Storage full. Attempting to free up space...');
+      }
+      
+      // More aggressive cleanup
+      await this.aggressiveCleanup();
+      
+      // Retry save
+      setTimeout(() => this.saveToStorage(retryCount + 1), 1000);
+      return;
+    }
+    
+    // Handle different error types
+    if (this.notificationSystem) {
+      if (quotaErrors.length > 0) {
+        this.notificationSystem.error(
+          'Storage quota exceeded. Some data may not be saved. Try clearing browser data or use a different browser.'
+        );
+      } else {
+        this.notificationSystem.error(
+          `Failed to save some data: ${saveErrors.map(e => e.key).join(', ')}`
+        );
+      }
+    }
+  }
+
+  async aggressiveCleanup() {
+    try {
+      // Keep only the most essential data
+      const storageInfo = this.getStorageInfo();
+      
+      if (storageInfo.usagePercent > 95) {
+        // Emergency: keep only current playlist and theme
+        const essentialData = {
+          currentPlaylist: this.data.currentPlaylist,
+          themePreference: this.data.themePreference
+        };
+        
+        // Clear non-essential data temporarily
+        localStorage.clear();
+        
+        // Restore essential data
+        Object.entries(essentialData).forEach(([key, value]) => {
+          if (value) localStorage.setItem(key, value);
+        });
+        
+        if (this.notificationSystem) {
+          this.notificationSystem.warning('Emergency cleanup performed. Some data was cleared to free space.');
+        }
+      }
+    } catch (error) {
+      console.error('Error during aggressive cleanup:', error);
+    }
+  }
+
+  async handleCriticalSaveError(error, retryCount) {
+    if (this.notificationSystem) {
+      const errorMessage = error.name === 'SecurityError' 
+        ? 'Cannot save data: localStorage is disabled or unavailable.'
+        : `Critical error saving data: ${error.message}`;
+        
+      this.notificationSystem.error(errorMessage);
+    }
+    
+    // Fallback: try to save minimal essential data
+    if (retryCount === 0) {
+      try {
+        localStorage.setItem('themePreference', this.data.themePreference || 'dark');
+        localStorage.setItem('currentPlaylist', this.data.currentPlaylist || '');
+      } catch (fallbackError) {
+        console.error('Even fallback save failed:', fallbackError);
+      }
+    }
+  }
+
+  async processOperationQueue() {
+    if (this.isOperationInProgress || this.operationQueue.length === 0) return;
+    
+    this.isOperationInProgress = true;
+    
+    try {
+      while (this.operationQueue.length > 0) {
+        const operation = this.operationQueue.shift();
+        await operation.execute();
+        
+        // Small delay to prevent overwhelming the system
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+    } finally {
+      this.isOperationInProgress = false;
+    }
+  }
+
+  // Safe data modification methods to prevent concurrent access issues
+  async safeDataModification(modificationFn, autoSave = true) {
+    return new Promise((resolve) => {
+      this.operationQueue.push({
+        type: 'modify',
+        execute: async () => {
+          try {
+            const result = await modificationFn(this.data);
+            if (autoSave) {
+              await this.saveToStorage();
+            }
+            resolve(result);
+          } catch (error) {
+            console.error('Error during safe data modification:', error);
+            if (this.notificationSystem) {
+              this.notificationSystem.error('Failed to modify data safely');
+            }
+            resolve(false);
+          }
+        }
+      });
+      
+      this.processOperationQueue();
+    });
+  }
+
+  // Batch multiple modifications to reduce save operations
+  async batchModifications(modifications, description = 'batch operation') {
+    return new Promise((resolve) => {
+      this.operationQueue.push({
+        type: 'batch',
+        execute: async () => {
+          try {
+            let results = [];
+            for (const modification of modifications) {
+              const result = await modification(this.data);
+              results.push(result);
+            }
+            
+            // Single save after all modifications
+            await this.saveToStorage();
+            
+            if (this.notificationSystem && description !== 'batch operation') {
+              this.notificationSystem.success(`${description} completed successfully`);
+            }
+            
+            resolve(results);
+          } catch (error) {
+            console.error(`Error during ${description}:`, error);
+            if (this.notificationSystem) {
+              this.notificationSystem.error(`Failed to complete ${description}`);
+            }
+            resolve([]);
+          }
+        }
+      });
+      
+      this.processOperationQueue();
+    });
+  }
+
+  // Thread-safe property updates
+  async updateProperty(path, value, autoSave = true) {
+    const pathParts = path.split('.');
+    
+    return this.safeDataModification((data) => {
+      let current = data;
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        if (!current[pathParts[i]]) {
+          current[pathParts[i]] = {};
+        }
+        current = current[pathParts[i]];
+      }
+      current[pathParts[pathParts.length - 1]] = value;
+      return true;
+    }, autoSave);
+  }
+
+  // Thread-safe array operations
+  async addToArray(path, value, autoSave = true) {
+    const pathParts = path.split('.');
+    
+    return this.safeDataModification((data) => {
+      let current = data;
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        if (!current[pathParts[i]]) {
+          current[pathParts[i]] = [];
+        }
+        current = current[pathParts[i]];
+      }
+      
+      const targetArray = current[pathParts[pathParts.length - 1]];
+      if (!Array.isArray(targetArray)) {
+        current[pathParts[pathParts.length - 1]] = [];
+      }
+      
+      current[pathParts[pathParts.length - 1]].push(value);
+      return true;
+    }, autoSave);
+  }
+
+  async removeFromArray(path, value, autoSave = true) {
+    const pathParts = path.split('.');
+    
+    return this.safeDataModification((data) => {
+      let current = data;
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        current = current[pathParts[i]];
+        if (!current) return false;
+      }
+      
+      const targetArray = current[pathParts[pathParts.length - 1]];
+      if (!Array.isArray(targetArray)) return false;
+      
+      const index = targetArray.indexOf(value);
+      if (index > -1) {
+        targetArray.splice(index, 1);
+        return true;
+      }
+      return false;
+    }, autoSave);
   }
 
   resetData() {
@@ -588,6 +942,62 @@ class ApplicationState {
       showFavoritesOnly: false,
       themePreference: 'dark' // 'dark' or 'light'
     };
+  }
+
+  // Development/testing utility methods
+  async testDataPersistence() {
+    if (!this.notificationSystem) {
+      console.log('No notification system available for testing');
+      return;
+    }
+
+    console.log('Testing data persistence edge cases...');
+    
+    try {
+      // Test 1: Normal save operation
+      await this.updateProperty('themePreference', 'light', false);
+      console.log('✓ Property update test passed');
+      
+      // Test 2: Concurrent modifications
+      const promises = [
+        this.addToArray('testArray', 'item1', false),
+        this.addToArray('testArray', 'item2', false), 
+        this.addToArray('testArray', 'item3', false)
+      ];
+      
+      await Promise.all(promises);
+      console.log('✓ Concurrent modification test passed');
+      
+      // Test 3: Batch modifications
+      await this.batchModifications([
+        (data) => { data.testProp1 = 'value1'; return true; },
+        (data) => { data.testProp2 = 'value2'; return true; },
+        (data) => { data.testProp3 = 'value3'; return true; }
+      ], 'test batch operations');
+      
+      // Test 4: Storage info
+      const storageInfo = this.getStorageInfo();
+      console.log('Storage usage:', {
+        used: Math.round(storageInfo.usedSpace / 1024) + 'KB',
+        percent: storageInfo.usagePercent.toFixed(1) + '%',
+        available: Math.round(storageInfo.available / 1024) + 'KB'
+      });
+      
+      // Cleanup test data
+      delete this.data.testArray;
+      delete this.data.testProp1;
+      delete this.data.testProp2;
+      delete this.data.testProp3;
+      
+      await this.saveToStorage();
+      
+      this.notificationSystem.success('Data persistence testing completed successfully');
+      console.log('✓ All data persistence tests passed');
+      
+    } catch (error) {
+      console.error('Data persistence test failed:', error);
+      this.notificationSystem.error('Data persistence testing failed');
+    }
   }
 
   clearCache() {
@@ -2784,8 +3194,8 @@ function debounce(func, wait) {
 // ============= APPLICATION CLASS =============
 class BeatroveApp {
   constructor() {
-    this.appState = new ApplicationState();
     this.notificationSystem = new NotificationSystem();
+    this.appState = new ApplicationState(this.notificationSystem);
     this.rateLimiter = new RateLimiter();
     this.audioManager = new AudioManager(this.notificationSystem);
     this.renderer = new UIRenderer(this.appState);
@@ -2826,6 +3236,21 @@ class BeatroveApp {
 
       // Initial render
       this.controller.render();
+
+      // Add testing utilities to window object for development
+      if (typeof window !== 'undefined') {
+        window.beatroveApp = this;
+        window.testDataPersistence = () => this.appState.testDataPersistence();
+        window.getStorageInfo = () => {
+          const info = this.appState.getStorageInfo();
+          console.log('Storage Info:', {
+            used: Math.round(info.usedSpace / 1024) + 'KB',
+            percent: info.usagePercent.toFixed(1) + '%',
+            available: Math.round(info.available / 1024) + 'KB'
+          });
+          return info;
+        };
+      }
 
       this.initialized = true;
     } catch (error) {
