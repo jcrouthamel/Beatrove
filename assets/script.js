@@ -17,7 +17,11 @@ const CONFIG = {
   ALLOWED_FILE_EXTENSIONS: ['.csv', '.txt', '.yaml', '.yml'],
   ALLOWED_AUDIO_EXTENSIONS: ['.mp3', '.wav', '.flac', '.ogg', '.aiff'],
   DEBOUNCE_DELAY: 300,
-  CACHE_SIZE_LIMIT: 50
+  CACHE_SIZE_LIMIT: 50,
+  MAX_TRACKS_PER_FILE: 10000,
+  MAX_LINE_LENGTH: 2000,
+  RATE_LIMIT_WINDOW: 10000, // 10 seconds
+  MAX_OPERATIONS_PER_WINDOW: 5
 };
 
 // ============= SECURITY UTILITIES =============
@@ -97,6 +101,184 @@ class SecurityUtils {
            typeof tag === 'string' && 
            tag.length <= CONFIG.MAX_TAG_LENGTH && 
            !/[<>"']/.test(tag);
+  }
+
+  static validateFile(file) {
+    const errors = [];
+    
+    if (!file) {
+      errors.push('No file provided');
+      return { isValid: false, errors };
+    }
+
+    // Check file size
+    if (file.size > CONFIG.MAX_FILE_SIZE) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      const maxMB = (CONFIG.MAX_FILE_SIZE / (1024 * 1024)).toFixed(2);
+      errors.push(`File size ${sizeMB}MB exceeds maximum allowed size of ${maxMB}MB`);
+    }
+
+    // Check file extension
+    if (!this.validateFileExtension(file.name, CONFIG.ALLOWED_FILE_EXTENSIONS)) {
+      errors.push(`Invalid file type. Allowed types: ${CONFIG.ALLOWED_FILE_EXTENSIONS.join(', ')}`);
+    }
+
+    // Check file name for security
+    if (!/^[a-zA-Z0-9._-]+$/.test(file.name)) {
+      errors.push('Invalid file name. Only alphanumeric characters, dots, underscores, and hyphens are allowed');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      file: {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      }
+    };
+  }
+
+  static validateFileContent(content, fileName) {
+    const errors = [];
+
+    if (!content || typeof content !== 'string') {
+      errors.push('Invalid file content');
+      return { isValid: false, errors };
+    }
+
+    // Check content size
+    if (content.length > CONFIG.MAX_FILE_SIZE) {
+      errors.push('File content exceeds maximum size limit');
+    }
+
+    // Check for potentially malicious content
+    if (/<script|javascript:|data:|vbscript:/i.test(content)) {
+      errors.push('File contains potentially malicious content');
+    }
+
+    // Check line count
+    const lines = content.split('\n');
+    if (lines.length > CONFIG.MAX_TRACKS_PER_FILE) {
+      errors.push(`Too many lines (${lines.length}). Maximum allowed: ${CONFIG.MAX_TRACKS_PER_FILE}`);
+    }
+
+    // Check for excessively long lines
+    const longLines = lines.filter(line => line.length > CONFIG.MAX_LINE_LENGTH);
+    if (longLines.length > 0) {
+      errors.push(`File contains ${longLines.length} lines that exceed maximum length of ${CONFIG.MAX_LINE_LENGTH} characters`);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      stats: {
+        contentLength: content.length,
+        lineCount: lines.length,
+        maxLineLength: Math.max(...lines.map(l => l.length))
+      }
+    };
+  }
+
+  static validateAudioFile(file) {
+    const errors = [];
+    
+    if (!file) {
+      errors.push('No file provided');
+      return { isValid: false, errors };
+    }
+
+    // Check audio file extension
+    if (!this.validateFileExtension(file.name, CONFIG.ALLOWED_AUDIO_EXTENSIONS)) {
+      errors.push(`Invalid audio file type. Allowed types: ${CONFIG.ALLOWED_AUDIO_EXTENSIONS.join(', ')}`);
+    }
+
+    // Check file size (audio files can be larger)
+    const maxAudioSize = 100 * 1024 * 1024; // 100MB for audio
+    if (file.size > maxAudioSize) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+      errors.push(`Audio file size ${sizeMB}MB exceeds maximum allowed size of 100MB`);
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      file: {
+        name: file.name,
+        size: file.size,
+        type: file.type
+      }
+    };
+  }
+}
+
+// ============= RATE LIMITING =============
+class RateLimiter {
+  constructor() {
+    this.operations = new Map();
+  }
+
+  isAllowed(operationType) {
+    const now = Date.now();
+    const windowStart = now - CONFIG.RATE_LIMIT_WINDOW;
+    
+    if (!this.operations.has(operationType)) {
+      this.operations.set(operationType, []);
+    }
+    
+    const operationTimes = this.operations.get(operationType);
+    
+    // Remove old operations outside the window
+    const recentOperations = operationTimes.filter(time => time > windowStart);
+    this.operations.set(operationType, recentOperations);
+    
+    // Check if limit is exceeded
+    if (recentOperations.length >= CONFIG.MAX_OPERATIONS_PER_WINDOW) {
+      const oldestOperation = Math.min(...recentOperations);
+      const waitTime = CONFIG.RATE_LIMIT_WINDOW - (now - oldestOperation);
+      return {
+        allowed: false,
+        waitTime: Math.ceil(waitTime / 1000), // Convert to seconds
+        remaining: 0
+      };
+    }
+    
+    // Record this operation
+    recentOperations.push(now);
+    this.operations.set(operationType, recentOperations);
+    
+    return {
+      allowed: true,
+      waitTime: 0,
+      remaining: CONFIG.MAX_OPERATIONS_PER_WINDOW - recentOperations.length
+    };
+  }
+
+  reset(operationType) {
+    if (operationType) {
+      this.operations.delete(operationType);
+    } else {
+      this.operations.clear();
+    }
+  }
+
+  getRemainingTime(operationType) {
+    if (!this.operations.has(operationType)) {
+      return 0;
+    }
+    
+    const now = Date.now();
+    const operationTimes = this.operations.get(operationType);
+    
+    if (operationTimes.length < CONFIG.MAX_OPERATIONS_PER_WINDOW) {
+      return 0;
+    }
+    
+    const oldestOperation = Math.min(...operationTimes);
+    const waitTime = CONFIG.RATE_LIMIT_WINDOW - (now - oldestOperation);
+    
+    return Math.max(0, Math.ceil(waitTime / 1000));
   }
 }
 
@@ -580,11 +762,13 @@ class AudioManager {
 // ============= TRACK PROCESSOR =============
 class TrackProcessor {
   static processTracklist(text, fileName) {
-    if (!text || typeof text !== 'string') {
-      throw new Error('Invalid file content');
+    // Comprehensive input validation
+    const contentValidation = SecurityUtils.validateFileContent(text, fileName);
+    if (!contentValidation.isValid) {
+      throw new Error(`File validation failed: ${contentValidation.errors.join(', ')}`);
     }
 
-    // Skip validation for auto-loaded files
+    // Skip file extension validation for auto-loaded files
     if (fileName !== 'tracklist.csv' && 
         !SecurityUtils.validateFileExtension(fileName, CONFIG.ALLOWED_FILE_EXTENSIONS)) {
       throw new Error('Invalid file type');
@@ -595,6 +779,16 @@ class TrackProcessor {
     if (lines.length === 0) {
       throw new Error('File is empty');
     }
+
+    // Additional processing limits
+    if (lines.length > CONFIG.MAX_TRACKS_PER_FILE) {
+      throw new Error(`File contains too many tracks (${lines.length}). Maximum allowed: ${CONFIG.MAX_TRACKS_PER_FILE}`);
+    }
+
+    console.log(`Processing ${lines.length} lines from ${fileName}`, {
+      contentSize: contentValidation.stats.contentLength,
+      maxLineLength: contentValidation.stats.maxLineLength
+    });
 
     const result = {
       grouped: {},
@@ -1095,11 +1289,12 @@ class UIRenderer {
 
 // ============= UI CONTROLLERS =============
 class UIController {
-  constructor(appState, renderer, audioManager, notificationSystem) {
+  constructor(appState, renderer, audioManager, notificationSystem, rateLimiter) {
     this.appState = appState;
     this.renderer = renderer;
     this.audioManager = audioManager;
     this.notificationSystem = notificationSystem;
+    this.rateLimiter = rateLimiter;
     this.tagPopup = null;
   }
 
@@ -1701,9 +1896,42 @@ class UIController {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Rate limiting check
+    const rateLimitCheck = this.rateLimiter.isAllowed('file_upload');
+    if (!rateLimitCheck.allowed) {
+      this.notificationSystem.warning(
+        `Upload limit reached. Please wait ${rateLimitCheck.waitTime} seconds before trying again.`
+      );
+      event.target.value = ''; // Clear the file input
+      return;
+    }
+
     try {
+      // Comprehensive file validation
+      const fileValidation = SecurityUtils.validateFile(file);
+      if (!fileValidation.isValid) {
+        this.notificationSystem.error(
+          `File validation failed: ${fileValidation.errors.join(', ')}`
+        );
+        event.target.value = '';
+        return;
+      }
+
+      // Show processing notification for large files
+      let processingNotification;
+      if (file.size > 1024 * 1024) { // > 1MB
+        processingNotification = this.notificationSystem.info(
+          `Processing large file (${(file.size / (1024 * 1024)).toFixed(2)}MB)...`, 0
+        );
+      }
+
       const text = await this.readFile(file);
       const result = TrackProcessor.processTracklist(text, file.name);
+
+      // Clear processing notification
+      if (processingNotification) {
+        this.notificationSystem.dismiss(processingNotification);
+      }
 
       // Update state
       Object.assign(this.appState.data, {
@@ -1773,10 +2001,70 @@ class UIController {
   // === Audio ===
   loadAudioFolder(event) {
     const files = Array.from(event.target.files);
-    const loaded = this.audioManager.loadAudioFiles(files);
+    
+    // Rate limiting check for audio operations
+    const rateLimitCheck = this.rateLimiter.isAllowed('audio_load');
+    if (!rateLimitCheck.allowed) {
+      this.notificationSystem.warning(
+        `Audio load limit reached. Please wait ${rateLimitCheck.waitTime} seconds before trying again.`
+      );
+      event.target.value = '';
+      return;
+    }
+
+    if (files.length === 0) {
+      this.notificationSystem.warning('No files selected');
+      return;
+    }
+
+    // Validate audio files
+    const validFiles = [];
+    const errors = [];
+    
+    for (const file of files) {
+      const validation = SecurityUtils.validateAudioFile(file);
+      if (validation.isValid) {
+        validFiles.push(file);
+      } else {
+        errors.push(`${file.name}: ${validation.errors.join(', ')}`);
+      }
+    }
+
+    // Show validation errors if any
+    if (errors.length > 0) {
+      const errorSummary = errors.slice(0, 3).join('\n');
+      const moreErrors = errors.length > 3 ? `\n... and ${errors.length - 3} more files` : '';
+      this.notificationSystem.warning(`Some files were rejected:\n${errorSummary}${moreErrors}`);
+    }
+
+    if (validFiles.length === 0) {
+      this.notificationSystem.error('No valid audio files found');
+      event.target.value = '';
+      return;
+    }
+
+    // Show progress for large batches
+    let processingNotification;
+    if (validFiles.length > 100) {
+      processingNotification = this.notificationSystem.info(
+        `Processing ${validFiles.length} audio files...`, 0
+      );
+    }
+
+    const loaded = this.audioManager.loadAudioFiles(validFiles);
+    
+    if (processingNotification) {
+      this.notificationSystem.dismiss(processingNotification);
+    }
     
     if (loaded > 0) {
-      this.notificationSystem.success(`Loaded ${loaded} audio files. You can now preview tracks.`);
+      const rejectedCount = files.length - loaded;
+      const message = rejectedCount > 0 
+        ? `Loaded ${loaded} audio files (${rejectedCount} rejected). You can now preview tracks.`
+        : `Loaded ${loaded} audio files. You can now preview tracks.`;
+        
+      this.notificationSystem.success(message);
+      
       if (this.audioManager.pendingPreviewTrack) {
         this.audioManager.playPreview(this.audioManager.pendingPreviewTrack);
         this.audioManager.pendingPreviewTrack = null;
@@ -1784,6 +2072,8 @@ class UIController {
     } else {
       this.notificationSystem.warning('No valid audio files found');
     }
+    
+    event.target.value = '';
   }
 
   playPreview(track) {
@@ -2028,9 +2318,10 @@ class BeatroveApp {
   constructor() {
     this.appState = new ApplicationState();
     this.notificationSystem = new NotificationSystem();
+    this.rateLimiter = new RateLimiter();
     this.audioManager = new AudioManager(this.notificationSystem);
     this.renderer = new UIRenderer(this.appState);
-    this.controller = new UIController(this.appState, this.renderer, this.audioManager, this.notificationSystem);
+    this.controller = new UIController(this.appState, this.renderer, this.audioManager, this.notificationSystem, this.rateLimiter);
     this.visualizer = new AudioVisualizer(this.audioManager);
     this.initialized = false;
   }
