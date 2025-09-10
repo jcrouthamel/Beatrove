@@ -3658,10 +3658,16 @@ class BeatroveApp {
   initializeTheme() {
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
-      // Apply stored theme preference
-      const isLightMode = this.appState.data.themePreference === 'light';
+      // Get theme preference directly from localStorage to handle first load
+      const storedTheme = localStorage.getItem('themePreference');
+      const isLightMode = storedTheme === 'light';
+      
+      // Apply theme to DOM immediately
       document.body.classList.toggle('light-mode', isLightMode);
       themeToggle.checked = isLightMode;
+      
+      // Ensure appState has the correct theme preference
+      this.appState.data.themePreference = storedTheme || 'dark';
     }
   }
 
