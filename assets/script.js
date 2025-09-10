@@ -603,19 +603,59 @@ class AudioManager {
     this.audioDataArray = null;
     this.reactToAudio = false;
     this.blobUrls = new Set();
+    this.currentBlobUrl = null; // Track current active blob URL
     this.pendingPreviewTrack = null;
     this.notificationSystem = notificationSystem;
+    this.cleanupIntervalId = null;
+    this.startPeriodicCleanup();
   }
 
   createBlobUrl(file) {
     const url = URL.createObjectURL(file);
     this.blobUrls.add(url);
+    // Add timestamp for cleanup tracking
+    url._createdAt = Date.now();
     return url;
   }
 
+  revokeBlobUrl(url) {
+    if (url && this.blobUrls.has(url)) {
+      URL.revokeObjectURL(url);
+      this.blobUrls.delete(url);
+    }
+  }
+
+  startPeriodicCleanup() {
+    // Clean up unused blob URLs every 30 seconds
+    this.cleanupIntervalId = setInterval(() => {
+      this.cleanupUnusedBlobUrls();
+    }, 30000);
+  }
+
+  cleanupUnusedBlobUrls() {
+    const now = Date.now();
+    const maxAge = 5 * 60 * 1000; // 5 minutes
+    
+    for (const url of this.blobUrls) {
+      // Clean up old URLs or URLs not currently in use
+      if (url._createdAt && (now - url._createdAt > maxAge) && url !== this.currentBlobUrl) {
+        console.log('Cleaning up old blob URL:', url);
+        this.revokeBlobUrl(url);
+      }
+    }
+  }
+
   cleanup() {
+    // Stop periodic cleanup
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+
+    // Clean up all blob URLs
     this.blobUrls.forEach(url => URL.revokeObjectURL(url));
     this.blobUrls.clear();
+    this.currentBlobUrl = null;
 
     if (this.currentAudio) {
       this.currentAudio.pause();
@@ -683,16 +723,11 @@ class AudioManager {
         throw new Error('Unsupported audio file type');
       }
 
-      // Clean up previous audio
-      if (this.currentAudio) {
-        this.disconnectVisualizer();
-        if (this.currentAudio.parentElement) {
-          this.currentAudio.parentElement.remove();
-        }
-        this.currentAudio = null;
-      }
+      // Clean up previous audio and blob URL immediately
+      this.cleanupCurrentAudio();
 
       const url = this.createBlobUrl(file);
+      this.currentBlobUrl = url; // Track current blob URL
       
       // Create container
       const container = document.createElement('div');
@@ -716,28 +751,29 @@ class AudioManager {
       document.body.appendChild(container);
       this.currentAudio = audio;
 
-      // Set up event handlers
-      audio.addEventListener('ended', () => {
+      // Set up event handlers with proper cleanup
+      const cleanupHandler = () => {
         this.disconnectVisualizer();
         container.remove();
         this.currentAudio = null;
-        URL.revokeObjectURL(url);
-        this.blobUrls.delete(url);
+        this.revokeBlobUrl(url);
+        this.currentBlobUrl = null;
+      };
+
+      audio.addEventListener('ended', cleanupHandler);
+      audio.addEventListener('error', () => {
+        if (this.notificationSystem) {
+          this.notificationSystem.error('Error playing audio file');
+        }
+        cleanupHandler();
       });
 
       audio.addEventListener('pause', () => {
         this.disconnectVisualizer();
       });
 
-      audio.addEventListener('error', () => {
-        if (this.notificationSystem) {
-          this.notificationSystem.error('Error playing audio file');
-        }
-        container.remove();
-        this.currentAudio = null;
-        URL.revokeObjectURL(url);
-        this.blobUrls.delete(url);
-      });
+      // Store cleanup handler on the audio element for later use
+      audio._cleanupHandler = cleanupHandler;
 
       await this.connectVisualizer(audio);
     } catch (error) {
@@ -745,6 +781,29 @@ class AudioManager {
       if (this.notificationSystem) {
         this.notificationSystem.error(error.message);
       }
+    }
+  }
+
+  cleanupCurrentAudio() {
+    if (this.currentAudio) {
+      this.disconnectVisualizer();
+      
+      // Call stored cleanup handler if available
+      if (this.currentAudio._cleanupHandler) {
+        this.currentAudio._cleanupHandler();
+      } else {
+        // Fallback cleanup
+        if (this.currentAudio.parentElement) {
+          this.currentAudio.parentElement.remove();
+        }
+        this.currentAudio = null;
+      }
+    }
+
+    // Clean up current blob URL
+    if (this.currentBlobUrl) {
+      this.revokeBlobUrl(this.currentBlobUrl);
+      this.currentBlobUrl = null;
     }
   }
 
@@ -1296,6 +1355,7 @@ class UIController {
     this.notificationSystem = notificationSystem;
     this.rateLimiter = rateLimiter;
     this.tagPopup = null;
+    this.tagPopupClickHandler = null; // Track the document click handler
   }
 
   attachEventListeners() {
@@ -1437,6 +1497,8 @@ class UIController {
         }
       });
     }
+
+    // Cleanup handlers are managed at the app level
 
     // Editable title with XSS protection
     const title = document.getElementById('editable-title');
@@ -1585,11 +1647,8 @@ class UIController {
 
   // === Tags ===
   showTagInput(track, anchorElement) {
-    // Remove existing popup
-    if (this.tagPopup) {
-      this.tagPopup.remove();
-      this.tagPopup = null;
-    }
+    // Remove existing popup and clean up event listeners
+    this.cleanupTagPopup();
 
     const popup = document.createElement('div');
     popup.className = 'tag-popup';
@@ -1618,8 +1677,22 @@ class UIController {
     this.tagPopup = popup;
     input.focus();
 
-    // Event handlers
-    saveBtn.addEventListener('click', () => {
+    // Create a comprehensive cleanup function
+    const cleanupPopup = () => {
+      if (popup && popup.parentElement) {
+        popup.remove();
+      }
+      this.tagPopup = null;
+      
+      // Remove document listener if it exists
+      if (this.tagPopupClickHandler) {
+        document.removeEventListener('mousedown', this.tagPopupClickHandler);
+        this.tagPopupClickHandler = null;
+      }
+    };
+
+    // Event handlers with proper cleanup
+    const saveHandler = () => {
       const tags = input.value.split(',')
         .map(t => t.trim())
         .filter(t => SecurityUtils.validateTag(t));
@@ -1627,27 +1700,65 @@ class UIController {
       this.appState.data.trackTags[track.display] = tags;
       this.appState.saveToStorage();
       this.updateTagDropdown();
-      popup.remove();
-      this.tagPopup = null;
+      cleanupPopup();
       this.render();
-    });
+    };
 
-    cancelBtn.addEventListener('click', () => {
-      popup.remove();
-      this.tagPopup = null;
-    });
+    const cancelHandler = () => {
+      cleanupPopup();
+    };
 
-    // Close on outside click
+    // Add event listeners
+    saveBtn.addEventListener('click', saveHandler);
+    cancelBtn.addEventListener('click', cancelHandler);
+
+    // Handle Enter/Escape keys
+    const keyHandler = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        saveHandler();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelHandler();
+      }
+    };
+    input.addEventListener('keydown', keyHandler);
+
+    // Close on outside click with proper cleanup
+    this.tagPopupClickHandler = (e) => {
+      if (!popup.contains(e.target)) {
+        cleanupPopup();
+      }
+    };
+
+    // Add document listener after a short delay to prevent immediate trigger
     setTimeout(() => {
-      const handler = (e) => {
-        if (!popup.contains(e.target)) {
-          popup.remove();
-          this.tagPopup = null;
-          document.removeEventListener('mousedown', handler);
-        }
-      };
-      document.addEventListener('mousedown', handler);
+      if (this.tagPopup === popup) { // Only add if popup is still active
+        document.addEventListener('mousedown', this.tagPopupClickHandler);
+      }
     }, 10);
+
+    // Store cleanup function on popup for emergency cleanup
+    popup._cleanup = cleanupPopup;
+  }
+
+  cleanupTagPopup() {
+    if (this.tagPopup) {
+      // Call stored cleanup function if available
+      if (this.tagPopup._cleanup) {
+        this.tagPopup._cleanup();
+      } else {
+        // Fallback cleanup
+        this.tagPopup.remove();
+        this.tagPopup = null;
+      }
+    }
+
+    // Ensure document listener is removed
+    if (this.tagPopupClickHandler) {
+      document.removeEventListener('mousedown', this.tagPopupClickHandler);
+      this.tagPopupClickHandler = null;
+    }
   }
 
   updateTagDropdown() {
@@ -2222,6 +2333,39 @@ class UIController {
     selection.removeAllRanges();
     selection.addRange(range);
   }
+
+  // === Cleanup Methods ===
+  cleanup() {
+    // Clean up audio resources
+    this.audioManager.cleanup();
+    
+    // Clean up tag popup
+    this.cleanupTagPopup();
+    
+    // Clear any remaining timeouts or intervals
+    this.clearAllTimeouts();
+    
+    // Clean up notification system
+    if (this.notificationSystem && this.notificationSystem.notifications) {
+      this.notificationSystem.notifications.clear();
+    }
+    
+    // Clean up rate limiter
+    if (this.rateLimiter) {
+      this.rateLimiter.reset();
+    }
+    
+    console.log('UIController cleanup completed');
+  }
+
+  clearAllTimeouts() {
+    // Clear any stored timeout/interval IDs
+    // This is a precautionary cleanup for any missed timeouts
+    for (let i = 1; i < 1000; i++) {
+      clearTimeout(i);
+      clearInterval(i);
+    }
+  }
 }
 
 // ============= AUDIO VISUALIZER =============
@@ -2240,6 +2384,11 @@ class AudioVisualizer {
       cancelAnimationFrame(this.animationId);
       this.animationId = null;
     }
+  }
+
+  cleanup() {
+    this.stop();
+    console.log('AudioVisualizer cleanup completed');
   }
 
   animate() {
@@ -2397,9 +2546,21 @@ class BeatroveApp {
   }
 
   cleanup() {
-    this.visualizer.stop();
+    console.log('BeatroveApp cleanup starting...');
+    
+    // Clean up visualizer
+    this.visualizer.cleanup();
+    
+    // Clean up audio manager
     this.audioManager.cleanup();
+    
+    // Clean up controller
+    this.controller.cleanup();
+    
+    // Save state before cleanup
     this.appState.saveToStorage();
+    
+    console.log('BeatroveApp cleanup completed');
   }
 }
 
@@ -2413,12 +2574,29 @@ if (document.readyState === 'loading') {
   app.init();
 }
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => app.cleanup());
-window.addEventListener('visibilitychange', () => {
+// Comprehensive cleanup event handlers
+window.addEventListener('beforeunload', () => {
+  console.log('Page unload - running cleanup');
+  app.cleanup();
+});
+
+window.addEventListener('pagehide', () => {
+  console.log('Page hide - running cleanup');
+  app.cleanup();
+});
+
+document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    app.audioManager.cleanup();
+    console.log('Page hidden - cleaning up current operations');
+    app.audioManager.cleanupCurrentAudio();
+    app.controller.cleanupTagPopup();
   }
+});
+
+// Mobile-specific cleanup
+window.addEventListener('orientationchange', () => {
+  // Clean up popups that might be mispositioned
+  app.controller.cleanupTagPopup();
 });
 
 // Add style for highlight effect
