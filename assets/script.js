@@ -1601,6 +1601,10 @@ class AudioManager {
       }
     } finally {
       this.isProcessingQueue = false;
+      // Check if new items were added during processing
+      if (this.previewQueue.length > 0) {
+        this.processPreviewQueue(); // Recursive call to handle race condition
+      }
     }
   }
 
