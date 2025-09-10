@@ -25,9 +25,10 @@ body.light-mode {
 }
 
 .logo-image {
-  max-width: 200px;
   width: 100%;
-  height: auto;
+  max-width: 1200px;
+  height: 400px;
+  object-fit: contain;
   display: block;
   margin: 0 auto;
 }
@@ -35,13 +36,13 @@ body.light-mode {
 /* Responsive logo sizing */
 @media (max-width: 768px) {
   .logo-image {
-    max-width: 140px;
+    height: 300px;
   }
 }
 
 @media (max-width: 480px) {
   .logo-image {
-    max-width: 100px;
+    height: 200px;
   }
 }
 
