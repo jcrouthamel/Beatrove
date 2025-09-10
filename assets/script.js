@@ -1104,19 +1104,32 @@ class ApplicationState {
       const originalGetItem = localStorage.getItem;
       const originalSetItem = localStorage.setItem;
       const originalRemoveItem = localStorage.removeItem;
+      const appState = this; // Reference to ApplicationState instance
       
       localStorage.getItem = function(key) {
-        console.warn(`Direct localStorage.getItem("${key}") detected. Use appState.safeLocalStorageGet() instead.`);
+        // Skip warning for internal ApplicationState operations
+        const stack = new Error().stack;
+        if (!stack.includes('ApplicationState') && !stack.includes('RateLimiter')) {
+          console.warn(`Direct localStorage.getItem("${key}") detected. Use appState.safeLocalStorageGet() instead.`);
+        }
         return originalGetItem.call(this, key);
       };
       
       localStorage.setItem = function(key, value) {
-        console.warn(`Direct localStorage.setItem("${key}") detected. Use appState.safeLocalStorageSet() instead.`);
+        // Skip warning for internal ApplicationState operations
+        const stack = new Error().stack;
+        if (!stack.includes('ApplicationState') && !stack.includes('RateLimiter')) {
+          console.warn(`Direct localStorage.setItem("${key}") detected. Use appState.safeLocalStorageSet() instead.`);
+        }
         return originalSetItem.call(this, key, value);
       };
       
       localStorage.removeItem = function(key) {
-        console.warn(`Direct localStorage.removeItem("${key}") detected. Use appState.safeLocalStorageRemove() instead.`);
+        // Skip warning for internal ApplicationState operations
+        const stack = new Error().stack;
+        if (!stack.includes('ApplicationState') && !stack.includes('RateLimiter')) {
+          console.warn(`Direct localStorage.removeItem("${key}") detected. Use appState.safeLocalStorageRemove() instead.`);
+        }
         return originalRemoveItem.call(this, key);
       };
     }
