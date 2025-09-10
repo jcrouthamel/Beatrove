@@ -1078,6 +1078,85 @@ class ApplicationState {
     });
   }
 
+  // Centralized localStorage access to prevent concurrent conflicts
+  async safeLocalStorageGet(key) {
+    return new Promise((resolve) => {
+      this.operationQueue.push({
+        type: 'read',
+        execute: async () => {
+          try {
+            const value = localStorage.getItem(key);
+            resolve(value);
+          } catch (error) {
+            console.warn(`Failed to read localStorage key ${key}:`, error);
+            resolve(null);
+          }
+        }
+      });
+      this.processOperationQueue();
+    });
+  }
+
+  // Development warning for direct localStorage access (remove in production)
+  warnDirectAccess() {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const originalGetItem = localStorage.getItem;
+      const originalSetItem = localStorage.setItem;
+      const originalRemoveItem = localStorage.removeItem;
+      
+      localStorage.getItem = function(key) {
+        console.warn(`Direct localStorage.getItem("${key}") detected. Use appState.safeLocalStorageGet() instead.`);
+        return originalGetItem.call(this, key);
+      };
+      
+      localStorage.setItem = function(key, value) {
+        console.warn(`Direct localStorage.setItem("${key}") detected. Use appState.safeLocalStorageSet() instead.`);
+        return originalSetItem.call(this, key, value);
+      };
+      
+      localStorage.removeItem = function(key) {
+        console.warn(`Direct localStorage.removeItem("${key}") detected. Use appState.safeLocalStorageRemove() instead.`);
+        return originalRemoveItem.call(this, key);
+      };
+    }
+  }
+
+  async safeLocalStorageSet(key, value) {
+    return new Promise((resolve) => {
+      this.operationQueue.push({
+        type: 'write',
+        execute: async () => {
+          try {
+            localStorage.setItem(key, value);
+            resolve(true);
+          } catch (error) {
+            console.warn(`Failed to write localStorage key ${key}:`, error);
+            resolve(false);
+          }
+        }
+      });
+      this.processOperationQueue();
+    });
+  }
+
+  async safeLocalStorageRemove(key) {
+    return new Promise((resolve) => {
+      this.operationQueue.push({
+        type: 'remove',
+        execute: async () => {
+          try {
+            localStorage.removeItem(key);
+            resolve(true);
+          } catch (error) {
+            console.warn(`Failed to remove localStorage key ${key}:`, error);
+            resolve(false);
+          }
+        }
+      });
+      this.processOperationQueue();
+    });
+  }
+
   // Thread-safe property updates
   async updateProperty(path, value, autoSave = true) {
     const pathParts = path.split('.');
@@ -2639,12 +2718,13 @@ class UIController {
     // Secure click-to-edit title (replacing contenteditable)
     const title = document.getElementById('editable-title');
     if (title) {
-      // Load saved title
-      const savedTitle = localStorage.getItem('appTitle');
-      if (savedTitle) {
-        const sanitizedTitle = SecurityUtils.sanitizeForContentEditable(savedTitle);
-        title.textContent = sanitizedTitle;
-      }
+      // Load saved title safely
+      this.appState.safeLocalStorageGet('appTitle').then(savedTitle => {
+        if (savedTitle) {
+          const sanitizedTitle = SecurityUtils.sanitizeForContentEditable(savedTitle);
+          title.textContent = sanitizedTitle;
+        }
+      });
       
       // Click-to-edit functionality
       title.addEventListener('click', () => {
@@ -3383,8 +3463,8 @@ class UIController {
       // Persist to storage using the safe method
       if (this.appState && this.appState.updateProperty) {
         this.appState.updateProperty('appTitle', finalTitle, false);
+        this.appState.safeLocalStorageSet('appTitle', finalTitle);
       }
-      localStorage.setItem('appTitle', finalTitle);
       
       if (this.notificationSystem && finalTitle !== originalContent) {
         this.notificationSystem.success('Title updated successfully');
@@ -3597,7 +3677,7 @@ class BeatroveApp {
       // Initialize app state
       this.initializeElements();
       this.appState.loadFromStorage();
-      this.initializeTheme();
+      await this.initializeTheme();
 
       // Try to load default tracklist
       await this.loadDefaultTracklist();
@@ -3655,11 +3735,11 @@ class BeatroveApp {
     };
   }
 
-  initializeTheme() {
+  async initializeTheme() {
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
-      // Get theme preference directly from localStorage to handle first load
-      const storedTheme = localStorage.getItem('themePreference');
+      // Get theme preference safely to handle first load
+      const storedTheme = await this.appState.safeLocalStorageGet('themePreference');
       const isLightMode = storedTheme === 'light';
       
       // Apply theme to DOM immediately
