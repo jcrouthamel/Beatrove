@@ -607,6 +607,14 @@ class AudioManager {
     this.pendingPreviewTrack = null;
     this.notificationSystem = notificationSystem;
     this.cleanupIntervalId = null;
+    
+    // Race condition prevention
+    this.isPlayingPreview = false;
+    this.isConnectingVisualizer = false;
+    this.currentPreviewId = null;
+    this.previewQueue = [];
+    this.isProcessingQueue = false;
+    
     this.startPeriodicCleanup();
   }
 
@@ -646,10 +654,24 @@ class AudioManager {
   }
 
   cleanup() {
+    console.log('AudioManager cleanup starting...');
+    
     // Stop periodic cleanup
     if (this.cleanupIntervalId) {
       clearInterval(this.cleanupIntervalId);
       this.cleanupIntervalId = null;
+    }
+
+    // Clear race condition state
+    this.isPlayingPreview = false;
+    this.isConnectingVisualizer = false;
+    this.currentPreviewId = null;
+    this.isProcessingQueue = false;
+    
+    // Reject any pending preview requests
+    while (this.previewQueue.length > 0) {
+      const request = this.previewQueue.pop();
+      request.reject(new Error('AudioManager cleanup - operation cancelled'));
     }
 
     // Clean up all blob URLs
@@ -673,6 +695,8 @@ class AudioManager {
     }
 
     this.fileMap = {};
+    
+    console.log('AudioManager cleanup completed');
   }
 
   disconnectVisualizer() {
@@ -690,7 +714,18 @@ class AudioManager {
   }
 
   async connectVisualizer(audioElem) {
+    // Prevent race conditions in visualizer connection
+    if (this.isConnectingVisualizer) {
+      console.log('Visualizer connection already in progress, skipping');
+      return;
+    }
+
+    this.isConnectingVisualizer = true;
+    
     try {
+      // Clean up any existing visualizer first
+      this.disconnectVisualizer();
+      
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       this.analyser = this.audioCtx.createAnalyser();
       this.analyser.fftSize = 64;
@@ -700,17 +735,65 @@ class AudioManager {
       this.analyser.connect(this.audioCtx.destination);
       this.reactToAudio = true;
       await this.audioCtx.resume();
+      
+      console.log('Visualizer connected successfully');
     } catch (error) {
       console.error('Failed to connect audio visualizer:', error);
       this.disconnectVisualizer();
+    } finally {
+      this.isConnectingVisualizer = false;
     }
   }
 
   async playPreview(track) {
+    // Generate unique ID for this preview request
+    const previewId = Date.now() + Math.random();
+    
+    // Add to queue and process
+    return new Promise((resolve, reject) => {
+      this.previewQueue.push({ track, previewId, resolve, reject });
+      this.processPreviewQueue();
+    });
+  }
+
+  async processPreviewQueue() {
+    // Prevent concurrent processing
+    if (this.isProcessingQueue) {
+      return;
+    }
+
+    this.isProcessingQueue = true;
+
+    try {
+      while (this.previewQueue.length > 0) {
+        // Only process the most recent request, discard older ones
+        const latestRequest = this.previewQueue.pop();
+        
+        // Reject all other queued requests
+        while (this.previewQueue.length > 0) {
+          const oldRequest = this.previewQueue.pop();
+          oldRequest.reject(new Error('Superseded by newer preview request'));
+        }
+
+        try {
+          await this.playPreviewInternal(latestRequest.track, latestRequest.previewId);
+          latestRequest.resolve();
+        } catch (error) {
+          latestRequest.reject(error);
+        }
+      }
+    } finally {
+      this.isProcessingQueue = false;
+    }
+  }
+
+  async playPreviewInternal(track, previewId) {
     try {
       if (!track.absPath) {
         throw new Error('No file path for this track');
       }
+
+      console.log(`Starting preview ${previewId} for track: ${track.artist} - ${track.title}`);
 
       const fileName = track.absPath.split(/[\\/]/).pop().toLowerCase();
       const file = this.fileMap[fileName];
@@ -723,15 +806,23 @@ class AudioManager {
         throw new Error('Unsupported audio file type');
       }
 
-      // Clean up previous audio and blob URL immediately
-      this.cleanupCurrentAudio();
+      // Set current preview ID and clean up previous
+      this.currentPreviewId = previewId;
+      await this.cleanupCurrentAudioAsync();
+
+      // Check if this preview was superseded during cleanup
+      if (this.currentPreviewId !== previewId) {
+        console.log(`Preview ${previewId} was superseded during cleanup`);
+        return;
+      }
 
       const url = this.createBlobUrl(file);
-      this.currentBlobUrl = url; // Track current blob URL
+      this.currentBlobUrl = url;
       
       // Create container
       const container = document.createElement('div');
       container.className = 'audio-player-container';
+      container._previewId = previewId; // Track which preview this belongs to
       
       // Add track info
       const label = SecurityUtils.createSafeElement('div', 
@@ -746,21 +837,46 @@ class AudioManager {
       audio.controls = true;
       audio.autoplay = true;
       audio.className = 'custom-audio-player';
+      audio._previewId = previewId; // Track which preview this belongs to
       container.appendChild(audio);
+
+      // Check again if superseded before adding to DOM
+      if (this.currentPreviewId !== previewId) {
+        console.log(`Preview ${previewId} was superseded before DOM insertion`);
+        container.remove();
+        this.revokeBlobUrl(url);
+        return;
+      }
 
       document.body.appendChild(container);
       this.currentAudio = audio;
+      this.isPlayingPreview = true;
 
-      // Set up event handlers with proper cleanup
+      // Set up event handlers with race condition checking
       const cleanupHandler = () => {
-        this.disconnectVisualizer();
+        // Only cleanup if this is still the current preview
+        if (audio._previewId === this.currentPreviewId) {
+          this.disconnectVisualizer();
+          this.isPlayingPreview = false;
+        }
+        
         container.remove();
-        this.currentAudio = null;
+        
+        // Clear references if this was the current audio
+        if (this.currentAudio === audio) {
+          this.currentAudio = null;
+        }
+        
         this.revokeBlobUrl(url);
-        this.currentBlobUrl = null;
+        
+        // Clear current blob URL if this was it
+        if (this.currentBlobUrl === url) {
+          this.currentBlobUrl = null;
+        }
       };
 
       audio.addEventListener('ended', cleanupHandler);
+      
       audio.addEventListener('error', () => {
         if (this.notificationSystem) {
           this.notificationSystem.error('Error playing audio file');
@@ -769,25 +885,45 @@ class AudioManager {
       });
 
       audio.addEventListener('pause', () => {
-        this.disconnectVisualizer();
+        // Only disconnect if this is still the current preview
+        if (audio._previewId === this.currentPreviewId) {
+          this.disconnectVisualizer();
+        }
       });
 
-      // Store cleanup handler on the audio element for later use
+      // Store cleanup handler
       audio._cleanupHandler = cleanupHandler;
 
-      await this.connectVisualizer(audio);
+      // Connect visualizer only if still current
+      if (this.currentPreviewId === previewId) {
+        await this.connectVisualizer(audio);
+      }
+
+      console.log(`Preview ${previewId} started successfully`);
+
     } catch (error) {
-      console.error('Preview error:', error);
+      console.error(`Preview ${previewId} error:`, error);
       if (this.notificationSystem) {
         this.notificationSystem.error(error.message);
       }
+      throw error;
     }
   }
 
   cleanupCurrentAudio() {
+    return this.cleanupCurrentAudioAsync();
+  }
+
+  async cleanupCurrentAudioAsync() {
+    console.log('Starting async cleanup of current audio');
+    
+    // Mark that we're no longer playing
+    this.isPlayingPreview = false;
+    
+    // Disconnect visualizer first
+    this.disconnectVisualizer();
+    
     if (this.currentAudio) {
-      this.disconnectVisualizer();
-      
       // Call stored cleanup handler if available
       if (this.currentAudio._cleanupHandler) {
         this.currentAudio._cleanupHandler();
@@ -805,6 +941,14 @@ class AudioManager {
       this.revokeBlobUrl(this.currentBlobUrl);
       this.currentBlobUrl = null;
     }
+
+    // Clear current preview ID
+    this.currentPreviewId = null;
+    
+    // Small delay to ensure DOM cleanup is complete
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
+    console.log('Async cleanup completed');
   }
 
   loadAudioFiles(files) {
