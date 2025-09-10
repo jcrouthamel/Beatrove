@@ -2821,106 +2821,126 @@ class UIController {
     // Remove existing popup and clean up event listeners
     this.cleanupTagPopup();
 
-    const popup = document.createElement('div');
-    popup.className = 'tag-popup';
+    let popup = null;
+    let cleanupPopup = null;
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = 'Add tag (comma separated)';
-    input.className = 'tag-input-width';
+    try {
+      popup = document.createElement('div');
+      popup.className = 'tag-popup';
 
-    const existingTags = (this.appState.data.trackTags[track.display] || []).join(', ');
-    input.value = existingTags;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Add tag (comma separated)';
+      input.className = 'tag-input-width';
 
-    const saveBtn = SecurityUtils.createSafeElement('button', 'Save');
-    const cancelBtn = SecurityUtils.createSafeElement('button', 'Cancel');
+      const existingTags = (this.appState.data.trackTags[track.display] || []).join(', ');
+      input.value = existingTags;
 
-    popup.appendChild(input);
-    popup.appendChild(saveBtn);
-    popup.appendChild(cancelBtn);
+      const saveBtn = SecurityUtils.createSafeElement('button', 'Save');
+      const cancelBtn = SecurityUtils.createSafeElement('button', 'Cancel');
 
-    // Position popup
-    const rect = anchorElement.getBoundingClientRect();
-    popup.style.left = rect.left + window.scrollX + 'px';
-    popup.style.top = rect.bottom + window.scrollY + 'px';
+      popup.appendChild(input);
+      popup.appendChild(saveBtn);
+      popup.appendChild(cancelBtn);
 
-    document.body.appendChild(popup);
-    this.tagPopup = popup;
-    input.focus();
+      // Position popup
+      const rect = anchorElement.getBoundingClientRect();
+      popup.style.left = rect.left + window.scrollX + 'px';
+      popup.style.top = rect.bottom + window.scrollY + 'px';
 
-    // Create a comprehensive cleanup function
-    const cleanupPopup = () => {
-      // Clear timeout if it exists to prevent memory leaks
-      if (popup._timeoutId) {
-        clearTimeout(popup._timeoutId);
-        popup._timeoutId = null;
-      }
-      
-      if (popup && popup.parentElement) {
-        popup.remove();
-      }
-      this.tagPopup = null;
-      
-      // Remove document listener if it exists
-      if (this.tagPopupClickHandler) {
-        document.removeEventListener('mousedown', this.tagPopupClickHandler);
-        this.tagPopupClickHandler = null;
-      }
-    };
+      document.body.appendChild(popup);
+      this.tagPopup = popup;
+      input.focus();
 
-    // Event handlers with proper cleanup
-    const saveHandler = () => {
-      const tags = input.value.split(',')
-        .map(t => t.trim())
-        .filter(t => SecurityUtils.validateTag(t));
-      
-      this.appState.data.trackTags[track.display] = tags;
-      this.appState.saveToStorage();
-      this.updateTagDropdown();
-      cleanupPopup();
-      this.render();
-    };
+      // Create a comprehensive cleanup function
+      cleanupPopup = () => {
+        // Clear timeout if it exists to prevent memory leaks
+        if (popup._timeoutId) {
+          clearTimeout(popup._timeoutId);
+          popup._timeoutId = null;
+        }
+        
+        if (popup && popup.parentElement) {
+          popup.remove();
+        }
+        this.tagPopup = null;
+        
+        // Remove document listener if it exists
+        if (this.tagPopupClickHandler) {
+          document.removeEventListener('mousedown', this.tagPopupClickHandler);
+          this.tagPopupClickHandler = null;
+        }
+      };
 
-    const cancelHandler = () => {
-      cleanupPopup();
-    };
+      // Event handlers with proper cleanup
+      const saveHandler = () => {
+        try {
+          const tags = input.value.split(',')
+            .map(t => t.trim())
+            .filter(t => SecurityUtils.validateTag(t));
+          
+          this.appState.data.trackTags[track.display] = tags;
+          this.appState.saveToStorage();
+          this.updateTagDropdown();
+          cleanupPopup();
+          this.render();
+        } catch (error) {
+          console.error('Error saving tags:', error);
+          cleanupPopup();
+        }
+      };
 
-    // Add event listeners
-    saveBtn.addEventListener('click', saveHandler);
-    cancelBtn.addEventListener('click', cancelHandler);
-
-    // Handle Enter/Escape keys
-    const keyHandler = (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        saveHandler();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        cancelHandler();
-      }
-    };
-    input.addEventListener('keydown', keyHandler);
-
-    // Close on outside click with proper cleanup
-    this.tagPopupClickHandler = (e) => {
-      if (!popup.contains(e.target)) {
+      const cancelHandler = () => {
         cleanupPopup();
-      }
-    };
+      };
 
-    // Add document listener after a short delay to prevent immediate trigger
-    // Store the timeout ID for cleanup if needed
-    const timeoutId = setTimeout(() => {
-      if (this.tagPopup === popup) { // Only add if popup is still active
-        document.addEventListener('mousedown', this.tagPopupClickHandler);
-      }
-    }, 10);
-    
-    // Store timeout ID on popup for cleanup
-    popup._timeoutId = timeoutId;
+      // Add event listeners
+      saveBtn.addEventListener('click', saveHandler);
+      cancelBtn.addEventListener('click', cancelHandler);
 
-    // Store cleanup function on popup for emergency cleanup
-    popup._cleanup = cleanupPopup;
+      // Handle Enter/Escape keys
+      const keyHandler = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveHandler();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelHandler();
+        }
+      };
+      input.addEventListener('keydown', keyHandler);
+
+      // Close on outside click with proper cleanup
+      this.tagPopupClickHandler = (e) => {
+        if (!popup.contains(e.target)) {
+          cleanupPopup();
+        }
+      };
+
+      // Add document listener after a short delay to prevent immediate trigger
+      // Store the timeout ID for cleanup if needed
+      const timeoutId = setTimeout(() => {
+        if (this.tagPopup === popup) { // Only add if popup is still active
+          document.addEventListener('mousedown', this.tagPopupClickHandler);
+        }
+      }, 10);
+      
+      // Store timeout ID on popup for cleanup
+      popup._timeoutId = timeoutId;
+
+      // Store cleanup function on popup for emergency cleanup
+      popup._cleanup = cleanupPopup;
+
+    } catch (error) {
+      console.error('Error showing tag input:', error);
+      // Ensure cleanup on any error during popup creation
+      if (cleanupPopup) {
+        cleanupPopup();
+      } else {
+        // Fallback cleanup if cleanupPopup wasn't created yet
+        this.cleanupTagPopup();
+      }
+    }
   }
 
   cleanupTagPopup() {
