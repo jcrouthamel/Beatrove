@@ -1513,6 +1513,7 @@ class AudioManager {
     this.audioDataArray = null;
     this.reactToAudio = false;
     this.blobUrls = new Set();
+    this.blobMeta = new Map(); // Store blob URL metadata: url -> { createdAt }
     this.currentBlobUrl = null; // Track current active blob URL
     this.pendingPreviewTrack = null;
     this.notificationSystem = notificationSystem;
@@ -1531,8 +1532,7 @@ class AudioManager {
   createBlobUrl(file) {
     const url = URL.createObjectURL(file);
     this.blobUrls.add(url);
-    // Add timestamp for cleanup tracking
-    url._createdAt = Date.now();
+    this.blobMeta.set(url, { createdAt: Date.now() });
     return url;
   }
 
@@ -1540,6 +1540,7 @@ class AudioManager {
     if (url && this.blobUrls.has(url)) {
       URL.revokeObjectURL(url);
       this.blobUrls.delete(url);
+      this.blobMeta.delete(url);
     }
   }
 
@@ -1556,7 +1557,8 @@ class AudioManager {
     
     for (const url of this.blobUrls) {
       // Clean up old URLs or URLs not currently in use
-      if (url._createdAt && (now - url._createdAt > maxAge) && url !== this.currentBlobUrl) {
+      const meta = this.blobMeta.get(url);
+      if (meta && (now - meta.createdAt > maxAge) && url !== this.currentBlobUrl) {
         console.log('Cleaning up old blob URL:', url);
         this.revokeBlobUrl(url);
       }
@@ -1587,6 +1589,7 @@ class AudioManager {
     // Clean up all blob URLs
     this.blobUrls.forEach(url => URL.revokeObjectURL(url));
     this.blobUrls.clear();
+    this.blobMeta.clear();
     this.currentBlobUrl = null;
 
     if (this.currentAudio) {
