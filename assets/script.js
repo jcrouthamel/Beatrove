@@ -48,15 +48,15 @@ class SecurityUtils {
 
   static sanitizeForContentEditable(text) {
     if (typeof text !== 'string') return '';
-    // Extra aggressive sanitization for contenteditable
-    let clean = this.stripHtmlTags(text);
-    // Remove any script-like content
-    clean = clean.replace(/javascript:/gi, '');
-    clean = clean.replace(/data:/gi, '');
-    clean = clean.replace(/vbscript:/gi, '');
-    // Limit to printable ASCII characters and basic punctuation
-    clean = clean.replace(/[^\x20-\x7E]/g, '');
-    return clean;
+    
+    // Remove all HTML-like patterns first
+    let clean = text.replace(/<[^>]*>/g, '');
+    // Remove script patterns
+    clean = clean.replace(/javascript:|data:|vbscript:/gi, '');
+    // Allow only safe characters (word chars, whitespace, basic punctuation)
+    clean = clean.replace(/[^\w\s\-.,!?'"]/g, '');
+    
+    return clean.substring(0, 100); // Enforce max length
   }
 
   static sanitizeForAttribute(text) {
