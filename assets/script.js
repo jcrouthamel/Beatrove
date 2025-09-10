@@ -548,13 +548,15 @@ class ApplicationState {
         trackTags: localStorage.getItem('trackTags'),
         favoriteTracks: localStorage.getItem('favoriteTracks'),
         playlists: localStorage.getItem('playlists'),
-        currentPlaylist: localStorage.getItem('currentPlaylist')
+        currentPlaylist: localStorage.getItem('currentPlaylist'),
+        themePreference: localStorage.getItem('themePreference')
       };
 
       if (stored.trackTags) this.data.trackTags = JSON.parse(stored.trackTags);
       if (stored.favoriteTracks) this.data.favoriteTracks = JSON.parse(stored.favoriteTracks);
       if (stored.playlists) this.data.playlists = JSON.parse(stored.playlists);
       if (stored.currentPlaylist) this.data.currentPlaylist = stored.currentPlaylist;
+      if (stored.themePreference) this.data.themePreference = stored.themePreference;
     } catch (error) {
       console.error('Error loading stored data:', error);
       this.resetData();
@@ -567,6 +569,7 @@ class ApplicationState {
       localStorage.setItem('favoriteTracks', JSON.stringify(this.data.favoriteTracks));
       localStorage.setItem('playlists', JSON.stringify(this.data.playlists));
       localStorage.setItem('currentPlaylist', this.data.currentPlaylist);
+      localStorage.setItem('themePreference', this.data.themePreference);
     } catch (error) {
       console.error('Error saving data:', error);
     }
@@ -582,7 +585,8 @@ class ApplicationState {
       favoriteTracks: {},
       playlists: {},
       currentPlaylist: '',
-      showFavoritesOnly: false
+      showFavoritesOnly: false,
+      themePreference: 'dark' // 'dark' or 'light'
     };
   }
 
@@ -1047,16 +1051,29 @@ class TrackProcessor {
       result.totalTracks++;
       result.tracksForUI.push(trackObj);
 
-      // Duplicate detection
-      const duplicateKey = `${track.artist}-${track.title}-${track.key}-${track.bpm}`;
-      if (seenTracks.has(duplicateKey)) {
-        const original = seenTracks.get(duplicateKey)[0];
-        if (!result.duplicateTracks.includes(original)) {
-          result.duplicateTracks.push(original);
+      // Improved duplicate detection
+      const duplicateKeys = this.generateDuplicateKeys(track);
+      let isDuplicate = false;
+      
+      duplicateKeys.forEach(key => {
+        if (seenTracks.has(key)) {
+          const original = seenTracks.get(key)[0];
+          if (!result.duplicateTracks.includes(original)) {
+            result.duplicateTracks.push(original);
+          }
+          if (!result.duplicateTracks.includes(trackObj)) {
+            result.duplicateTracks.push(trackObj);
+          }
+          isDuplicate = true;
         }
-        result.duplicateTracks.push(trackObj);
-      } else {
-        seenTracks.set(duplicateKey, [trackObj]);
+      });
+      
+      if (!isDuplicate) {
+        duplicateKeys.forEach(key => {
+          if (!seenTracks.has(key)) {
+            seenTracks.set(key, [trackObj]);
+          }
+        });
       }
     });
 
@@ -1102,6 +1119,70 @@ class TrackProcessor {
     if (yearMatch) track.year = yearMatch[1];
 
     return track;
+  }
+
+  static generateDuplicateKeys(track) {
+    // Create multiple keys to catch variations
+    const keys = new Set();
+    
+    // Normalize text function
+    const normalize = (text) => {
+      if (!text) return '';
+      return text.toLowerCase()
+        .trim()
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .replace(/[^\w\s-]/g, '') // Remove special characters except hyphens
+        .replace(/-+/g, '-') // Normalize hyphens
+        .trim();
+    };
+    
+    const normalizedArtist = normalize(track.artist);
+    const normalizedTitle = normalize(track.title);
+    
+    // Basic key (exact match)
+    keys.add(`${normalizedArtist}|${normalizedTitle}|${track.key}|${track.bpm}`);
+    
+    // Key without BPM (in case BPM differs slightly)
+    keys.add(`${normalizedArtist}|${normalizedTitle}|${track.key}`);
+    
+    // Handle remix variations
+    const titleWithoutRemix = normalizedTitle
+      .replace(/\b(remix|edit|extended|radio|club|original|mix|version|rework|remaster)\b/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+      
+    if (titleWithoutRemix !== normalizedTitle) {
+      keys.add(`${normalizedArtist}|${titleWithoutRemix}|${track.key}|${track.bpm}`);
+      keys.add(`${normalizedArtist}|${titleWithoutRemix}|${track.key}`);
+    }
+    
+    // Handle artist variations (remove featuring, ft, feat, etc.)
+    const artistWithoutFeat = normalizedArtist
+      .replace(/\b(feat|featuring|ft|vs|x|and|&)\b.*$/g, '')
+      .trim();
+      
+    if (artistWithoutFeat !== normalizedArtist) {
+      keys.add(`${artistWithoutFeat}|${normalizedTitle}|${track.key}|${track.bpm}`);
+      keys.add(`${artistWithoutFeat}|${titleWithoutRemix}|${track.key}|${track.bpm}`);
+    }
+    
+    // Handle parenthetical content in titles
+    const titleWithoutParens = normalizedTitle
+      .replace(/\([^)]*\)/g, '')
+      .replace(/\[[^\]]*\]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+      
+    if (titleWithoutParens !== normalizedTitle) {
+      keys.add(`${normalizedArtist}|${titleWithoutParens}|${track.key}|${track.bpm}`);
+      keys.add(`${artistWithoutFeat}|${titleWithoutParens}|${track.key}|${track.bpm}`);
+    }
+    
+    // Remove empty keys
+    keys.delete('|||');
+    keys.delete('||');
+    
+    return Array.from(keys).filter(key => key.length > 3);
   }
 }
 
@@ -1428,22 +1509,114 @@ class UIRenderer {
     if (!azBar) return;
 
     azBar.innerHTML = '';
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     
-    letters.forEach(letter => {
-      const btn = document.createElement('button');
-      btn.textContent = letter;
-      btn.className = 'az-letter';
-      btn.dataset.letter = letter;
-      azBar.appendChild(btn);
+    // Get available artist initials from current data
+    const availableInitials = this.getAvailableArtistInitials();
+    
+    // Build categories: Numbers, Letters, Symbols
+    const categories = [
+      { label: '#', type: 'numbers', chars: '0123456789' },
+      { label: 'A-Z', type: 'letters', chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
+      { label: '★', type: 'symbols', chars: '' } // Catch-all for symbols
+    ];
+    
+    categories.forEach(category => {
+      if (category.type === 'letters') {
+        // Individual letter buttons
+        for (const char of category.chars) {
+          if (availableInitials.has(char)) {
+            const btn = document.createElement('button');
+            btn.textContent = char;
+            btn.className = 'az-letter';
+            btn.dataset.letter = char;
+            btn.dataset.type = 'letter';
+            azBar.appendChild(btn);
+          }
+        }
+      } else {
+        // Category buttons for numbers and symbols
+        const hasContent = category.type === 'numbers' 
+          ? Array.from(category.chars).some(char => availableInitials.has(char))
+          : availableInitials.has('symbols');
+          
+        if (hasContent) {
+          const btn = document.createElement('button');
+          btn.textContent = category.label;
+          btn.className = 'az-letter az-category';
+          btn.dataset.letter = category.type;
+          btn.dataset.type = category.type;
+          azBar.appendChild(btn);
+        }
+      }
     });
+  }
+
+  getAvailableArtistInitials() {
+    const initials = new Set();
+    const tracksForUI = this.appState.data.tracksForUI || [];
+    
+    tracksForUI.forEach(track => {
+      if (track.artist) {
+        const firstChar = this.normalizeFirstCharacter(track.artist);
+        initials.add(firstChar);
+      }
+    });
+    
+    return initials;
+  }
+
+  normalizeFirstCharacter(artistName) {
+    if (!artistName) return 'symbols';
+    
+    // Get first character and normalize
+    const firstChar = artistName.trim()[0];
+    if (!firstChar) return 'symbols';
+    
+    const upper = firstChar.toUpperCase();
+    
+    // Check if it's a number
+    if (/[0-9]/.test(upper)) return 'numbers';
+    
+    // Check if it's a letter (including accented characters)
+    if (/[A-ZÁÀÂÄÃÅÆÇÉÈÊËÍÌÎÏÑÓÒÔÖÕØÚÙÛÜÝ]/.test(upper)) {
+      // Map accented characters to base letters
+      const accents = {
+        'Á': 'A', 'À': 'A', 'Â': 'A', 'Ä': 'A', 'Ã': 'A', 'Å': 'A', 'Æ': 'A',
+        'Ç': 'C',
+        'É': 'E', 'È': 'E', 'Ê': 'E', 'Ë': 'E',
+        'Í': 'I', 'Ì': 'I', 'Î': 'I', 'Ï': 'I',
+        'Ñ': 'N',
+        'Ó': 'O', 'Ò': 'O', 'Ô': 'O', 'Ö': 'O', 'Õ': 'O', 'Ø': 'O',
+        'Ú': 'U', 'Ù': 'U', 'Û': 'U', 'Ü': 'U',
+        'Ý': 'Y'
+      };
+      return accents[upper] || upper;
+    }
+    
+    // Everything else is a symbol
+    return 'symbols';
   }
 
   jumpToArtist(letter) {
     const tracks = document.querySelectorAll('.track');
+    
     for (const track of tracks) {
       const artist = track.dataset.artist || '';
-      if (artist.toUpperCase().startsWith(letter)) {
+      if (!artist) continue;
+      
+      const artistFirstChar = this.normalizeFirstCharacter(artist);
+      let shouldJump = false;
+      
+      // Handle different jump types
+      if (letter === 'numbers' && artistFirstChar === 'numbers') {
+        shouldJump = true;
+      } else if (letter === 'symbols' && artistFirstChar === 'symbols') {
+        shouldJump = true;
+      } else if (letter.length === 1 && artistFirstChar === letter) {
+        shouldJump = true;
+      }
+      
+      if (shouldJump) {
         track.scrollIntoView({ behavior: 'smooth', block: 'center' });
         track.classList.add('az-jump-highlight');
         setTimeout(() => track.classList.remove('az-jump-highlight'), 1200);
@@ -1624,9 +1797,11 @@ class UIController {
     // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
-      themeToggle.checked = document.body.classList.contains('light-mode');
       themeToggle.addEventListener('change', (e) => {
-        document.body.classList.toggle('light-mode', e.target.checked);
+        const isLightMode = e.target.checked;
+        document.body.classList.toggle('light-mode', isLightMode);
+        this.appState.data.themePreference = isLightMode ? 'light' : 'dark';
+        this.appState.saveToStorage();
       });
     }
 
@@ -2633,6 +2808,7 @@ class BeatroveApp {
       // Initialize app state
       this.initializeElements();
       this.appState.loadFromStorage();
+      this.initializeTheme();
 
       // Try to load default tracklist
       await this.loadDefaultTracklist();
@@ -2666,6 +2842,16 @@ class BeatroveApp {
       statsElement: document.getElementById('stats'),
       sortSelect: document.getElementById('sort-select')
     };
+  }
+
+  initializeTheme() {
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+      // Apply stored theme preference
+      const isLightMode = this.appState.data.themePreference === 'light';
+      document.body.classList.toggle('light-mode', isLightMode);
+      themeToggle.checked = isLightMode;
+    }
   }
 
   async loadDefaultTracklist() {

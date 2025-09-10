@@ -883,6 +883,47 @@ body.light-mode .az-letter:focus {
   outline-color: #0088aa;
 }
 
+.az-category {
+  font-weight: bold;
+  border: 1px solid #444;
+  background: linear-gradient(135deg, #555, #444);
+}
+
+.az-category:hover, .az-category.active {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  border-color: #2196f3;
+}
+
+body.light-mode .az-category {
+  border-color: #ccc;
+  background: linear-gradient(135deg, #f8f8f8, #eee);
+  color: #333;
+}
+
+body.light-mode .az-category:hover, body.light-mode .az-category.active {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  border-color: #2196f3;
+  color: white;
+}
+
+.az-jump-highlight {
+  animation: azJumpHighlight 1.2s ease-out;
+}
+
+@keyframes azJumpHighlight {
+  0% { 
+    background-color: rgba(33, 150, 243, 0.3);
+    transform: scale(1.02);
+  }
+  50% { 
+    background-color: rgba(33, 150, 243, 0.1);
+  }
+  100% { 
+    background-color: transparent;
+    transform: scale(1);
+  }
+}
+
 .favorite-track .track-name {
   color: #ff2222 !important;
 }
