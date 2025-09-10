@@ -924,6 +924,50 @@ body.light-mode .az-category:hover, body.light-mode .az-category.active {
   }
 }
 
+.editable-title {
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+  padding: 4px 8px;
+  border-radius: 4px;
+  position: relative;
+}
+
+.editable-title:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #2196f3;
+}
+
+.editable-title:hover::after {
+  content: "✏️";
+  font-size: 0.6em;
+  margin-left: 8px;
+  opacity: 0.7;
+}
+
+.editable-title-input {
+  background: transparent;
+  border: 2px solid #2196f3;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  outline: none;
+  width: 100%;
+  min-width: 200px;
+}
+
+body.light-mode .editable-title:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+  color: #1976d2;
+}
+
+body.light-mode .editable-title-input {
+  border-color: #1976d2;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
 .favorite-track .track-name {
   color: #ff2222 !important;
 }
