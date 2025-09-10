@@ -8,6 +8,7 @@
 
 // ============= CONFIGURATION =============
 const CONFIG = {
+  APP_TITLE: 'DJ Total Kaos - EDM Bangers',
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   MAX_TAG_LENGTH: 50,
   MIN_BPM: 60,
@@ -2715,21 +2716,10 @@ class UIController {
 
     // Cleanup handlers are managed at the app level
 
-    // Secure click-to-edit title (replacing contenteditable)
+    // Set title from configuration
     const title = document.getElementById('editable-title');
     if (title) {
-      // Load saved title safely
-      this.appState.safeLocalStorageGet('appTitle').then(savedTitle => {
-        if (savedTitle) {
-          const sanitizedTitle = SecurityUtils.sanitizeForContentEditable(savedTitle);
-          title.textContent = sanitizedTitle;
-        }
-      });
-      
-      // Click-to-edit functionality
-      title.addEventListener('click', () => {
-        this.enableTitleEditing(title);
-      });
+      title.textContent = CONFIG.APP_TITLE;
     }
   }
 
@@ -3412,103 +3402,6 @@ class UIController {
     });
   }
 
-  // === Title Validation ===
-  enableTitleEditing(titleElement) {
-    // Prevent multiple edit sessions
-    if (titleElement.querySelector('input') || titleElement.style.display === 'none') return;
-    
-    const currentTitle = titleElement.textContent.trim();
-    
-    // Create input element
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = currentTitle;
-    input.className = 'editable-title-input';
-    input.maxLength = 100;
-    input.spellcheck = false;
-    input.autocomplete = 'off';
-    
-    // Store original content for restoration
-    const originalContent = currentTitle;
-    
-    // Replace title with input
-    titleElement.style.display = 'none';
-    titleElement.parentNode.insertBefore(input, titleElement.nextSibling);
-    
-    // Focus and select content
-    input.focus();
-    input.select();
-    
-    // Save function
-    const saveTitle = () => {
-      const newTitle = input.value.trim();
-      const sanitized = SecurityUtils.sanitizeForContentEditable(newTitle);
-      
-      // Validate and set final title
-      let finalTitle = sanitized;
-      if (finalTitle.length === 0) {
-        finalTitle = 'DJ Total Kaos - EDM Bangers'; // Default title
-      } else if (finalTitle.length > 100) {
-        finalTitle = finalTitle.substring(0, 100);
-        if (this.notificationSystem) {
-          this.notificationSystem.warning('Title truncated to 100 characters');
-        }
-      }
-      
-      // Update UI and save
-      titleElement.textContent = finalTitle;
-      titleElement.style.display = '';
-      input.remove();
-      
-      // Persist to storage using the safe method
-      if (this.appState && this.appState.updateProperty) {
-        this.appState.updateProperty('appTitle', finalTitle, false);
-        this.appState.safeLocalStorageSet('appTitle', finalTitle);
-      }
-      
-      if (this.notificationSystem && finalTitle !== originalContent) {
-        this.notificationSystem.success('Title updated successfully');
-      }
-    };
-    
-    // Cancel function
-    const cancelEdit = () => {
-      titleElement.style.display = '';
-      input.remove();
-    };
-    
-    // Event handlers
-    input.addEventListener('blur', saveTitle);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        saveTitle();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        cancelEdit();
-      }
-    });
-    
-    // Security: prevent paste of malicious content
-    input.addEventListener('paste', (e) => {
-      e.preventDefault();
-      const paste = (e.clipboardData || window.clipboardData).getData('text/plain');
-      const sanitized = SecurityUtils.sanitizeForContentEditable(paste);
-      
-      // Insert sanitized content
-      const start = input.selectionStart;
-      const end = input.selectionEnd;
-      const currentValue = input.value;
-      const newValue = currentValue.substring(0, start) + sanitized + currentValue.substring(end);
-      
-      // Respect maxLength
-      input.value = newValue.length > 100 ? newValue.substring(0, 100) : newValue;
-      
-      // Restore cursor position
-      const newCursorPos = Math.min(start + sanitized.length, input.value.length);
-      input.setSelectionRange(newCursorPos, newCursorPos);
-    });
-  }
 
   // === Rate Limiting Helpers ===
   getRateLimitMessage(rateLimitCheck) {
