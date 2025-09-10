@@ -74,6 +74,242 @@ class SecurityUtils {
   }
 }
 
+// ============= NOTIFICATION SYSTEM =============
+class NotificationSystem {
+  constructor() {
+    this.container = null;
+    this.notifications = new Map();
+    this.nextId = 1;
+    this.init();
+  }
+
+  init() {
+    // Create notification container
+    this.container = document.createElement('div');
+    this.container.id = 'notification-container';
+    this.container.className = 'notification-container';
+    document.body.appendChild(this.container);
+  }
+
+  show(message, type = 'info', duration = 5000) {
+    const id = this.nextId++;
+    const notification = this.createNotification(id, message, type);
+    
+    this.container.appendChild(notification);
+    this.notifications.set(id, notification);
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+      notification.classList.add('show');
+    });
+
+    // Auto-dismiss
+    if (duration > 0) {
+      setTimeout(() => this.dismiss(id), duration);
+    }
+
+    return id;
+  }
+
+  createNotification(id, message, type) {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.dataset.id = id;
+
+    const icon = this.getIcon(type);
+    const content = SecurityUtils.createSafeElement('span', message, 'notification-message');
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'notification-close';
+    closeBtn.innerHTML = '×';
+    closeBtn.onclick = () => this.dismiss(id);
+
+    notification.appendChild(document.createTextNode(icon + ' '));
+    notification.appendChild(content);
+    notification.appendChild(closeBtn);
+
+    return notification;
+  }
+
+  getIcon(type) {
+    const icons = {
+      info: 'ℹ️',
+      success: '✅',
+      warning: '⚠️',
+      error: '❌'
+    };
+    return icons[type] || icons.info;
+  }
+
+  dismiss(id) {
+    const notification = this.notifications.get(id);
+    if (!notification) return;
+
+    notification.classList.add('hide');
+    setTimeout(() => {
+      if (notification.parentElement) {
+        notification.parentElement.removeChild(notification);
+      }
+      this.notifications.delete(id);
+    }, 300);
+  }
+
+  success(message, duration = 4000) {
+    return this.show(message, 'success', duration);
+  }
+
+  error(message, duration = 6000) {
+    return this.show(message, 'error', duration);
+  }
+
+  warning(message, duration = 5000) {
+    return this.show(message, 'warning', duration);
+  }
+
+  info(message, duration = 4000) {
+    return this.show(message, 'info', duration);
+  }
+
+  // Custom dialog methods
+  async prompt(title, placeholder = '', defaultValue = '') {
+    return new Promise((resolve) => {
+      const dialog = this.createDialog(title, 'prompt', resolve);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = placeholder;
+      input.value = defaultValue;
+      input.className = 'dialog-input';
+      
+      const content = dialog.querySelector('.dialog-content');
+      content.appendChild(input);
+      
+      input.focus();
+      input.select();
+
+      // Handle enter key
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          resolve(input.value);
+          this.closeDialog(dialog);
+        } else if (e.key === 'Escape') {
+          resolve(null);
+          this.closeDialog(dialog);
+        }
+      });
+    });
+  }
+
+  async confirm(message, title = 'Confirm') {
+    return new Promise((resolve) => {
+      const dialog = this.createDialog(title, 'confirm', resolve);
+      const content = dialog.querySelector('.dialog-content');
+      const messageEl = SecurityUtils.createSafeElement('p', message, 'dialog-message');
+      content.appendChild(messageEl);
+    });
+  }
+
+  createDialog(title, type, resolve) {
+    const overlay = document.createElement('div');
+    overlay.className = 'dialog-overlay';
+    
+    const dialog = document.createElement('div');
+    dialog.className = `dialog dialog-${type}`;
+    
+    const header = document.createElement('div');
+    header.className = 'dialog-header';
+    
+    const titleEl = SecurityUtils.createSafeElement('h3', title, 'dialog-title');
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'dialog-close';
+    closeBtn.innerHTML = '×';
+    closeBtn.onclick = () => {
+      resolve(null);
+      this.closeDialog(overlay);
+    };
+    
+    header.appendChild(titleEl);
+    header.appendChild(closeBtn);
+    
+    const content = document.createElement('div');
+    content.className = 'dialog-content';
+    
+    const footer = document.createElement('div');
+    footer.className = 'dialog-footer';
+    
+    if (type === 'confirm') {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.className = 'dialog-btn dialog-btn-cancel';
+      cancelBtn.onclick = () => {
+        resolve(false);
+        this.closeDialog(overlay);
+      };
+      
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = 'Confirm';
+      confirmBtn.className = 'dialog-btn dialog-btn-confirm';
+      confirmBtn.onclick = () => {
+        resolve(true);
+        this.closeDialog(overlay);
+      };
+      
+      footer.appendChild(cancelBtn);
+      footer.appendChild(confirmBtn);
+    } else if (type === 'prompt') {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.className = 'dialog-btn dialog-btn-cancel';
+      cancelBtn.onclick = () => {
+        resolve(null);
+        this.closeDialog(overlay);
+      };
+      
+      const okBtn = document.createElement('button');
+      okBtn.textContent = 'OK';
+      okBtn.className = 'dialog-btn dialog-btn-confirm';
+      okBtn.onclick = () => {
+        const input = dialog.querySelector('input');
+        resolve(input ? input.value : null);
+        this.closeDialog(overlay);
+      };
+      
+      footer.appendChild(cancelBtn);
+      footer.appendChild(okBtn);
+    }
+    
+    dialog.appendChild(header);
+    dialog.appendChild(content);
+    dialog.appendChild(footer);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+    
+    // Handle escape key
+    const handleKeydown = (e) => {
+      if (e.key === 'Escape') {
+        resolve(type === 'confirm' ? false : null);
+        this.closeDialog(overlay);
+        document.removeEventListener('keydown', handleKeydown);
+      }
+    };
+    document.addEventListener('keydown', handleKeydown);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+      overlay.classList.add('show');
+    });
+    
+    return overlay;
+  }
+
+  closeDialog(overlay) {
+    overlay.classList.add('hide');
+    setTimeout(() => {
+      if (overlay.parentElement) {
+        overlay.parentElement.removeChild(overlay);
+      }
+    }, 200);
+  }
+}
+
 // ============= APPLICATION STATE =============
 class ApplicationState {
   constructor() {
@@ -150,7 +386,7 @@ class ApplicationState {
 
 // ============= AUDIO MANAGER =============
 class AudioManager {
-  constructor() {
+  constructor(notificationSystem = null) {
     this.fileMap = {};
     this.currentAudio = null;
     this.audioCtx = null;
@@ -160,6 +396,7 @@ class AudioManager {
     this.reactToAudio = false;
     this.blobUrls = new Set();
     this.pendingPreviewTrack = null;
+    this.notificationSystem = notificationSystem;
   }
 
   createBlobUrl(file) {
@@ -285,7 +522,9 @@ class AudioManager {
       });
 
       audio.addEventListener('error', () => {
-        alert('Error playing audio file');
+        if (this.notificationSystem) {
+          this.notificationSystem.error('Error playing audio file');
+        }
         container.remove();
         this.currentAudio = null;
         URL.revokeObjectURL(url);
@@ -295,7 +534,9 @@ class AudioManager {
       await this.connectVisualizer(audio);
     } catch (error) {
       console.error('Preview error:', error);
-      alert(error.message);
+      if (this.notificationSystem) {
+        this.notificationSystem.error(error.message);
+      }
     }
   }
 
@@ -842,10 +1083,11 @@ class UIRenderer {
 
 // ============= UI CONTROLLERS =============
 class UIController {
-  constructor(appState, renderer, audioManager) {
+  constructor(appState, renderer, audioManager, notificationSystem) {
     this.appState = appState;
     this.renderer = renderer;
     this.audioManager = audioManager;
+    this.notificationSystem = notificationSystem;
     this.tagPopup = null;
   }
 
@@ -1086,13 +1328,13 @@ class UIController {
     if (!path) return;
     navigator.clipboard.writeText(path)
       .then(() => this.renderer.showCopyTooltip(element, 'Path copied!'))
-      .catch(() => alert('Could not copy path'));
+      .catch(() => this.notificationSystem.error('Could not copy path'));
   }
 
   copyTrackInfo(trackDisplay, element) {
     navigator.clipboard.writeText(trackDisplay)
       .then(() => this.renderer.showCopyTooltip(element, 'Copied!'))
-      .catch(() => alert('Could not copy track info'));
+      .catch(() => this.notificationSystem.error('Could not copy track info'));
   }
 
   // === Tags ===
@@ -1209,19 +1451,19 @@ class UIController {
       this.appState.saveToStorage();
       this.updateTagDropdown();
       this.render();
-      alert('Tags imported successfully');
+      this.notificationSystem.success('Tags imported successfully');
     } catch (error) {
-      alert('Error importing tags');
+      this.notificationSystem.error('Error importing tags');
     }
     event.target.value = '';
   }
 
   // === Playlists ===
-  createPlaylist() {
-    const name = prompt('Playlist name?');
+  async createPlaylist() {
+    const name = await this.notificationSystem.prompt('Create Playlist', 'Enter playlist name...');
     if (!name || this.appState.data.playlists[name]) {
       if (name && this.appState.data.playlists[name]) {
-        alert('Playlist already exists');
+        this.notificationSystem.warning('Playlist already exists');
       }
       return;
     }
@@ -1231,42 +1473,48 @@ class UIController {
     this.appState.saveToStorage();
     this.updatePlaylistDropdown();
     this.updatePlaylistButtonStates();
+    this.notificationSystem.success(`Playlist "${name}" created successfully`);
   }
 
-  deletePlaylist() {
+  async deletePlaylist() {
     if (!this.appState.data.currentPlaylist) return;
     
-    if (confirm(`Delete playlist "${this.appState.data.currentPlaylist}"?`)) {
+    const confirmed = await this.notificationSystem.confirm(`Delete playlist "${this.appState.data.currentPlaylist}"?`, 'Delete Playlist');
+    if (confirmed) {
+      const playlistName = this.appState.data.currentPlaylist;
       delete this.appState.data.playlists[this.appState.data.currentPlaylist];
       this.appState.data.currentPlaylist = '';
       this.appState.saveToStorage();
       this.updatePlaylistDropdown();
       this.updatePlaylistButtonStates();
+      this.notificationSystem.success(`Playlist "${playlistName}" deleted successfully`);
     }
   }
 
-  renamePlaylist() {
+  async renamePlaylist() {
     if (!this.appState.data.currentPlaylist) return;
     
-    const newName = prompt('New playlist name?', this.appState.data.currentPlaylist);
+    const newName = await this.notificationSystem.prompt('Rename Playlist', 'Enter new playlist name...', this.appState.data.currentPlaylist);
     if (!newName || newName === this.appState.data.currentPlaylist) return;
     
     if (this.appState.data.playlists[newName]) {
-      alert('Playlist already exists');
+      this.notificationSystem.warning('Playlist already exists');
       return;
     }
 
+    const oldName = this.appState.data.currentPlaylist;
     this.appState.data.playlists[newName] = this.appState.data.playlists[this.appState.data.currentPlaylist];
     delete this.appState.data.playlists[this.appState.data.currentPlaylist];
     this.appState.data.currentPlaylist = newName;
     this.appState.saveToStorage();
     this.updatePlaylistDropdown();
     this.updatePlaylistButtonStates();
+    this.notificationSystem.success(`Playlist renamed from "${oldName}" to "${newName}"`);
   }
 
   addToPlaylist(trackDisplay) {
     if (!this.appState.data.currentPlaylist) {
-      alert('Please select or create a playlist first');
+      this.notificationSystem.warning('Please select or create a playlist first');
       return;
     }
 
@@ -1274,9 +1522,9 @@ class UIController {
     if (!playlist.includes(trackDisplay)) {
       playlist.push(trackDisplay);
       this.appState.saveToStorage();
-      alert(`Added to ${this.appState.data.currentPlaylist}`);
+      this.notificationSystem.success(`Added to ${this.appState.data.currentPlaylist}`);
     } else {
-      alert('Track already in playlist');
+      this.notificationSystem.info('Track already in playlist');
     }
   }
 
@@ -1285,7 +1533,7 @@ class UIController {
     
     const playlist = this.appState.data.playlists[this.appState.data.currentPlaylist];
     if (!playlist || playlist.length === 0) {
-      alert('Playlist is empty');
+      this.notificationSystem.warning('Playlist is empty');
       return;
     }
 
@@ -1310,9 +1558,9 @@ class UIController {
 
       this.appState.saveToStorage();
       this.updatePlaylistDropdown();
-      alert('Playlists imported successfully');
+      this.notificationSystem.success('Playlists imported successfully');
     } catch (error) {
-      alert('Error importing playlists');
+      this.notificationSystem.error('Error importing playlists');
     }
     event.target.value = '';
   }
@@ -1393,9 +1641,9 @@ class UIController {
       this.updateTagDropdown();
       this.updatePlaylistDropdown();
       this.render();
-      alert('Import successful');
+      this.notificationSystem.success('Import successful');
     } catch (error) {
-      alert('Error importing data');
+      this.notificationSystem.error('Error importing data');
     }
     event.target.value = '';
   }
@@ -1426,7 +1674,7 @@ class UIController {
       this.render();
       this.renderer.renderDuplicateList();
     } catch (error) {
-      alert(`Error processing file: ${error.message}`);
+      this.notificationSystem.error(`Error processing file: ${error.message}`);
     }
     event.target.value = '';
   }
@@ -1479,13 +1727,13 @@ class UIController {
     const loaded = this.audioManager.loadAudioFiles(files);
     
     if (loaded > 0) {
-      alert(`Loaded ${loaded} audio files. You can now preview tracks.`);
+      this.notificationSystem.success(`Loaded ${loaded} audio files. You can now preview tracks.`);
       if (this.audioManager.pendingPreviewTrack) {
         this.audioManager.playPreview(this.audioManager.pendingPreviewTrack);
         this.audioManager.pendingPreviewTrack = null;
       }
     } else {
-      alert('No valid audio files found');
+      this.notificationSystem.warning('No valid audio files found');
     }
   }
 
@@ -1677,9 +1925,10 @@ function debounce(func, wait) {
 class BeatroveApp {
   constructor() {
     this.appState = new ApplicationState();
-    this.audioManager = new AudioManager();
+    this.notificationSystem = new NotificationSystem();
+    this.audioManager = new AudioManager(this.notificationSystem);
     this.renderer = new UIRenderer(this.appState);
-    this.controller = new UIController(this.appState, this.renderer, this.audioManager);
+    this.controller = new UIController(this.appState, this.renderer, this.audioManager, this.notificationSystem);
     this.visualizer = new AudioVisualizer(this.audioManager);
     this.initialized = false;
   }
