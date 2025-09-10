@@ -24,9 +24,35 @@ const CONFIG = {
 class SecurityUtils {
   static sanitizeText(text) {
     if (typeof text !== 'string') return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    // Use textContent only - never innerHTML to prevent XSS
+    // Strip HTML tags using regex instead of DOM manipulation
+    return text.replace(/<[^>]*>/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  static stripHtmlTags(text) {
+    if (typeof text !== 'string') return '';
+    // Comprehensive HTML tag removal with multiple passes
+    let clean = text;
+    // Remove HTML tags
+    clean = clean.replace(/<[^>]*>/g, '');
+    // Remove HTML entities
+    clean = clean.replace(/&[#\w]+;/g, '');
+    // Remove any remaining < or > characters
+    clean = clean.replace(/[<>]/g, '');
+    return clean.trim();
+  }
+
+  static sanitizeForContentEditable(text) {
+    if (typeof text !== 'string') return '';
+    // Extra aggressive sanitization for contenteditable
+    let clean = this.stripHtmlTags(text);
+    // Remove any script-like content
+    clean = clean.replace(/javascript:/gi, '');
+    clean = clean.replace(/data:/gi, '');
+    clean = clean.replace(/vbscript:/gi, '');
+    // Limit to printable ASCII characters and basic punctuation
+    clean = clean.replace(/[^\x20-\x7E]/g, '');
+    return clean;
   }
 
   static sanitizeForAttribute(text) {
@@ -1217,27 +1243,66 @@ class UIController {
       });
     }
 
-    // Editable title
+    // Editable title with XSS protection
     const title = document.getElementById('editable-title');
     if (title) {
+      // Add security-focused event listeners
       title.addEventListener('blur', () => {
         this.validateAndSaveTitle(title);
       });
       
+      // Secure paste handler
       title.addEventListener('paste', (e) => {
         e.preventDefault();
-        const paste = (e.clipboardData || window.clipboardData).getData('text');
-        const sanitized = SecurityUtils.sanitizeText(paste);
-        document.execCommand('insertText', false, sanitized);
+        const paste = (e.clipboardData || window.clipboardData).getData('text/plain');
+        const sanitized = SecurityUtils.sanitizeForContentEditable(paste);
+        
+        // Replace deprecated document.execCommand with modern approach
+        if (document.getSelection && sanitized) {
+          const selection = document.getSelection();
+          if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(document.createTextNode(sanitized));
+            range.collapse(false);
+          } else {
+            // Fallback: replace entire content
+            title.textContent = sanitized;
+          }
+        }
+        
+        // Trigger validation
+        this.validateTitleInput(title);
       });
 
+      // Real-time input validation with XSS protection
       title.addEventListener('input', () => {
+        this.validateTitleInputSecurity(title);
+      });
+
+      // Prevent drag/drop of potentially malicious content
+      title.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const text = e.dataTransfer.getData('text/plain');
+        const sanitized = SecurityUtils.sanitizeForContentEditable(text);
+        title.textContent = sanitized;
         this.validateTitleInput(title);
+      });
+
+      // Prevent keyboard shortcuts that could inject content
+      title.addEventListener('keydown', (e) => {
+        // Allow basic editing keys but prevent dangerous combinations
+        if (e.ctrlKey || e.metaKey) {
+          const allowed = ['a', 'c', 'v', 'x', 'z', 'y', 'Backspace', 'Delete'];
+          if (!allowed.includes(e.key)) {
+            e.preventDefault();
+          }
+        }
       });
       
       const savedTitle = localStorage.getItem('appTitle');
       if (savedTitle) {
-        const sanitizedTitle = SecurityUtils.sanitizeText(savedTitle);
+        const sanitizedTitle = SecurityUtils.sanitizeForContentEditable(savedTitle);
         title.textContent = sanitizedTitle;
       }
     }
@@ -1770,28 +1835,40 @@ class UIController {
     const maxLength = 100;
     
     // Remove any HTML tags that might have been pasted
-    const cleanContent = content.replace(/<[^>]*>/g, '');
+    const cleanContent = SecurityUtils.stripHtmlTags(content);
     
     // Limit length
     if (cleanContent.length > maxLength) {
       const truncated = cleanContent.substring(0, maxLength);
       titleElement.textContent = truncated;
       
-      // Position cursor at end
-      const range = document.createRange();
-      const selection = window.getSelection();
-      range.selectNodeContents(titleElement);
-      range.collapse(false);
-      selection.removeAllRanges();
-      selection.addRange(range);
+      // Position cursor at end safely
+      this.setCursorToEnd(titleElement);
     }
+  }
+
+  validateTitleInputSecurity(titleElement) {
+    const content = titleElement.textContent || titleElement.innerText || '';
+    
+    // Aggressive security validation - strip any HTML immediately
+    const sanitized = SecurityUtils.sanitizeForContentEditable(content);
+    
+    // If content changed after sanitization, update immediately
+    if (titleElement.textContent !== sanitized) {
+      const cursorPosition = this.getCursorPosition(titleElement);
+      titleElement.textContent = sanitized;
+      this.setCursorPosition(titleElement, Math.min(cursorPosition, sanitized.length));
+    }
+    
+    // Apply length validation
+    this.validateTitleInput(titleElement);
   }
 
   validateAndSaveTitle(titleElement) {
     const content = titleElement.textContent.trim();
     
-    // Sanitize content
-    const sanitized = SecurityUtils.sanitizeText(content);
+    // Double sanitization for extra security
+    const sanitized = SecurityUtils.sanitizeForContentEditable(content);
     
     // Validate length and content
     if (sanitized.length === 0) {
@@ -1807,12 +1884,53 @@ class UIController {
       return;
     }
     
-    // Update if content changed after sanitization
+    // Final security check and update
     if (titleElement.textContent !== sanitized) {
       titleElement.textContent = sanitized;
     }
     
     localStorage.setItem('appTitle', sanitized);
+  }
+
+  // Helper methods for cursor management
+  getCursorPosition(element) {
+    let position = 0;
+    const selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(element);
+      preCaretRange.setEnd(range.endContainer, range.endOffset);
+      position = preCaretRange.toString().length;
+    }
+    return position;
+  }
+
+  setCursorPosition(element, position) {
+    const selection = window.getSelection();
+    const range = document.createRange();
+    
+    if (element.firstChild && element.firstChild.nodeType === Node.TEXT_NODE) {
+      const textLength = element.firstChild.textContent.length;
+      const safePosition = Math.min(position, textLength);
+      range.setStart(element.firstChild, safePosition);
+      range.setEnd(element.firstChild, safePosition);
+    } else {
+      range.setStart(element, 0);
+      range.setEnd(element, 0);
+    }
+    
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  setCursorToEnd(element) {
+    const range = document.createRange();
+    const selection = window.getSelection();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    selection.removeAllRanges();
+    selection.addRange(range);
   }
 }
 
