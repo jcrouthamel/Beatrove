@@ -1040,17 +1040,10 @@ class UIRenderer {
     }
 
     const header = SecurityUtils.createSafeElement('div', 
-      `Duplicate Tracks Detected (${duplicates.length}):`, '');
-    header.style.color = '#ffb300';
-    header.style.fontWeight = 'bold';
-    header.style.marginBottom = '6px';
+      `Duplicate Tracks Detected (${duplicates.length}):`, 'duplicate-list-header');
 
     const ul = document.createElement('ul');
-    ul.style.maxHeight = '200px';
-    ul.style.overflow = 'auto';
-    ul.style.background = '#181818';
-    ul.style.padding = '10px 16px 10px 22px';
-    ul.style.borderRadius = '8px';
+    ul.className = 'duplicate-list-container';
 
     duplicates.forEach(track => {
       const li = SecurityUtils.createSafeElement('li', track.display);
@@ -1064,14 +1057,7 @@ class UIRenderer {
 
   showCopyTooltip(element, message) {
     const tooltip = SecurityUtils.createSafeElement('div', message, 'copy-tooltip');
-    tooltip.style.position = 'absolute';
-    tooltip.style.background = '#333';
-    tooltip.style.color = '#fff';
-    tooltip.style.padding = '4px 8px';
-    tooltip.style.borderRadius = '4px';
-    tooltip.style.fontSize = '12px';
-    tooltip.style.zIndex = '10000';
-
+    
     const rect = element.getBoundingClientRect();
     tooltip.style.left = rect.left + window.scrollX + 'px';
     tooltip.style.top = rect.bottom + window.scrollY + 2 + 'px';
@@ -1347,13 +1333,11 @@ class UIController {
 
     const popup = document.createElement('div');
     popup.className = 'tag-popup';
-    popup.style.position = 'absolute';
-    popup.style.zIndex = 1000;
 
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'Add tag (comma separated)';
-    input.style.width = '180px';
+    input.className = 'tag-input-width';
 
     const existingTags = (this.appState.data.trackTags[track.display] || []).join(', ');
     input.value = existingTags;

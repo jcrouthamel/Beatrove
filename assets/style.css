@@ -1484,3 +1484,97 @@ body.light-mode .dialog-btn-confirm:hover {
     padding-right: 20px;
   }
 }
+
+/* ============= UTILITY CLASSES FOR INLINE STYLES ============= */
+.hidden {
+  display: none !important;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.no-text-decoration {
+  text-decoration: none !important;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.float-right {
+  float: right;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.margin-top-small {
+  margin-top: 4px;
+}
+
+.margin-top-large {
+  margin-top: 40px;
+}
+
+.margin-left-small {
+  margin-left: 6px;
+}
+
+.text-error {
+  color: #ff2222;
+}
+
+.font-weight-bold {
+  font-weight: bold;
+}
+
+.margin-bottom-medium {
+  margin-bottom: 15px;
+}
+
+.footer-border {
+  padding: 10px 0;
+  border-top: 1px solid #333;
+}
+
+body.light-mode .footer-border {
+  border-top-color: #e5e5e5;
+}
+
+/* ============= DYNAMIC STYLE CLASSES ============= */
+.duplicate-list-header {
+  color: #ffb300;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.duplicate-list-container {
+  max-height: 200px;
+  overflow: auto;
+  background: #181818;
+  padding: 10px 16px 10px 22px;
+  border-radius: 8px;
+}
+
+body.light-mode .duplicate-list-container {
+  background: #f5f5f5;
+}
+
+.tag-popup {
+  position: absolute;
+  z-index: 1000;
+}
+
+.tag-input-width {
+  width: 180px;
+}

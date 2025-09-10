@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="DJ Total Kaos - EDM Bangers Tracklist - Find and filter electronic music tracks by BPM, key, and genre">
+  <!-- Strict Content Security Policy without unsafe-inline -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; font-src 'self'; connect-src 'self';">
   <title>DJ Total Kaos - EDM Bangers</title>
   <link rel="stylesheet" href="assets/style.css" />
-  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <!-- rest of head -->
 </head>
 <body id="top">
   <div class="top-right-controls">
@@ -26,18 +28,18 @@
       <div class="top-controls-row">
         <button id="export-tags" class="control-btn">Export Tags</button>
         <button id="import-tags-btn" class="control-btn">Import Tags</button>
-        <input type="file" id="import-tags-input" accept="application/json" style="display:none;">
+        <input type="file" id="import-tags-input" accept="application/json" class="hidden">
         <button id="export-all" class="control-btn">📥 Export All</button>
-        <label for="import-all-input" class="control-btn" style="cursor:pointer;">📤 Import All</label>
-        <input type="file" id="import-all-input" accept="application/json" style="display:none;">
+        <label for="import-all-input" class="control-btn cursor-pointer">📤 Import All</label>
+        <input type="file" id="import-all-input" accept="application/json" class="hidden">
         <label for="tracklist-upload" class="control-btn">📁 Upload Tracklist</label>
-        <input type="file" id="tracklist-upload" accept=".txt,.csv,.yaml,.yml" style="display: none;">
-        <input type="file" id="audio-folder-input" webkitdirectory directory multiple style="display:none;">
+        <input type="file" id="tracklist-upload" accept=".txt,.csv,.yaml,.yml" class="hidden">
+        <input type="file" id="audio-folder-input" webkitdirectory directory multiple class="hidden">
       </div>
-      <div class="top-controls-row" style="margin-top:4px;">
-        <a href="#duplicate-list" id="duplicate-link" class="control-btn" style="text-decoration:none;">Duplicate Tracks</a>
+      <div class="top-controls-row margin-top-small">
+        <a href="#duplicate-list" id="duplicate-link" class="control-btn no-text-decoration">Duplicate Tracks</a>
         <button id="favorites-toggle-btn" class="control-btn">★ Favorites</button>
-        <a href="User_Documentation.html" id="help-btn" class="control-btn" target="_blank" style="text-decoration:none;">❓ Help</a>
+        <a href="User_Documentation.html" id="help-btn" class="control-btn no-text-decoration" target="_blank">❓ Help</a>
       </div>
     </div>
     <h1 id="editable-title" contenteditable="true" spellcheck="false" title="Click to edit the title">DJ Total Kaos - EDM Bangers</h1>
@@ -93,7 +95,7 @@
       
       <div class="filter-label">
         <span>Tag</span>
-        <select id="tag-dropdown" style="margin-left:6px;">
+        <select id="tag-dropdown" class="margin-left-small">
           <option value="">All Tags</option>
         </select>
       </div>
@@ -120,28 +122,28 @@
     <button id="delete-playlist-btn" class="control-btn" disabled>🗑️ Delete</button>
     <button id="export-playlist-btn" class="control-btn" disabled>Export Playlists</button>
     <button id="import-playlists-btn" class="control-btn">Import Playlists</button>
-    <input type="file" id="import-playlists-input" accept="application/json" style="display:none;">
+    <input type="file" id="import-playlists-input" accept="application/json" class="hidden">
   </div>
   
   <div id="columns" class="columns">
     <div class="loader"></div>
   </div>
   
-  <div id="duplicate-warning" style="display:none;color:#ff2222;text-align:center;font-weight:bold;margin-bottom:15px;"></div>
+  <div id="duplicate-warning" class="hidden text-error text-center font-weight-bold margin-bottom-medium"></div>
   <canvas id="audio-visualizer" width="800" height="60"></canvas>
   
-  <div id="duplicate-list" style="margin-top:40px;"></div>
+  <div id="duplicate-list" class="margin-top-large"></div>
   
   <footer>
     <div class="footer-content">
       <span id="footer-updated">Updated: never</span>
-      <span style="float:right;">&copy; 2025 DJ Total Kaos</span>
+      <span class="float-right">&copy; 2025 DJ Total Kaos</span>
     </div>
-    <div style="text-align:center;padding:10px 0;border-top:1px solid #333;">
-      <a href="#top" class="control-btn" style="text-decoration:none;">⬆ Back to Top</a>
+    <div class="footer-border text-center">
+      <a href="#top" class="control-btn no-text-decoration">⬆ Back to Top</a>
     </div>
   </footer>
   
-  <script src="assets/script.js"></script>
+  <script src="assets/script.js" defer></script>
 </body>
 </html>
