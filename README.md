@@ -16,6 +16,7 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Key Filter**: Filter by musical key (Camelot notation)
 - **Year Search**: Filter by release year or year ranges (e.g., "2020-2023")
 - **Tag Filter**: Filter by custom tags
+- **Energy Filter**: Filter by energy level (1-10 stars)
 - **Favorites Filter**: Show only starred tracks
 - **A-Z Navigation**: Quick jump to artists by letter
 
@@ -37,10 +38,27 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Tag Management**: Edit and remove tags as needed
 - **Tag Persistence**: Tags are saved in browser storage
 
+### ⚡ Energy Level System
+- **10-Point Rating Scale**: Rate tracks from 1-10 stars for energy intensity
+- **Visual Star Display**: See energy levels with filled/empty star patterns
+- **Energy Filtering**: Filter tracks by specific energy levels
+- **Quick Rating**: Click the lightning bolt (⚡) icon to set energy levels
+- **Smart Organization**: Organize tracks by intensity for better set planning
+
 ### ⭐ Favorites System
 - **Star Tracks**: Mark tracks as favorites with a simple click
 - **Favorites View**: Toggle to show only starred tracks
 - **Persistent Storage**: Favorites are saved across browser sessions
+
+### 📊 Library Statistics
+- **Comprehensive Analytics**: Detailed breakdown of your music collection
+- **Overview Stats**: Total tracks and unique artists count
+- **Genre Distribution**: Track counts by musical genre
+- **Key Analysis**: Distribution across musical keys
+- **BPM Ranges**: Tempo analysis with organized ranges (60-89, 90-109, etc.)
+- **Energy Statistics**: Energy level distribution across your collection
+- **Year Breakdown**: Track counts by release year
+- **Interactive Display**: Toggle stats view with smooth scrolling
 
 ### 🎨 User Interface
 - **Responsive Design**: Works on desktop and mobile devices
@@ -108,7 +126,9 @@ beatrove/
 2. Upload a tracklist file using the "📁 Upload Tracklist" button
 3. Use the filters to find specific tracks
 4. Click the preview button (▶️) to listen to tracks
-5. Create playlists and organize your collection
+5. Rate tracks with energy levels (⚡) from 1-10 stars
+6. View library statistics with the "📊 Library Stats" button
+7. Create playlists and organize your collection
 
 ### Track Format Details
 - **Artist**: The artist or DJ name
@@ -129,17 +149,32 @@ beatrove/
 ## 🔧 Advanced Features
 
 ### Import/Export
-- **Export All**: Save tracks, playlists, and tags as JSON
+- **Export All**: Save tracks, playlists, tags, and energy levels as JSON
 - **Import All**: Restore complete data from JSON backup
 - **Export Playlists**: Save individual playlists
 - **Export Tags**: Save tagging data
+
+### Energy Level Management
+- **Quick Rating**: Click the lightning bolt (⚡) icon next to any track
+- **10-Point Scale**: Choose from 1 star (low energy) to 10 stars (high energy)
+- **Clear Ratings**: Remove energy ratings when needed
+- **Filter by Energy**: Use the Energy dropdown to view tracks by intensity level
+- **Set Planning**: Organize tracks by energy for better DJ set flow
+
+### Library Analytics
+- **Stats Overview**: View comprehensive collection statistics
+- **Genre Insights**: See which genres dominate your library
+- **Tempo Analysis**: Understand your BPM distribution across ranges
+- **Key Breakdown**: Analyze harmonic mixing opportunities
+- **Energy Distribution**: See how your tracks are rated by intensity
+- **Timeline View**: Track collection growth by release year
 
 ### Keyboard Shortcuts
 - Use the A-Z navigation bar for quick artist jumping
 - Search supports partial matches across all track data
 
 ### Browser Storage
-- Favorites, playlists, and tags are stored in localStorage
+- Favorites, playlists, tags, and energy levels are stored in localStorage
 - Data persists across browser sessions
 - Clear browser data to reset the application
 
