@@ -253,6 +253,121 @@ body.light-mode .control-btn:hover {
   --button-hover-bg: #ccc;
 }
 
+/* ============= MAIN SEARCH SECTION ============= */
+.main-search-section {
+  margin: 20px 0 30px 0;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  max-width: 600px;
+  width: 100%;
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 4px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.search-wrapper:focus-within {
+  border-color: #00ffff;
+  box-shadow: 0 4px 16px rgba(0,255,255,0.2);
+  transform: translateY(-1px);
+}
+
+.light-mode .search-wrapper:focus-within {
+  border-color: #0066cc;
+  box-shadow: 0 4px 16px rgba(0,102,204,0.15);
+}
+
+.search-icon {
+  font-size: 18px;
+  margin: 0 12px 0 16px;
+  color: #666;
+  pointer-events: none;
+}
+
+.light-mode .search-icon {
+  color: #999;
+}
+
+.search-wrapper input[type="text"] {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 16px 8px;
+  font-size: 16px;
+  color: var(--text-color);
+  outline: none;
+  min-height: 20px;
+}
+
+.search-wrapper input[type="text"]::placeholder {
+  color: #666;
+  font-style: italic;
+}
+
+.light-mode .search-wrapper input[type="text"]::placeholder {
+  color: #999;
+}
+
+.clear-search {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 24px;
+  line-height: 1;
+  padding: 8px 12px;
+  margin-right: 8px;
+  cursor: pointer;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.clear-search.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.clear-search:hover {
+  background: rgba(255,255,255,0.1);
+  color: #ff4444;
+}
+
+.light-mode .clear-search:hover {
+  background: rgba(0,0,0,0.1);
+  color: #cc0000;
+}
+
+/* Search wrapper responsive */
+@media (max-width: 768px) {
+  .main-search-section {
+    margin: 15px 0 20px 0;
+    padding: 0 10px;
+  }
+  
+  .search-wrapper {
+    max-width: none;
+  }
+  
+  .search-wrapper input[type="text"] {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
 .filter-group {
   display: flex;
   gap: 20px;

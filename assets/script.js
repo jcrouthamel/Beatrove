@@ -2654,6 +2654,44 @@ class UIController {
         }
       }
     });
+
+    // Enhanced search functionality
+    this.attachSearchEnhancements();
+  }
+
+  attachSearchEnhancements() {
+    const searchInput = document.getElementById('search');
+    const clearButton = document.getElementById('clear-search');
+    
+    if (searchInput && clearButton) {
+      // Show/hide clear button based on input content
+      const updateClearButton = () => {
+        if (searchInput.value.trim()) {
+          clearButton.classList.add('visible');
+        } else {
+          clearButton.classList.remove('visible');
+        }
+      };
+
+      searchInput.addEventListener('input', updateClearButton);
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          searchInput.value = '';
+          updateClearButton();
+          this.render();
+        }
+      });
+
+      clearButton.addEventListener('click', () => {
+        searchInput.value = '';
+        updateClearButton();
+        searchInput.focus();
+        this.render();
+      });
+
+      // Initial state
+      updateClearButton();
+    }
   }
 
   attachPlaylistListeners() {
