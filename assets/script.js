@@ -761,6 +761,7 @@ class ApplicationState {
     try {
       const stored = {
         trackTags: localStorage.getItem('trackTags'),
+        energyLevels: localStorage.getItem('energyLevels'),
         favoriteTracks: localStorage.getItem('favoriteTracks'),
         playlists: localStorage.getItem('playlists'),
         currentPlaylist: localStorage.getItem('currentPlaylist'),
@@ -768,6 +769,7 @@ class ApplicationState {
       };
 
       if (stored.trackTags) this.data.trackTags = JSON.parse(stored.trackTags);
+      if (stored.energyLevels) this.data.energyLevels = JSON.parse(stored.energyLevels);
       if (stored.favoriteTracks) this.data.favoriteTracks = JSON.parse(stored.favoriteTracks);
       if (stored.playlists) this.data.playlists = JSON.parse(stored.playlists);
       if (stored.currentPlaylist) this.data.currentPlaylist = stored.currentPlaylist;
@@ -791,6 +793,7 @@ class ApplicationState {
             // Calculate estimated size of data to save
             const dataToSave = {
               trackTags: JSON.stringify(this.data.trackTags),
+              energyLevels: JSON.stringify(this.data.energyLevels),
               favoriteTracks: JSON.stringify(this.data.favoriteTracks),
               playlists: JSON.stringify(this.data.playlists),
               currentPlaylist: this.data.currentPlaylist,
@@ -1240,6 +1243,7 @@ class ApplicationState {
       duplicateTracks: [],
       tracksForUI: [],
       trackTags: {},
+      energyLevels: {}, // track.display -> 1-5 energy level
       favoriteTracks: {},
       playlists: {},
       currentPlaylist: '',
@@ -2127,6 +2131,7 @@ class UIRenderer {
       selectedBPM: this.appState.elements.bpmFilter?.value || '',
       selectedKey: this.appState.elements.keyFilter?.value || '',
       selectedGenre: this.appState.elements.genreFilter?.value || '',
+      selectedEnergy: this.appState.elements.energyFilter?.value || '',
       tagSearch: document.getElementById('tag-dropdown')?.value.toLowerCase() || '',
       sortValue: this.appState.elements.sortSelect?.value || 'name-asc',
       yearSearch: document.getElementById('year-search')?.value.trim(),
@@ -2136,8 +2141,8 @@ class UIRenderer {
 
   hasActiveFilters(filters) {
     return filters.search || filters.selectedBPM || filters.selectedKey || 
-           filters.selectedGenre || filters.tagSearch || filters.yearSearch || 
-           filters.showFavoritesOnly;
+           filters.selectedGenre || filters.selectedEnergy || filters.tagSearch || 
+           filters.yearSearch || filters.showFavoritesOnly;
   }
 
   filterTracks(filters) {
@@ -2173,6 +2178,12 @@ class UIRenderer {
       if (filters.tagSearch) {
         const tags = this.appState.data.trackTags[track.display] || [];
         if (!tags.map(t => t.toLowerCase()).includes(filters.tagSearch)) return false;
+      }
+
+      // Energy level filter
+      if (filters.selectedEnergy) {
+        const trackEnergy = this.appState.data.energyLevels[track.display];
+        if (trackEnergy !== parseInt(filters.selectedEnergy)) return false;
       }
 
       // Favorites filter
@@ -2283,12 +2294,16 @@ class UIRenderer {
     nameContainer.appendChild(trackMain);
 
     // Details
+    const energyLevel = this.appState.data.energyLevels[track.display];
+    const energyDisplay = energyLevel ? `${'★'.repeat(energyLevel)}${'☆'.repeat(5 - energyLevel)} (${energyLevel}/5)` : '';
+    
     const details = [
       { label: 'Key', value: track.key },
       { label: 'BPM', value: track.bpm },
       { label: 'Genre', value: track.genre },
       { label: 'Length', value: track.trackTime },
-      { label: 'Year', value: track.year }
+      { label: 'Year', value: track.year },
+      { label: 'Energy', value: energyDisplay }
     ];
 
     details.forEach(detail => {
@@ -2371,6 +2386,15 @@ class UIRenderer {
     copyBtn.textContent = '📋';
     copyBtn.dataset.trackDisplay = track.display;
     iconRow.appendChild(copyBtn);
+
+    // Energy level button
+    const energyBtn = document.createElement('button');
+    energyBtn.className = 'energy-btn';
+    const currentEnergy = this.appState.data.energyLevels[track.display] || 0;
+    energyBtn.title = `Set Energy Level (Current: ${currentEnergy}/5)`;
+    energyBtn.textContent = '⚡';
+    energyBtn.dataset.trackDisplay = track.display;
+    iconRow.appendChild(energyBtn);
 
     // Preview button
     const previewBtn = document.createElement('button');
@@ -2609,7 +2633,7 @@ class UIController {
   }
 
   attachFilterListeners() {
-    const filters = ['search', 'bpm-filter', 'key-filter', 'genre-filter', 'sort-select', 'year-search', 'tag-dropdown'];
+    const filters = ['search', 'bpm-filter', 'key-filter', 'genre-filter', 'energy-filter', 'sort-select', 'year-search', 'tag-dropdown'];
     
     filters.forEach(id => {
       const element = document.getElementById(id);
@@ -2758,6 +2782,10 @@ class UIController {
     } else if (target.classList.contains('copy-track-btn')) {
       event.stopPropagation();
       this.copyTrackInfo(target.dataset.trackDisplay, target);
+    } else if (target.classList.contains('energy-btn')) {
+      event.stopPropagation();
+      const track = this.getTrackFromElement(target.closest('.track'));
+      this.showEnergyLevelInput(track, target);
     } else if (target.classList.contains('preview-btn')) {
       event.stopPropagation();
       const track = this.getTrackFromElement(target.closest('.track'));
@@ -2968,6 +2996,91 @@ class UIController {
     if (this.tagPopupClickHandler) {
       document.removeEventListener('mousedown', this.tagPopupClickHandler);
       this.tagPopupClickHandler = null;
+    }
+  }
+
+  showEnergyLevelInput(track, anchorElement) {
+    // Remove any existing energy popup
+    this.cleanupEnergyPopup();
+
+    const popup = document.createElement('div');
+    popup.className = 'energy-popup';
+
+    const title = SecurityUtils.createSafeElement('div', 'Set Energy Level', 'energy-title');
+    popup.appendChild(title);
+
+    const currentEnergy = this.appState.data.energyLevels[track.display] || 0;
+    
+    // Create buttons for energy levels 1-5
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'energy-buttons';
+    
+    for (let i = 1; i <= 5; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'energy-level-btn';
+      if (i === currentEnergy) {
+        btn.className += ' active';
+      }
+      btn.textContent = `${i} ${'★'.repeat(i)}${'☆'.repeat(5-i)}`;
+      btn.dataset.level = i;
+      buttonsContainer.appendChild(btn);
+    }
+    
+    // Clear button
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'energy-clear-btn';
+    clearBtn.textContent = 'Clear';
+    buttonsContainer.appendChild(clearBtn);
+
+    popup.appendChild(buttonsContainer);
+
+    // Position popup
+    const rect = anchorElement.getBoundingClientRect();
+    popup.style.left = rect.left + window.scrollX + 'px';
+    popup.style.top = rect.bottom + window.scrollY + 'px';
+
+    document.body.appendChild(popup);
+    this.energyPopup = popup;
+
+    // Event handlers
+    buttonsContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('energy-level-btn')) {
+        const level = parseInt(e.target.dataset.level);
+        this.appState.data.energyLevels[track.display] = level;
+        this.appState.saveToStorage();
+        this.cleanupEnergyPopup();
+        this.render();
+      } else if (e.target.classList.contains('energy-clear-btn')) {
+        delete this.appState.data.energyLevels[track.display];
+        this.appState.saveToStorage();
+        this.cleanupEnergyPopup();
+        this.render();
+      }
+    });
+
+    // Close on outside click
+    this.energyPopupClickHandler = (e) => {
+      if (!popup.contains(e.target)) {
+        this.cleanupEnergyPopup();
+      }
+    };
+
+    setTimeout(() => {
+      if (this.energyPopup === popup) {
+        document.addEventListener('mousedown', this.energyPopupClickHandler);
+      }
+    }, 10);
+  }
+
+  cleanupEnergyPopup() {
+    if (this.energyPopup) {
+      this.energyPopup.remove();
+      this.energyPopup = null;
+    }
+    
+    if (this.energyPopupClickHandler) {
+      document.removeEventListener('mousedown', this.energyPopupClickHandler);
+      this.energyPopupClickHandler = null;
     }
   }
 
@@ -3658,6 +3771,7 @@ class BeatroveApp {
       bpmFilter: document.getElementById('bpm-filter'),
       keyFilter: document.getElementById('key-filter'),
       genreFilter: document.getElementById('genre-filter'),
+      energyFilter: document.getElementById('energy-filter'),
       container: document.getElementById('columns'),
       statsElement: document.getElementById('stats'),
       sortSelect: document.getElementById('sort-select')
