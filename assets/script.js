@@ -1243,7 +1243,7 @@ class ApplicationState {
       duplicateTracks: [],
       tracksForUI: [],
       trackTags: {},
-      energyLevels: {}, // track.display -> 1-5 energy level
+      energyLevels: {}, // track.display -> 1-10 energy level
       favoriteTracks: {},
       playlists: {},
       currentPlaylist: '',
@@ -2295,7 +2295,7 @@ class UIRenderer {
 
     // Details
     const energyLevel = this.appState.data.energyLevels[track.display];
-    const energyDisplay = energyLevel ? `${'★'.repeat(energyLevel)}${'☆'.repeat(5 - energyLevel)} (${energyLevel}/5)` : '';
+    const energyDisplay = energyLevel ? `${'★'.repeat(energyLevel)}${'☆'.repeat(10 - energyLevel)} (${energyLevel}/10)` : '';
     
     const details = [
       { label: 'Key', value: track.key },
@@ -3011,17 +3011,17 @@ class UIController {
 
     const currentEnergy = this.appState.data.energyLevels[track.display] || 0;
     
-    // Create buttons for energy levels 1-5
+    // Create buttons for energy levels 1-10
     const buttonsContainer = document.createElement('div');
     buttonsContainer.className = 'energy-buttons';
     
-    for (let i = 1; i <= 5; i++) {
+    for (let i = 1; i <= 10; i++) {
       const btn = document.createElement('button');
       btn.className = 'energy-level-btn';
       if (i === currentEnergy) {
         btn.className += ' active';
       }
-      btn.textContent = `${i} ${'★'.repeat(i)}${'☆'.repeat(5-i)}`;
+      btn.textContent = `${i} ${'★'.repeat(i)}${'☆'.repeat(10-i)}`;
       btn.dataset.level = i;
       buttonsContainer.appendChild(btn);
     }
