@@ -73,6 +73,16 @@ class SecurityUtils {
     });
   }
 
+  static escapeHtml(text) {
+    if (typeof text !== 'string') return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   static createSafeElement(tagName, textContent = '', className = '') {
     const element = document.createElement(tagName);
     if (className) element.className = className;
@@ -2731,6 +2741,12 @@ class UIController {
       favBtn.addEventListener('click', () => this.toggleFavorites());
     }
 
+    // Stats toggle
+    const statsBtn = document.getElementById('stats-toggle-btn');
+    if (statsBtn) {
+      statsBtn.addEventListener('click', () => this.toggleStats());
+    }
+
     // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
@@ -2831,6 +2847,183 @@ class UIController {
       btn.classList.toggle('active', this.appState.data.showFavoritesOnly);
     }
     this.render();
+  }
+
+  toggleStats() {
+    const statsContainer = document.getElementById('library-stats');
+    const statsBtn = document.getElementById('stats-toggle-btn');
+    
+    if (statsContainer && statsBtn) {
+      const isVisible = !statsContainer.classList.contains('hidden');
+      
+      if (isVisible) {
+        // Hide stats
+        statsContainer.classList.add('hidden');
+        statsBtn.classList.remove('active');
+      } else {
+        // Show stats and calculate them
+        statsContainer.classList.remove('hidden');
+        statsBtn.classList.add('active');
+        this.calculateAndDisplayStats();
+        
+        // Scroll to stats section
+        statsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  calculateAndDisplayStats() {
+    const tracks = this.appState.data.tracksForUI || [];
+    
+    // Debug: Log first track to see structure
+    if (tracks.length > 0) {
+      console.log('First track structure:', tracks[0]);
+    }
+    
+    // Calculate overview stats
+    const totalTracks = tracks.length;
+    const totalArtists = new Set(tracks.map(track => track.artist)).size;
+    
+    // Update overview display
+    const totalTracksEl = document.getElementById('total-tracks');
+    const totalArtistsEl = document.getElementById('total-artists');
+    
+    if (totalTracksEl) totalTracksEl.textContent = totalTracks.toLocaleString();
+    if (totalArtistsEl) totalArtistsEl.textContent = totalArtists.toLocaleString();
+    
+    // Calculate and display detailed stats
+    this.displayGenreStats(tracks);
+    this.displayKeyStats(tracks);
+    this.displayBPMStats(tracks);
+    this.displayEnergyStats(tracks);
+    this.displayYearStats(tracks);
+  }
+
+  displayGenreStats(tracks) {
+    const genreStats = {};
+    tracks.forEach(track => {
+      const genre = track.genre || 'Unknown';
+      genreStats[genre] = (genreStats[genre] || 0) + 1;
+    });
+    
+    console.log('Genre stats:', genreStats);
+    this.displayStatList('genre-stats', genreStats);
+  }
+
+  displayKeyStats(tracks) {
+    const keyStats = {};
+    tracks.forEach(track => {
+      const key = track.key || 'Unknown';
+      keyStats[key] = (keyStats[key] || 0) + 1;
+    });
+    
+    console.log('Key stats:', keyStats);
+    this.displayStatList('key-stats', keyStats);
+  }
+
+  displayBPMStats(tracks) {
+    const bpmRanges = {
+      '60-89 BPM': { min: 60, max: 89, count: 0 },
+      '90-109 BPM': { min: 90, max: 109, count: 0 },
+      '110-129 BPM': { min: 110, max: 129, count: 0 },
+      '130-139 BPM': { min: 130, max: 139, count: 0 },
+      '140-149 BPM': { min: 140, max: 149, count: 0 },
+      '150-179 BPM': { min: 150, max: 179, count: 0 },
+      '180+ BPM': { min: 180, max: 999, count: 0 },
+      'Unknown': { count: 0 }
+    };
+    
+    tracks.forEach(track => {
+      const bpm = parseInt(track.bpm);
+      console.log('Track BPM:', track.bpm, 'Parsed:', bpm);
+      if (isNaN(bpm)) {
+        bpmRanges['Unknown'].count++;
+      } else {
+        for (const [range, data] of Object.entries(bpmRanges)) {
+          if (range !== 'Unknown' && bpm >= data.min && bpm <= data.max) {
+            data.count++;
+            break;
+          }
+        }
+      }
+    });
+    
+    const bpmStats = {};
+    Object.entries(bpmRanges).forEach(([range, data]) => {
+      if (data.count > 0) {
+        bpmStats[range] = data.count;
+      }
+    });
+    
+    console.log('BPM stats:', bpmStats);
+    this.displayStatList('bpm-stats', bpmStats);
+  }
+
+  displayEnergyStats(tracks) {
+    const energyStats = {};
+    
+    // Initialize all energy levels
+    for (let i = 1; i <= 10; i++) {
+      energyStats[`${i} ${'★'.repeat(i)}${'☆'.repeat(10-i)}`] = 0;
+    }
+    energyStats['No Rating'] = 0;
+    
+    tracks.forEach(track => {
+      const energy = this.appState.data.energyLevels[track.display];
+      if (energy) {
+        const key = `${energy} ${'★'.repeat(energy)}${'☆'.repeat(10-energy)}`;
+        energyStats[key]++;
+      } else {
+        energyStats['No Rating']++;
+      }
+    });
+    
+    // Filter out zero counts for cleaner display
+    const filteredEnergyStats = {};
+    Object.entries(energyStats).forEach(([key, count]) => {
+      if (count > 0) {
+        filteredEnergyStats[key] = count;
+      }
+    });
+    
+    this.displayStatList('energy-stats', filteredEnergyStats);
+  }
+
+  displayYearStats(tracks) {
+    const yearStats = {};
+    tracks.forEach(track => {
+      const year = track.year || 'Unknown';
+      yearStats[year] = (yearStats[year] || 0) + 1;
+    });
+    
+    // Sort years in descending order
+    const sortedYearStats = {};
+    Object.keys(yearStats)
+      .sort((a, b) => {
+        if (a === 'Unknown') return 1;
+        if (b === 'Unknown') return -1;
+        return parseInt(b) - parseInt(a);
+      })
+      .forEach(year => {
+        sortedYearStats[year] = yearStats[year];
+      });
+    
+    this.displayStatList('year-stats', sortedYearStats);
+  }
+
+  displayStatList(containerId, stats) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    // Sort by count (highest first)
+    const sortedEntries = Object.entries(stats).sort(([,a], [,b]) => b - a);
+    
+    container.innerHTML = sortedEntries.map(([label, count]) => `
+      <div class="stat-item">
+        <span class="stat-label">${SecurityUtils.escapeHtml(label)}</span>
+        <span class="stat-value">${count.toLocaleString()}</span>
+      </div>
+    `).join('');
   }
 
   // === Clipboard Operations ===

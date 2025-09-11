@@ -39,6 +39,7 @@
       <div class="top-controls-row margin-top-small">
         <a href="#duplicate-list" id="duplicate-link" class="control-btn no-text-decoration">Duplicate Tracks</a>
         <button id="favorites-toggle-btn" class="control-btn">★ Favorites</button>
+        <button id="stats-toggle-btn" class="control-btn">📊 Library Stats</button>
         <a href="User_Documentation.html" id="help-btn" class="control-btn no-text-decoration" target="_blank">❓ Help</a>
       </div>
     </div>
@@ -126,6 +127,51 @@
   </div>
   
   <div id="stats"></div>
+  
+  <div id="library-stats" class="library-stats hidden">
+    <div class="stats-container">
+      <h2>📊 Music Library Statistics</h2>
+      
+      <div class="stats-grid">
+        <div class="stat-section">
+          <h3>📁 Overview</h3>
+          <div class="stat-item">
+            <span class="stat-label">Total Tracks:</span>
+            <span class="stat-value" id="total-tracks">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Total Artists:</span>
+            <span class="stat-value" id="total-artists">0</span>
+          </div>
+        </div>
+        
+        <div class="stat-section">
+          <h3>🎵 Genres</h3>
+          <div id="genre-stats" class="stat-list"></div>
+        </div>
+        
+        <div class="stat-section">
+          <h3>🎹 Keys</h3>
+          <div id="key-stats" class="stat-list"></div>
+        </div>
+        
+        <div class="stat-section">
+          <h3>🥁 BPM Ranges</h3>
+          <div id="bpm-stats" class="stat-list"></div>
+        </div>
+        
+        <div class="stat-section">
+          <h3>⚡ Energy Levels</h3>
+          <div id="energy-stats" class="stat-list"></div>
+        </div>
+        
+        <div class="stat-section">
+          <h3>📅 Years</h3>
+          <div id="year-stats" class="stat-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
   
   <div class="playlist-controls">
     <div class="filter-label playlist-select-wrapper">

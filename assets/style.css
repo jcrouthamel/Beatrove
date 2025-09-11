@@ -1599,6 +1599,139 @@ body.light-mode .dialog-btn-confirm:hover {
   }
 }
 
+/* ============= LIBRARY STATS STYLES ============= */
+.library-stats {
+  background: #222;
+  border-radius: 12px;
+  margin: 20px 0;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.light-mode .library-stats {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stats-container {
+  padding: 24px;
+}
+
+.stats-container h2 {
+  margin: 0 0 24px 0;
+  color: #00ffff;
+  text-align: center;
+  font-size: 24px;
+}
+
+.light-mode .stats-container h2 {
+  color: #0066cc;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.stat-section {
+  background: #181818;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #333;
+}
+
+.light-mode .stat-section {
+  background: #f8f9fa;
+  border-color: #e9ecef;
+}
+
+.stat-section h3 {
+  margin: 0 0 12px 0;
+  color: #00ffff;
+  font-size: 16px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+.light-mode .stat-section h3 {
+  color: #0066cc;
+  border-bottom-color: #e9ecef;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.light-mode .stat-item {
+  border-bottom-color: #f0f0f0;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: #ccc;
+}
+
+.light-mode .stat-label {
+  color: #666;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #00ffff;
+  min-width: 40px;
+  text-align: right;
+}
+
+.light-mode .stat-value {
+  color: #0066cc;
+}
+
+.stat-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.stat-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.stat-list::-webkit-scrollbar-track {
+  background: #2a2a2a;
+}
+
+.stat-list::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 2px;
+}
+
+.light-mode .stat-list::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.light-mode .stat-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+}
+
+/* Responsive stats layout */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-container {
+    padding: 16px;
+  }
+}
+
 /* ============= UTILITY CLASSES FOR INLINE STYLES ============= */
 .hidden {
   display: none !important;
