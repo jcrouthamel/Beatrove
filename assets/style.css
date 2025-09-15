@@ -299,13 +299,14 @@ body.light-mode .control-btn:hover {
 
 .search-wrapper input[type="text"] {
   flex: 1;
-  border: none;
-  background: transparent;
+  border: none !important;
+  background: transparent !important;
   padding: 16px 8px;
   font-size: 16px;
   color: var(--text-color);
-  outline: none;
+  outline: none !important;
   min-height: 20px;
+  box-shadow: none !important;
 }
 
 .search-wrapper input[type="text"]::placeholder {
