@@ -1931,7 +1931,8 @@ class TrackProcessor {
       allGenres: new Set(),
       totalTracks: 0,
       tracksForUI: [],
-      duplicateTracks: []
+      duplicateTracks: [],
+      energyLevels: {}
     };
 
     const seenTracks = new Map();
@@ -1969,6 +1970,11 @@ class TrackProcessor {
                  (track.genre ? ` - ${track.genre}` : ''),
         ...track
       };
+
+      // Store energy level if present
+      if (track.energyLevel && track.energyLevel >= 1 && track.energyLevel <= 10) {
+        result.energyLevels[trackObj.display] = track.energyLevel;
+      }
 
       // Group by artist
       if (!result.grouped[track.artist]) {
@@ -2028,12 +2034,35 @@ class TrackProcessor {
     const bpmMatch = bpmExt.match(/(\d{2,3})/);
     track.bpm = bpmMatch ? bpmMatch[1] : '';
 
-    // Handle extended fields
+    // Handle extended fields and energy level
     if (parts.length >= 7) {
+      // Check for energy level in the last part
       const lastPart = parts[parts.length - 1].trim();
-      if (/\.(mp3|wav|flac|aiff|ogg)$/i.test(lastPart)) {
+      const energyMatch = lastPart.match(/Energy\s+(\d+)/i);
+      
+      if (energyMatch) {
+        // Energy level found in last part
+        track.energyLevel = parseInt(energyMatch[1]);
+        
+        // Handle path and genre from remaining parts
+        if (parts.length >= 8) {
+          const secondLastPart = parts[parts.length - 2].trim();
+          if (/\.(mp3|wav|flac|aiff|ogg)$/i.test(secondLastPart)) {
+            // Path is second to last, genre is in between
+            track.absPath = parts.slice(6, -1).join(' - ').trim();
+          } else {
+            // Second to last is genre
+            track.genre = secondLastPart;
+            if (parts.length > 8) {
+              track.absPath = parts.slice(6, -2).join(' - ').trim();
+            }
+          }
+        }
+      } else if (/\.(mp3|wav|flac|aiff|ogg)$/i.test(lastPart)) {
+        // Last part is a file path
         track.absPath = parts.slice(6).join(' - ').trim();
       } else {
+        // Last part is genre
         track.genre = lastPart;
         if (parts.length > 7) {
           track.absPath = parts.slice(6, -1).join(' - ').trim();
@@ -3605,6 +3634,12 @@ class UIController {
         tracksForUI: result.tracksForUI
       });
 
+      // Merge energy levels from CSV with existing energy levels
+      if (result.energyLevels && Object.keys(result.energyLevels).length > 0) {
+        Object.assign(this.appState.data.energyLevels, result.energyLevels);
+        console.log(`Imported ${Object.keys(result.energyLevels).length} energy levels from CSV`);
+      }
+
       // Update filters
       this.updateFilters(result);
 
@@ -4039,6 +4074,12 @@ class BeatroveApp {
         duplicateTracks: result.duplicateTracks,
         tracksForUI: result.tracksForUI
       });
+
+      // Merge energy levels from CSV with existing energy levels
+      if (result.energyLevels && Object.keys(result.energyLevels).length > 0) {
+        Object.assign(this.appState.data.energyLevels, result.energyLevels);
+        console.log(`Auto-loaded ${Object.keys(result.energyLevels).length} energy levels from tracklist.csv`);
+      }
 
       this.controller.updateFilters(result);
     } catch (error) {
