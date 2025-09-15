@@ -2025,6 +2025,7 @@ class TrackProcessor {
       key: parts[2]?.trim() || '',
       trackTime: parts[4]?.trim() || '',
       year: parts[5]?.trim() || '',
+      recordLabel: '',
       genre: '',
       absPath: ''
     };
@@ -2034,39 +2035,71 @@ class TrackProcessor {
     const bpmMatch = bpmExt.match(/(\d{2,3})/);
     track.bpm = bpmMatch ? bpmMatch[1] : '';
 
-    // Handle extended fields and energy level
+    // Handle extended fields, energy level, and record label
     if (parts.length >= 7) {
-      // Check for energy level in the last part
-      const lastPart = parts[parts.length - 1].trim();
-      const energyMatch = lastPart.match(/Energy\s+(\d+)/i);
+      let workingParts = [...parts];
+      let energyIndex = -1;
+      let recordLabelIndex = -1;
       
-      if (energyMatch) {
-        // Energy level found in last part
-        track.energyLevel = parseInt(energyMatch[1]);
+      // Find energy level position (look for "Energy #" pattern)
+      for (let i = workingParts.length - 1; i >= 6; i--) {
+        const part = workingParts[i].trim();
+        if (/Energy\s+(\d+)/i.test(part)) {
+          const energyMatch = part.match(/Energy\s+(\d+)/i);
+          track.energyLevel = parseInt(energyMatch[1]);
+          energyIndex = i;
+          break;
+        }
+      }
+      
+      // Find record label (should be after energy level if both exist)
+      if (energyIndex !== -1 && workingParts.length > energyIndex + 1) {
+        // Record label is after energy level
+        const remainingParts = workingParts.slice(energyIndex + 1);
+        // Filter out empty parts and commas
+        const cleanParts = remainingParts.filter(part => part.trim() && part.trim() !== ',');
+        if (cleanParts.length > 0) {
+          let labelText = cleanParts.join(' - ').trim();
+          // Remove "Label " prefix if it exists
+          if (labelText.toLowerCase().startsWith('label ')) {
+            labelText = labelText.substring(6).trim();
+          }
+          track.recordLabel = labelText;
+        }
+      }
+      
+      // Handle path and genre (between index 6 and energy level)
+      const endIndex = energyIndex !== -1 ? energyIndex : workingParts.length;
+      if (endIndex > 6) {
+        const middleParts = workingParts.slice(6, endIndex);
         
-        // Handle path and genre from remaining parts
-        if (parts.length >= 8) {
-          const secondLastPart = parts[parts.length - 2].trim();
-          if (/\.(mp3|wav|flac|aiff|ogg)$/i.test(secondLastPart)) {
-            // Path is second to last, genre is in between
-            track.absPath = parts.slice(6, -1).join(' - ').trim();
-          } else {
-            // Second to last is genre
-            track.genre = secondLastPart;
-            if (parts.length > 8) {
-              track.absPath = parts.slice(6, -2).join(' - ').trim();
-            }
+        // Find file path (look for file extensions)
+        let pathParts = [];
+        let genreParts = [];
+        
+        for (let i = 0; i < middleParts.length; i++) {
+          const part = middleParts[i].trim();
+          if (/\.(mp3|wav|flac|aiff|ogg)$/i.test(part)) {
+            // This and everything before it is likely the path
+            pathParts = middleParts.slice(0, i + 1);
+            // Everything after is genre
+            genreParts = middleParts.slice(i + 1);
+            break;
           }
         }
-      } else if (/\.(mp3|wav|flac|aiff|ogg)$/i.test(lastPart)) {
-        // Last part is a file path
-        track.absPath = parts.slice(6).join(' - ').trim();
-      } else {
-        // Last part is genre
-        track.genre = lastPart;
-        if (parts.length > 7) {
-          track.absPath = parts.slice(6, -1).join(' - ').trim();
+        
+        // If no file extension found, assume last part is genre
+        if (pathParts.length === 0 && middleParts.length > 0) {
+          if (middleParts.length > 1) {
+            pathParts = middleParts.slice(0, -1);
+            genreParts = [middleParts[middleParts.length - 1]];
+          } else {
+            genreParts = middleParts;
+          }
         }
+        
+        track.absPath = pathParts.join(' - ').trim();
+        track.genre = genreParts.join(' - ').trim();
       }
     }
 
@@ -2342,6 +2375,7 @@ class UIRenderer {
       { label: 'Genre', value: track.genre },
       { label: 'Length', value: track.trackTime },
       { label: 'Year', value: track.year },
+      { label: 'Label', value: track.recordLabel },
       { label: 'Energy', value: energyDisplay }
     ];
 
@@ -2964,6 +2998,7 @@ class UIController {
     this.displayBPMStats(tracks);
     this.displayEnergyStats(tracks);
     this.displayYearStats(tracks);
+    this.displayLabelStats(tracks);
   }
 
   displayGenreStats(tracks) {
@@ -3076,6 +3111,17 @@ class UIController {
       });
     
     this.displayStatList('year-stats', sortedYearStats);
+  }
+
+  displayLabelStats(tracks) {
+    const labelStats = {};
+    tracks.forEach(track => {
+      const label = track.recordLabel || 'Unknown';
+      labelStats[label] = (labelStats[label] || 0) + 1;
+    });
+    
+    console.log('Label stats:', labelStats);
+    this.displayStatList('label-stats', labelStats);
   }
 
   displayStatList(containerId, stats) {
