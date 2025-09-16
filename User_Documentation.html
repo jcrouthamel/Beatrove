@@ -33,8 +33,9 @@
       <li><a href="#playlists">7. Playlists</a></li>
       <li><a href="#tags">8. Tags</a></li>
       <li><a href="#energy-levels">9. Energy Levels</a></li>
-      <li><a href="#visualizer">10. Visualizer</a></li>
-      <li><a href="#troubleshooting">11. Troubleshooting</a></li>
+      <li><a href="#record-labels">10. Record Labels</a></li>
+      <li><a href="#visualizer">11. Visualizer</a></li>
+      <li><a href="#troubleshooting">12. Troubleshooting</a></li>
     </ul>
   </div>
 
@@ -49,7 +50,8 @@
     <li>Click the <strong>Upload</strong> button or drag and drop your tracklist file (CSV or TXT) into the app.</li>
     <li>The tracklist will be processed and displayed in the main area.</li>
     <li>If the file is invalid, an error message will appear.</li>
-    <li>The tracklist format should be: artist - title - key - BPM.extension - track time - year - path</li>
+    <li>The tracklist format should be: artist - title - key - BPM.extension - track time - year - path - genre - Energy # - Record Label</li>
+    <li>Energy levels and record labels are optional fields that can be included at the end of each track line.</li>
     <li>The track time and year are extracted from file metadata using tinytag.</li>
   </ul>
 
@@ -156,13 +158,23 @@
     Maximum speed and intensity. Hardstyle climaxes, gabber, riddim, deathstep. Pure adrenaline, overwhelming walls of sound.
   </div>
 
-  <h2 id="visualizer">10. Visualizer</h2>
+  <h2 id="record-labels">10. Record Labels</h2>
+  <ul>
+    <li>Track record label information is automatically imported from CSV files.</li>
+    <li>Record labels appear in track details between the year and energy level.</li>
+    <li>Labels are displayed as <strong>Label: [Record Label Name]</strong> in the track information.</li>
+    <li>View label distribution in the <strong>Library Statistics</strong> section.</li>
+    <li>Record labels help organize tracks by their release label for professional DJ collections.</li>
+    <li>Use the CSV format: <code>...year - path - genre - Energy # - Record Label</code> to import label data.</li>
+  </ul>
+
+  <h2 id="visualizer">11. Visualizer</h2>
   <ul>
     <li>When previewing audio, visualizer bars animate in sync with the music.</li>
     <li>Both the top and bottom visualizers show the audio spectrum.</li>
   </ul>
 
-  <h2 id="troubleshooting">11. Troubleshooting</h2>
+  <h2 id="troubleshooting">12. Troubleshooting</h2>
   <ul>
     <li><b>Audio preview not working?</b> Make sure you have loaded the correct audio files folder and that filenames match the tracklist.</li>
     <li><b>Nothing happens when clicking icons?</b> Try refreshing the page or clearing your browser cache.</li>

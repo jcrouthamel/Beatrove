@@ -7,7 +7,7 @@ A powerful web application for DJs to manage, filter, and preview their music co
 ### 🎵 Track Management
 - **Upload Tracklists**: Support for CSV and TXT file formats
 - **Auto-load**: Automatically loads `tracklist.csv` if present
-- **Track Information**: Artist, title, key, BPM, year, genre, and file path
+- **Track Information**: Artist, title, key, BPM, year, record label, genre, energy levels, and file path
 - **Duplicate Detection**: Identifies duplicate tracks in your collection
 
 ### 🔍 Filtering & Search
@@ -58,6 +58,7 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **BPM Ranges**: Tempo analysis with organized ranges (60-89, 90-109, etc.)
 - **Energy Statistics**: Energy level distribution across your collection
 - **Year Breakdown**: Track counts by release year
+- **Record Label Analysis**: Distribution of tracks by record label
 - **Interactive Display**: Toggle stats view with smooth scrolling
 
 ### 🎨 User Interface
@@ -94,14 +95,14 @@ A powerful web application for DJs to manage, filter, and preview their music co
 3. **Prepare Your Music Data**
    - Create a tracklist file with this format:
      ```
-     artist - title - key - BPM.extension - track time - year - path - genre
+     artist - title - key - BPM.extension - track time - year - path - genre - Energy # - Record Label
      ```
    - Save as `tracklist.csv` in the root directory for auto-loading
 
 ### Example Tracklist Format
 ```
-&ME - Confusion - 5A - 120.flac - 6:56 - 2021 - /path/to/file.flac - Electro
-Artbat - Horizon - 8A - 124.wav - 7:23 - 2022 - /path/to/file.wav - Techno
+&ME - Confusion - 5A - 120.flac - 6:56 - 2021 - /path/to/file.flac - Electro - Energy 5 - Keinemusik
+Artbat - Horizon - 8A - 124.wav - 7:23 - 2022 - /path/to/file.wav - Techno - Energy 7 - Diynamic
 ```
 
 ## 📁 Project Structure
@@ -139,6 +140,8 @@ beatrove/
 - **Year**: Release year
 - **Path**: Full file path to the audio file
 - **Genre**: Musical genre (optional)
+- **Energy Level**: "Energy #" format where # is 1-10 (optional)
+- **Record Label**: Label name (optional)
 
 ### Audio Preview Setup
 1. Click any preview button (▶️) 
@@ -194,13 +197,15 @@ beatrove/
 
 ## 📝 Data Format Notes
 
-The application expects tracklist data in a specific format. The format supports both 6-part and 7+ part entries:
+The application expects tracklist data in a specific format. The format supports multiple entry types:
 
-- **6-part**: `artist - title - key - BPM.ext - time - year`
-- **7-part**: `artist - title - key - BPM.ext - time - year - genre`
-- **8-part**: `artist - title - key - BPM.ext - time - year - path - genre`
+- **Basic**: `artist - title - key - BPM.ext - time - year`
+- **With Genre**: `artist - title - key - BPM.ext - time - year - genre`
+- **With Path**: `artist - title - key - BPM.ext - time - year - path - genre`
+- **With Energy**: `artist - title - key - BPM.ext - time - year - path - genre - Energy #`
+- **Full Format**: `artist - title - key - BPM.ext - time - year - path - genre - Energy # - Record Label`
 
-The parser intelligently detects file paths (containing extensions) vs. genre tags.
+The parser intelligently detects file paths, genre tags, energy levels, and record labels in flexible positions.
 
 ## 🤝 Contributing
 
