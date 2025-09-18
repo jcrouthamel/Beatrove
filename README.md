@@ -58,6 +58,16 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Tag Management**: Edit and remove tags as needed
 - **Tag Persistence**: Tags are saved in browser storage
 
+### 😎 Mood & Vibe Tags
+- **Emotional Context**: Add mood and atmospheric tags to tracks (Euphoric, Dark, Uplifting, etc.)
+- **Visual Differentiation**: Orange-gradient pills with 😎 icon to distinguish from regular tags
+- **Professional DJ Workflow**: Organize tracks by emotional impact and atmosphere
+- **Set Planning**: Plan mood progressions and vibe transitions for better set flow
+- **Separate Management**: Independent system from regular tags with dedicated UI
+- **Examples**: Euphoric, Dark, Melancholic, Driving, Hypnotic, Cinematic, Underground
+- **Quick Access**: Click the 😎 icon next to any track to add mood/vibe tags
+- **Persistent Storage**: Saved separately in browser storage with import/export support
+
 ### ⚡ Energy Level System
 - **10-Point Rating Scale**: Rate tracks from 1-10 stars for energy intensity
 - **Visual Star Display**: See energy levels with filled/empty star patterns
@@ -150,8 +160,9 @@ beatrove/
 5. Click the preview button (▶️) to listen to tracks
 6. **Select a waveform style** from the "Waveform Style" dropdown for visual audio analysis
 7. Rate tracks with energy levels (⚡) from 1-10 stars
-8. View library statistics with the "📊 Library Stats" button
-9. Create playlists and organize your collection
+8. **Add mood & vibe tags** by clicking the 😎 icon to categorize tracks by emotional impact
+9. View library statistics with the "📊 Library Stats" button
+10. Create playlists and organize your collection
 
 ### Advanced Search Features
 1. **Multi-Criteria Filtering**: Combine multiple filters for precise track discovery
@@ -189,10 +200,19 @@ beatrove/
 ## 🔧 Advanced Features
 
 ### Import/Export
-- **Export All**: Save tracks, playlists, tags, and energy levels as JSON
+- **Export All**: Save tracks, playlists, tags, mood/vibe tags, and energy levels as JSON
 - **Import All**: Restore complete data from JSON backup
 - **Export Playlists**: Save individual playlists
 - **Export Tags**: Save tagging data
+
+### Mood & Vibe Tag Management
+- **Quick Tagging**: Click the 😎 icon next to any track to add mood/vibe tags
+- **Emotional Categories**: Tag tracks with moods like Euphoric, Dark, Melancholic, Uplifting
+- **Atmospheric Vibes**: Add vibe tags like Driving, Hypnotic, Cinematic, Underground
+- **Visual Recognition**: Orange-gradient pills make mood/vibe tags instantly recognizable
+- **Set Planning**: Organize tracks by emotional journey for seamless mood transitions
+- **Professional Workflow**: Plan set progression from introspective to euphoric moments
+- **Independent System**: Separate from regular tags for specialized DJ categorization
 
 ### Energy Level Management
 - **Quick Rating**: Click the lightning bolt (⚡) icon next to any track
