@@ -1059,9 +1059,62 @@ body.light-mode .audio-player-waveform {
   border-color: #0088aa;
 }
 
-/* Waveform Style Selector */
-#waveform-style-select {
-  min-width: 140px;
+/* Waveform Style Dropdown - styled like control buttons */
+.waveform-style-dropdown {
+  background-color: #2a2a2a;
+  border: 1px solid #444;
+  color: #ffffff;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 160px;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 16px;
+  padding-right: 32px;
+}
+
+.waveform-style-dropdown:hover {
+  background-color: #3a3a3a;
+  border-color: #0088aa;
+}
+
+.waveform-style-dropdown:focus {
+  outline: none;
+  border-color: #0088aa;
+  box-shadow: 0 0 0 2px rgba(0, 136, 170, 0.2);
+}
+
+.waveform-style-dropdown option {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  padding: 8px;
+}
+
+.waveform-style-dropdown option:hover {
+  background-color: #0088aa;
+}
+
+/* Light mode styling */
+body.light-mode .waveform-style-dropdown {
+  background-color: #ffffff;
+  color: #333333;
+  border-color: #cccccc;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+}
+
+body.light-mode .waveform-style-dropdown:hover {
+  background-color: #f5f5f5;
+  border-color: #0088aa;
+}
+
+body.light-mode .waveform-style-dropdown option {
+  background-color: #ffffff;
+  color: #333333;
 }
 
 #az-bar-container {

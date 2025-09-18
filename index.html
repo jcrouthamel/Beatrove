@@ -35,22 +35,20 @@
         <label for="tracklist-upload" class="control-btn">📁 Upload Tracklist</label>
         <input type="file" id="tracklist-upload" accept=".txt,.csv,.yaml,.yml" class="hidden">
         <input type="file" id="audio-folder-input" webkitdirectory directory multiple class="hidden">
-        <div class="filter-label">
-          <span>Waveform Style</span>
-          <select id="waveform-style-select">
-            <option value="default">Default (Cyan)</option>
-            <option value="soundcloud">(Orange)</option>
-            <option value="spotify">(Green)</option>
-            <option value="audacity">(Blue Stereo)</option>
-            <option value="logic">(Colored)</option>
-            <option value="overview">Full Track Overview</option>
-          </select>
-        </div>
       </div>
       <div class="top-controls-row margin-top-small">
         <a href="#duplicate-list" id="duplicate-link" class="control-btn no-text-decoration">Duplicate Tracks</a>
         <button id="favorites-toggle-btn" class="control-btn">★ Favorites</button>
         <button id="stats-toggle-btn" class="control-btn">📊 Library Stats</button>
+        <select id="waveform-style-select" class="control-btn waveform-style-dropdown">
+          <option value="" disabled selected>Waveform Style</option>
+          <option value="default">Default (Cyan)</option>
+          <option value="soundcloud">(Orange)</option>
+          <option value="spotify">(Green)</option>
+          <option value="audacity">(Blue Stereo)</option>
+          <option value="logic">(Colored)</option>
+          <option value="overview">Full Track Overview</option>
+        </select>
         <a href="User_Documentation.html" id="help-btn" class="control-btn no-text-decoration" target="_blank">❓ Help</a>
       </div>
     </div>
