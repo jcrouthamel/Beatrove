@@ -25,6 +25,73 @@ const CONFIG = {
   MAX_OPERATIONS_PER_WINDOW: 5
 };
 
+// ============= FUZZY SEARCH UTILITIES =============
+class FuzzySearchUtils {
+  // Calculate Levenshtein distance between two strings
+  static levenshteinDistance(str1, str2) {
+    const matrix = [];
+    const len1 = str1.length;
+    const len2 = str2.length;
+
+    // Create matrix
+    for (let i = 0; i <= len1; i++) {
+      matrix[i] = [i];
+    }
+    for (let j = 0; j <= len2; j++) {
+      matrix[0][j] = j;
+    }
+
+    // Fill matrix
+    for (let i = 1; i <= len1; i++) {
+      for (let j = 1; j <= len2; j++) {
+        if (str1[i - 1] === str2[j - 1]) {
+          matrix[i][j] = matrix[i - 1][j - 1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j] + 1,     // deletion
+            matrix[i][j - 1] + 1,     // insertion
+            matrix[i - 1][j - 1] + 1  // substitution
+          );
+        }
+      }
+    }
+
+    return matrix[len1][len2];
+  }
+
+  // Calculate similarity score (0-1, where 1 is perfect match)
+  static calculateSimilarity(str1, str2) {
+    const maxLen = Math.max(str1.length, str2.length);
+    if (maxLen === 0) return 1;
+    
+    const distance = this.levenshteinDistance(str1.toLowerCase(), str2.toLowerCase());
+    return 1 - (distance / maxLen);
+  }
+
+  // Check if search term fuzzy matches target with threshold
+  static fuzzyMatch(searchTerm, target, threshold = 0.6) {
+    if (!searchTerm || !target) return false;
+    
+    // Direct substring match (highest priority)
+    if (target.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return true;
+    }
+
+    // Fuzzy matching for individual words
+    const searchWords = searchTerm.toLowerCase().split(/\s+/);
+    const targetWords = target.toLowerCase().split(/\s+/);
+
+    // Check if each search word fuzzy matches any target word
+    return searchWords.every(searchWord => {
+      return targetWords.some(targetWord => {
+        // Allow shorter words to have lower threshold
+        const adjustedThreshold = searchWord.length <= 3 ? 0.8 : threshold;
+        return this.calculateSimilarity(searchWord, targetWord) >= adjustedThreshold;
+      });
+    });
+  }
+}
+
 // ============= SECURITY UTILITIES =============
 class SecurityUtils {
   static sanitizeText(text) {
@@ -2354,6 +2421,7 @@ class UIRenderer {
   getActiveFilters() {
     return {
       search: document.getElementById('search')?.value.toLowerCase() || '',
+      fuzzySearchEnabled: document.getElementById('fuzzy-search-toggle')?.checked || false,
       selectedBPM: this.appState.elements.bpmFilter?.value || '',
       selectedKey: this.appState.elements.keyFilter?.value || '',
       selectedGenre: this.appState.elements.genreFilter?.value || '',
@@ -2384,11 +2452,24 @@ class UIRenderer {
     }
 
     return this.appState.data.tracksForUI.filter(track => {
-      // Search filter
+      // Search filter (with optional fuzzy matching)
       if (filters.search) {
-        const searchMatch = track.display.toLowerCase().includes(filters.search) ||
-                          track.artist?.toLowerCase().includes(filters.search) ||
-                          track.title?.toLowerCase().includes(filters.search);
+        let searchMatch = false;
+        
+        if (filters.fuzzySearchEnabled) {
+          // Fuzzy search using Levenshtein distance
+          searchMatch = FuzzySearchUtils.fuzzyMatch(filters.search, track.display) ||
+                       FuzzySearchUtils.fuzzyMatch(filters.search, track.artist || '') ||
+                       FuzzySearchUtils.fuzzyMatch(filters.search, track.title || '') ||
+                       FuzzySearchUtils.fuzzyMatch(filters.search, track.genre || '') ||
+                       FuzzySearchUtils.fuzzyMatch(filters.search, track.recordLabel || '');
+        } else {
+          // Standard exact substring matching
+          searchMatch = track.display.toLowerCase().includes(filters.search) ||
+                       track.artist?.toLowerCase().includes(filters.search) ||
+                       track.title?.toLowerCase().includes(filters.search);
+        }
+        
         if (!searchMatch) return false;
       }
 
@@ -2865,7 +2946,7 @@ class UIController {
   }
 
   attachFilterListeners() {
-    const filters = ['search', 'bpm-filter', 'key-filter', 'genre-filter', 'energy-filter', 'label-filter', 'sort-select', 'year-search', 'tag-dropdown'];
+    const filters = ['search', 'bpm-filter', 'key-filter', 'genre-filter', 'energy-filter', 'label-filter', 'sort-select', 'year-search', 'tag-dropdown', 'fuzzy-search-toggle'];
     
     filters.forEach(id => {
       const element = document.getElementById(id);
@@ -2873,6 +2954,9 @@ class UIController {
         element.addEventListener('change', () => this.render());
         if (id === 'search' || id === 'year-search') {
           element.addEventListener('input', debounce(() => this.render(), CONFIG.DEBOUNCE_DELAY));
+        }
+        if (id === 'fuzzy-search-toggle') {
+          element.addEventListener('input', () => this.render());
         }
       }
     });
