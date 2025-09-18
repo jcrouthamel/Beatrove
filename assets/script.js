@@ -206,10 +206,10 @@ class SecurityUtils {
     }
 
     // Check file size (audio files can be larger)
-    const maxAudioSize = 100 * 1024 * 1024; // 100MB for audio
+    const maxAudioSize = 200 * 1024 * 1024; // 200MB for audio
     if (file.size > maxAudioSize) {
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-      errors.push(`Audio file size ${sizeMB}MB exceeds maximum allowed size of 100MB`);
+      errors.push(`Audio file size ${sizeMB}MB exceeds maximum allowed size of 200MB`);
     }
 
     return {
@@ -1725,21 +1725,76 @@ class AudioManager {
       }
 
       console.log(`Starting preview ${previewId} for track: ${track.artist} - ${track.title}`);
+      console.log(`Track path: ${track.absPath}`);
 
       const fileName = track.absPath.split(/[\\/]/).pop().toLowerCase();
-      const file = this.fileMap[fileName];
+      console.log(`Looking for filename: ${fileName}`);
+      console.log(`Available files:`, Object.keys(this.fileMap));
+      
+      let file = this.fileMap[fileName];
+      
+      // If exact match fails, try partial matching for similar filenames
+      if (!file) {
+        // Extract base filename without extension for fuzzy matching
+        const baseFileName = fileName.replace(/\.[^/.]+$/, '').toLowerCase();
+        const availableFiles = Object.keys(this.fileMap);
+        
+        // First try: exact base filename match
+        let matchingFile = availableFiles.find(availableFile => {
+          const availableBase = availableFile.replace(/\.[^/.]+$/, '').toLowerCase();
+          return availableBase === baseFileName;
+        });
+        
+        // Second try: match by artist and title (first two parts)
+        if (!matchingFile) {
+          const [artist, title] = baseFileName.split(' - ');
+          if (artist && title) {
+            matchingFile = availableFiles.find(availableFile => {
+              const availableBase = availableFile.replace(/\.[^/.]+$/, '').toLowerCase();
+              const [availableArtist, availableTitle] = availableBase.split(' - ');
+              return availableArtist === artist && availableTitle === title;
+            });
+          }
+        }
+        
+        // Third try: contains artist and title anywhere in filename
+        if (!matchingFile) {
+          const [artist, title] = baseFileName.split(' - ');
+          if (artist && title) {
+            matchingFile = availableFiles.find(availableFile => {
+              const availableBase = availableFile.replace(/\.[^/.]+$/, '').toLowerCase();
+              return availableBase.includes(artist) && availableBase.includes(title);
+            });
+          }
+        }
+        
+        if (matchingFile) {
+          file = this.fileMap[matchingFile];
+          console.log(`Found matching file: ${matchingFile}`);
+        } else {
+          console.log(`No match found for: ${baseFileName}`);
+          // Debug: show files that start with the same first letter
+          const firstChar = artist ? artist[0].toLowerCase() : '';
+          const similarFiles = availableFiles.filter(f => f.startsWith(firstChar)).slice(0, 10);
+          console.log(`Files starting with '${firstChar}':`, similarFiles);
+        }
+      }
       
       if (!file) {
-        throw new Error(`Audio file not found: ${fileName}`);
+        throw new Error(`Audio file not found: ${fileName}. Available files: ${Object.keys(this.fileMap).slice(0, 5).join(', ')}${Object.keys(this.fileMap).length > 5 ? '...' : ''}`);
       }
 
       if (!SecurityUtils.validateFileExtension(file.name, CONFIG.ALLOWED_AUDIO_EXTENSIONS)) {
         throw new Error('Unsupported audio file type');
       }
 
-      // Set current preview ID and clean up previous
-      this.currentPreviewId = previewId;
+      console.log(`File validation passed for: ${file.name}`);
+      console.log(`Current preview ID before setting: ${this.currentPreviewId}, New preview ID: ${previewId}`);
+
+      // Clean up previous audio first, then set new preview ID
       await this.cleanupCurrentAudioAsync();
+      this.currentPreviewId = previewId;
+      console.log(`Set current preview ID to: ${this.currentPreviewId}`);
 
       // Check if this preview was superseded during cleanup
       if (this.currentPreviewId !== previewId) {
@@ -2357,6 +2412,7 @@ class UIRenderer {
     trackDiv.dataset.genre = track.genre || '';
     trackDiv.dataset.path = track.absPath || '';
     trackDiv.dataset.display = track.display || '';
+    trackDiv.dataset.trackTime = track.trackTime || '';
 
     // Main content
     const nameContainer = document.createElement('div');
