@@ -10,15 +10,20 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Track Information**: Artist, title, key, BPM, year, record label, genre, energy levels, and file path
 - **Duplicate Detection**: Identifies duplicate tracks in your collection
 
-### 🔍 Filtering & Search
-- **Text Search**: Find tracks by artist, title, or other metadata
-- **BPM Filter**: Filter by tempo ranges
+### 🔍 Advanced Search & Filtering
+- **Multi-Criteria Search**: Combine BPM + Genre + Key + Label filters simultaneously
+- **Fuzzy Search**: Toggle-able typo-tolerant search using Levenshtein distance algorithm
+- **Smart Text Search**: Find tracks by artist, title, genre, or record label
+- **BPM Filter**: Filter by specific tempo ranges
 - **Key Filter**: Filter by musical key (Camelot notation)
+- **Genre Filter**: Filter by musical genre categories
+- **Label Filter**: Filter by record label for professional DJ collections
 - **Year Search**: Filter by release year or year ranges (e.g., "2020-2023")
-- **Tag Filter**: Filter by custom tags
+- **Tag Filter**: Filter by custom user-defined tags
 - **Energy Filter**: Filter by energy level (1-10 stars)
 - **Favorites Filter**: Show only starred tracks
 - **A-Z Navigation**: Quick jump to artists by letter
+- **Typo Tolerance**: Find "Deadmau5" when searching "deadmaus" or "artbt" → "Artbat"
 
 ### 🎧 Audio Preview
 - **Real-time Preview**: Play audio files directly in the browser
@@ -140,12 +145,21 @@ beatrove/
 ### Getting Started
 1. Open the application in your browser
 2. Upload a tracklist file using the "📁 Upload Tracklist" button
-3. Use the filters to find specific tracks
-4. Click the preview button (▶️) to listen to tracks
-5. **Select a waveform style** from the "Waveform Style" dropdown for visual audio analysis
-6. Rate tracks with energy levels (⚡) from 1-10 stars
-7. View library statistics with the "📊 Library Stats" button
-8. Create playlists and organize your collection
+3. Use the **multi-criteria search** to find specific tracks with precise filtering
+4. **Enable fuzzy search** for typo-tolerant searching by checking the "🔤 Fuzzy Search" toggle
+5. Click the preview button (▶️) to listen to tracks
+6. **Select a waveform style** from the "Waveform Style" dropdown for visual audio analysis
+7. Rate tracks with energy levels (⚡) from 1-10 stars
+8. View library statistics with the "📊 Library Stats" button
+9. Create playlists and organize your collection
+
+### Advanced Search Features
+1. **Multi-Criteria Filtering**: Combine multiple filters for precise track discovery
+   - Example: "120-125 BPM + Techno + 5A Key + Drumcode Label"
+2. **Fuzzy Search**: Enable typo-tolerant search for forgiving text matching
+   - Example: "deadmaus" finds "Deadmau5", "artbt" finds "Artbat"
+3. **Smart Field Matching**: Search automatically checks artist, title, genre, and label fields
+4. **Threshold Optimization**: Short words require higher similarity, longer words are more forgiving
 
 ### Waveform Visualization
 1. **Choose a style** from the Waveform Style dropdown in the top controls

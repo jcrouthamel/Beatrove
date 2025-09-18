@@ -26,17 +26,19 @@
     <ul>
       <li><a href="#getting-started">1. Getting Started</a></li>
       <li><a href="#uploading-a-tracklist">2. Uploading a Tracklist</a></li>
-      <li><a href="#filtering-and-searching-tracks">3. Filtering and Searching Tracks</a></li>
-      <li><a href="#favorites">4. Favorites</a></li>
-      <li><a href="#copy-path-to-clipboard">5. Copy Path to Clipboard</a></li>
-      <li><a href="#audio-preview">6. Audio Preview</a></li>
-      <li><a href="#waveform-visualization">7. Waveform Visualization</a></li>
-      <li><a href="#playlists">8. Playlists</a></li>
-      <li><a href="#tags">9. Tags</a></li>
-      <li><a href="#energy-levels">10. Energy Levels</a></li>
-      <li><a href="#record-labels">11. Record Labels</a></li>
-      <li><a href="#visualizer">12. Visualizer</a></li>
-      <li><a href="#troubleshooting">13. Troubleshooting</a></li>
+      <li><a href="#advanced-search-filtering">3. Advanced Search & Filtering</a></li>
+      <li><a href="#multi-criteria-search">4. Multi-Criteria Search</a></li>
+      <li><a href="#fuzzy-search">5. Fuzzy Search (Typo-Tolerant)</a></li>
+      <li><a href="#favorites">6. Favorites</a></li>
+      <li><a href="#copy-path-to-clipboard">7. Copy Path to Clipboard</a></li>
+      <li><a href="#audio-preview">8. Audio Preview</a></li>
+      <li><a href="#waveform-visualization">9. Waveform Visualization</a></li>
+      <li><a href="#playlists">10. Playlists</a></li>
+      <li><a href="#tags">11. Tags</a></li>
+      <li><a href="#energy-levels">12. Energy Levels</a></li>
+      <li><a href="#record-labels">13. Record Labels</a></li>
+      <li><a href="#visualizer">14. Visualizer</a></li>
+      <li><a href="#troubleshooting">15. Troubleshooting</a></li>
     </ul>
   </div>
 
@@ -56,34 +58,92 @@
     <li>The track time and year are extracted from file metadata using tinytag.</li>
   </ul>
 
-  <h2 id="filtering-and-searching-tracks">3. Filtering and Searching Tracks</h2>
+  <h2 id="advanced-search-filtering">3. Advanced Search & Filtering</h2>
   <ul>
-    <li>Use the <strong>BPM</strong> and <strong>Key</strong> dropdowns at the top to filter tracks by tempo or musical key.</li>
-    <li>Use the <strong>search bar</strong> to find tracks by artist, title, or other info.</li>
-    <li>Clear filters to show all tracks again.</li>
+    <li>Use the <strong>search bar</strong> to find tracks by artist, title, genre, or record label.</li>
+    <li>Enable <strong>🔤 Fuzzy Search</strong> for typo-tolerant searching.</li>
+    <li>Use multiple filter dropdowns simultaneously for precise track discovery.</li>
+    <li>All filters work together to narrow down results progressively.</li>
   </ul>
 
-  <h2 id="favorites">4. Favorites</h2>
+  <h3>Available Filters</h3>
+  <ul>
+    <li><strong>BPM Filter</strong> - Filter by specific tempo ranges</li>
+    <li><strong>Key Filter</strong> - Filter by musical key (Camelot notation)</li>
+    <li><strong>Genre Filter</strong> - Filter by musical genre categories</li>
+    <li><strong>Label Filter</strong> - Filter by record label for professional collections</li>
+    <li><strong>Year Search</strong> - Filter by release year or ranges (e.g., "2020-2023")</li>
+    <li><strong>Tag Filter</strong> - Filter by custom user-defined tags</li>
+    <li><strong>Energy Filter</strong> - Filter by energy level (1-10 stars)</li>
+  </ul>
+
+  <h2 id="multi-criteria-search">4. Multi-Criteria Search</h2>
+  <ul>
+    <li>Combine multiple filters simultaneously for precise track discovery.</li>
+    <li>Each filter narrows down the results further using AND logic.</li>
+    <li>Perfect for finding tracks with very specific characteristics.</li>
+  </ul>
+
+  <div class="tip">
+    <strong>Example Multi-Criteria Searches</strong><br>
+    • "120-125 BPM + Techno + 5A Key + Drumcode Label"<br>
+    • "128 BPM + House + High Energy (7-10 stars)"<br>
+    • "Progressive + 2020-2023 + Anjunabeats Label"<br>
+    • "Favorites + 6A Key + 126 BPM" for harmonic mixing
+  </div>
+
+  <h2 id="fuzzy-search">5. Fuzzy Search (Typo-Tolerant)</h2>
+  <ul>
+    <li>Toggle the <strong>🔤 Fuzzy Search</strong> checkbox to enable typo-tolerant searching.</li>
+    <li>Uses advanced Levenshtein distance algorithm for intelligent matching.</li>
+    <li>Finds tracks even with spelling mistakes or variations in names.</li>
+    <li>Automatically searches across artist, title, genre, and record label fields.</li>
+  </ul>
+
+  <h3>Fuzzy Search Examples</h3>
+
+  <div class="tip">
+    <strong>Artist Names</strong><br>
+    • "deadmaus" → finds "Deadmau5"<br>
+    • "artbt" → finds "Artbat"<br>
+    • "eric prdyz" → finds "Eric Prydz"
+  </div>
+
+  <div class="tip">
+    <strong>Track Titles</strong><br>
+    • "stronbos" → finds "Strombo"<br>
+    • "horizn" → finds "Horizon"<br>
+    • "confusio" → finds "Confusion"
+  </div>
+
+  <div class="tip">
+    <strong>Smart Thresholds</strong><br>
+    • Short words (≤3 chars) require 80% similarity<br>
+    • Longer words require 60% similarity<br>
+    • Direct substring matches always take priority
+  </div>
+
+  <h2 id="favorites">6. Favorites</h2>
   <ul>
     <li>Click the <strong>star icon (☆/★)</strong> next to a track to mark it as a favorite.</li>
     <li>Favorites are saved in your browser and persist after refreshing.</li>
     <li>Click the star again to remove a track from favorites.</li>
   </ul>
 
-  <h2 id="copy-path-to-clipboard">5. Copy Path to Clipboard</h2>
+  <h2 id="copy-path-to-clipboard">7. Copy Path to Clipboard</h2>
   <ul>
     <li>Click the <strong>folder icon (📁)</strong> next to a track to copy the file path to your clipboard.</li>
     <li>Paste the path into your file manager or terminal to locate the file.</li>
   </ul>
 
-  <h2 id="audio-preview">6. Audio Preview</h2>
+  <h2 id="audio-preview">8. Audio Preview</h2>
   <ul>
     <li>Click the <strong>preview icon (▶️)</strong> to listen to a track.</li>
     <li>The first time, you'll be prompted to select your audio files folder.</li>
     <li>After loading, you can preview any track whose file is present.</li>
   </ul>
 
-  <h2 id="waveform-visualization">7. Waveform Visualization</h2>
+  <h2 id="waveform-visualization">9. Waveform Visualization</h2>
   <ul>
     <li>Select a <strong>waveform style</strong> from the "Waveform Style" dropdown in the top controls.</li>
     <li>When you play a track, a <strong>real-time waveform</strong> appears in the audio player popup window.</li>
@@ -122,20 +182,20 @@
     Complete song visualization showing the entire track. Includes real-time playback cursor and time markers.
   </div>
 
-  <h2 id="playlists">8. Playlists</h2>
+  <h2 id="playlists">10. Playlists</h2>
   <ul>
     <li>Create new playlists, add or remove tracks, and rename or delete playlists.</li>
     <li>Use the playlist dropdown to switch between playlists.</li>
     <li>Export playlists to save them, or import previously saved playlists.</li>
   </ul>
 
-  <h2 id="tags">9. Tags</h2>
+  <h2 id="tags">11. Tags</h2>
   <ul>
     <li>Click the <strong>tag icon (🏷️)</strong> to add or edit tags for a track.</li>
     <li>Filter tracks by tag using the tag dropdown.</li>
   </ul>
 
-  <h2 id="energy-levels">10. Energy Levels</h2>
+  <h2 id="energy-levels">12. Energy Levels</h2>
   <ul>
     <li>Rate tracks on a <strong>1-10 star energy scale</strong> to organize by intensity level.</li>
     <li>Click the <strong>energy icon (⚡)</strong> next to any track to set its energy level.</li>
@@ -198,7 +258,7 @@
     Maximum speed and intensity. Hardstyle climaxes, gabber, riddim, deathstep. Pure adrenaline, overwhelming walls of sound.
   </div>
 
-  <h2 id="record-labels">11. Record Labels</h2>
+  <h2 id="record-labels">13. Record Labels</h2>
   <ul>
     <li>Track record label information is automatically imported from CSV files.</li>
     <li>Record labels appear in track details between the year and energy level.</li>
@@ -208,14 +268,18 @@
     <li>Use the CSV format: <code>...year - path - genre - Energy # - Record Label</code> to import label data.</li>
   </ul>
 
-  <h2 id="visualizer">12. Visualizer</h2>
+  <h2 id="visualizer">14. Visualizer</h2>
   <ul>
     <li>When previewing audio, visualizer bars animate in sync with the music.</li>
     <li>Both the top and bottom visualizers show the audio spectrum.</li>
   </ul>
 
-  <h2 id="troubleshooting">13. Troubleshooting</h2>
+  <h2 id="troubleshooting">15. Troubleshooting</h2>
   <ul>
+    <li><b>Search not finding tracks?</b> Try enabling Fuzzy Search for typo-tolerant matching, or check your spelling.</li>
+    <li><b>Multi-criteria search too restrictive?</b> Remove some filters to broaden results, or check if data exists for your criteria.</li>
+    <li><b>Fuzzy search finding too many results?</b> Disable Fuzzy Search for exact matching, or use additional filters to narrow down.</li>
+    <li><b>Label filter empty?</b> Make sure your tracklist includes record label information in the correct format.</li>
     <li><b>Audio preview not working?</b> Make sure you have loaded the correct audio files folder and that filenames match the tracklist.</li>
     <li><b>Waveform not showing?</b> Ensure you've selected a waveform style from the dropdown and that audio is playing.</li>
     <li><b>Nothing happens when clicking icons?</b> Try refreshing the page or clearing your browser cache.</li>
