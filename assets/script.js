@@ -2081,6 +2081,7 @@ class TrackProcessor {
       allBPMs: new Set(),
       allKeys: new Set(),
       allGenres: new Set(),
+      allLabels: new Set(),
       totalTracks: 0,
       tracksForUI: [],
       duplicateTracks: [],
@@ -2115,6 +2116,7 @@ class TrackProcessor {
 
       if (track.key) result.allKeys.add(track.key);
       if (track.genre) result.allGenres.add(track.genre);
+      if (track.recordLabel) result.allLabels.add(track.recordLabel);
 
       // Create track object
       const trackObj = {
@@ -2356,6 +2358,7 @@ class UIRenderer {
       selectedKey: this.appState.elements.keyFilter?.value || '',
       selectedGenre: this.appState.elements.genreFilter?.value || '',
       selectedEnergy: this.appState.elements.energyFilter?.value || '',
+      selectedLabel: this.appState.elements.labelFilter?.value || '',
       tagSearch: document.getElementById('tag-dropdown')?.value.toLowerCase() || '',
       sortValue: this.appState.elements.sortSelect?.value || 'name-asc',
       yearSearch: document.getElementById('year-search')?.value.trim(),
@@ -2365,8 +2368,8 @@ class UIRenderer {
 
   hasActiveFilters(filters) {
     return filters.search || filters.selectedBPM || filters.selectedKey || 
-           filters.selectedGenre || filters.selectedEnergy || filters.tagSearch || 
-           filters.yearSearch || filters.showFavoritesOnly;
+           filters.selectedGenre || filters.selectedEnergy || filters.selectedLabel || 
+           filters.tagSearch || filters.yearSearch || filters.showFavoritesOnly;
   }
 
   filterTracks(filters) {
@@ -2397,6 +2400,9 @@ class UIRenderer {
 
       // Genre filter
       if (filters.selectedGenre && track.genre !== filters.selectedGenre) return false;
+
+      // Label filter
+      if (filters.selectedLabel && track.recordLabel !== filters.selectedLabel) return false;
 
       // Tag filter
       if (filters.tagSearch) {
@@ -2859,7 +2865,7 @@ class UIController {
   }
 
   attachFilterListeners() {
-    const filters = ['search', 'bpm-filter', 'key-filter', 'genre-filter', 'energy-filter', 'sort-select', 'year-search', 'tag-dropdown'];
+    const filters = ['search', 'bpm-filter', 'key-filter', 'genre-filter', 'energy-filter', 'label-filter', 'sort-select', 'year-search', 'tag-dropdown'];
     
     filters.forEach(id => {
       const element = document.getElementById(id);
@@ -3920,6 +3926,16 @@ class UIController {
         this.appState.elements.genreFilter.appendChild(option);
       });
     }
+
+    // Update Label filter
+    if (this.appState.elements.labelFilter && result.allLabels) {
+      this.appState.elements.labelFilter.innerHTML = '<option value="">All Labels</option>';
+      Array.from(result.allLabels).sort().forEach(label => {
+        const option = SecurityUtils.createSafeElement('option', label);
+        option.value = label;
+        this.appState.elements.labelFilter.appendChild(option);
+      });
+    }
   }
 
   setFooterDate(timestamp) {
@@ -4752,6 +4768,7 @@ class BeatroveApp {
       keyFilter: document.getElementById('key-filter'),
       genreFilter: document.getElementById('genre-filter'),
       energyFilter: document.getElementById('energy-filter'),
+      labelFilter: document.getElementById('label-filter'),
       container: document.getElementById('columns'),
       statsElement: document.getElementById('stats'),
       sortSelect: document.getElementById('sort-select')
