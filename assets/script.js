@@ -1824,6 +1824,11 @@ class AudioManager {
       audio.autoplay = true;
       audio.className = 'custom-audio-player';
       audio._previewId = previewId; // Track which preview this belongs to
+      
+      // Prevent audio from being paused when tab becomes inactive
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('preload', 'auto');
+      
       container.appendChild(audio);
 
       // Check again if superseded before adding to DOM
@@ -1874,6 +1879,14 @@ class AudioManager {
         // Only disconnect if this is still the current preview
         if (audio._previewId === this.currentPreviewId) {
           this.disconnectVisualizer();
+        }
+      });
+
+      // Prevent automatic pause when tab becomes inactive
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && audio && !audio.paused && audio._previewId === this.currentPreviewId) {
+          // Keep playing in background - don't pause
+          console.log('Tab hidden but keeping audio playing');
         }
       });
 
@@ -4249,8 +4262,8 @@ window.addEventListener('pagehide', () => {
 
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
-    console.log('Page hidden - cleaning up current operations');
-    app.audioManager.cleanupCurrentAudio();
+    console.log('Page hidden - keeping audio playing but cleaning up non-audio operations');
+    // Don't cleanup audio - let it continue playing in background
     app.controller.cleanupTagPopup();
   }
 });
