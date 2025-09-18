@@ -26,6 +26,21 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Folder Integration**: Select your audio files folder for seamless previews
 - **Audio Controls**: Standard playback controls with track information
 
+### 🌊 Waveform Visualization
+- **Multiple Waveform Styles**: Choose from 6 different visualization styles
+- **Real-time Audio Analysis**: Live waveform generation from audio data
+- **Professional Style Options**: 
+  - **Default (Cyan)**: High-resolution waveform with glow effects
+  - **(Orange)**: SoundCloud-style peaks with playback progress
+  - **(Green)**: Spotify-style bar visualization with gradients
+  - **(Blue Stereo)**: Audacity-style dual-channel waveforms
+  - **(Colored)**: Logic Pro-style frequency-based color mapping
+  - **Full Track Overview**: Complete song visualization with progress tracking
+- **Popup Integration**: Waveforms appear in audio player popup windows
+- **Playback Position**: Real-time cursor showing current audio position
+- **Style Switching**: Change waveform styles during playback
+- **Synthetic Analysis**: CORS-free waveform generation for reliable performance
+
 ### 📋 Playlist Management
 - **Create Playlists**: Organize tracks into custom playlists
 - **Playlist Operations**: Add, remove, rename, and delete playlists
@@ -127,9 +142,17 @@ beatrove/
 2. Upload a tracklist file using the "📁 Upload Tracklist" button
 3. Use the filters to find specific tracks
 4. Click the preview button (▶️) to listen to tracks
-5. Rate tracks with energy levels (⚡) from 1-10 stars
-6. View library statistics with the "📊 Library Stats" button
-7. Create playlists and organize your collection
+5. **Select a waveform style** from the "Waveform Style" dropdown for visual audio analysis
+6. Rate tracks with energy levels (⚡) from 1-10 stars
+7. View library statistics with the "📊 Library Stats" button
+8. Create playlists and organize your collection
+
+### Waveform Visualization
+1. **Choose a style** from the Waveform Style dropdown in the top controls
+2. **Play any track** to see real-time waveform visualization in the audio player popup
+3. **Switch styles** during playback to compare different visualizations
+4. **Use Full Track Overview** to see the entire song with playback progress
+5. **View different data representations** - from simple bars to complex frequency mapping
 
 ### Track Format Details
 - **Artist**: The artist or DJ name

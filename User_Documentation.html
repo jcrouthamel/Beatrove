@@ -30,12 +30,13 @@
       <li><a href="#favorites">4. Favorites</a></li>
       <li><a href="#copy-path-to-clipboard">5. Copy Path to Clipboard</a></li>
       <li><a href="#audio-preview">6. Audio Preview</a></li>
-      <li><a href="#playlists">7. Playlists</a></li>
-      <li><a href="#tags">8. Tags</a></li>
-      <li><a href="#energy-levels">9. Energy Levels</a></li>
-      <li><a href="#record-labels">10. Record Labels</a></li>
-      <li><a href="#visualizer">11. Visualizer</a></li>
-      <li><a href="#troubleshooting">12. Troubleshooting</a></li>
+      <li><a href="#waveform-visualization">7. Waveform Visualization</a></li>
+      <li><a href="#playlists">8. Playlists</a></li>
+      <li><a href="#tags">9. Tags</a></li>
+      <li><a href="#energy-levels">10. Energy Levels</a></li>
+      <li><a href="#record-labels">11. Record Labels</a></li>
+      <li><a href="#visualizer">12. Visualizer</a></li>
+      <li><a href="#troubleshooting">13. Troubleshooting</a></li>
     </ul>
   </div>
 
@@ -78,24 +79,63 @@
   <h2 id="audio-preview">6. Audio Preview</h2>
   <ul>
     <li>Click the <strong>preview icon (▶️)</strong> to listen to a track.</li>
-    <li>The first time, you’ll be prompted to select your audio files folder.</li>
+    <li>The first time, you'll be prompted to select your audio files folder.</li>
     <li>After loading, you can preview any track whose file is present.</li>
   </ul>
 
-  <h2 id="playlists">7. Playlists</h2>
+  <h2 id="waveform-visualization">7. Waveform Visualization</h2>
+  <ul>
+    <li>Select a <strong>waveform style</strong> from the "Waveform Style" dropdown in the top controls.</li>
+    <li>When you play a track, a <strong>real-time waveform</strong> appears in the audio player popup window.</li>
+    <li>Switch between different visualization styles during playback to compare representations.</li>
+  </ul>
+
+  <h3>Available Waveform Styles</h3>
+  
+  <div class="tip">
+    <strong>Default (Cyan)</strong><br>
+    High-resolution waveform with glow effects and fill visualization. Shows detailed audio amplitude over time.
+  </div>
+
+  <div class="tip">
+    <strong>(Orange)</strong><br>
+    SoundCloud-style peaks with playback progress. Orange bars show played portions, gray shows unplayed sections.
+  </div>
+
+  <div class="tip">
+    <strong>(Green)</strong><br>
+    Spotify-style bar visualization with green gradients. Clean, modern look with animated bars.
+  </div>
+
+  <div class="tip">
+    <strong>(Blue Stereo)</strong><br>
+    Audacity-style dual-channel waveforms in blue. Shows separate left and right channel visualization.
+  </div>
+
+  <div class="tip">
+    <strong>(Colored)</strong><br>
+    Logic Pro-style frequency-based color mapping. Different colors represent different frequency content and amplitudes.
+  </div>
+
+  <div class="tip">
+    <strong>Full Track Overview</strong><br>
+    Complete song visualization showing the entire track. Includes real-time playback cursor and time markers.
+  </div>
+
+  <h2 id="playlists">8. Playlists</h2>
   <ul>
     <li>Create new playlists, add or remove tracks, and rename or delete playlists.</li>
     <li>Use the playlist dropdown to switch between playlists.</li>
     <li>Export playlists to save them, or import previously saved playlists.</li>
   </ul>
 
-  <h2 id="tags">8. Tags</h2>
+  <h2 id="tags">9. Tags</h2>
   <ul>
     <li>Click the <strong>tag icon (🏷️)</strong> to add or edit tags for a track.</li>
     <li>Filter tracks by tag using the tag dropdown.</li>
   </ul>
 
-  <h2 id="energy-levels">9. Energy Levels</h2>
+  <h2 id="energy-levels">10. Energy Levels</h2>
   <ul>
     <li>Rate tracks on a <strong>1-10 star energy scale</strong> to organize by intensity level.</li>
     <li>Click the <strong>energy icon (⚡)</strong> next to any track to set its energy level.</li>
@@ -158,7 +198,7 @@
     Maximum speed and intensity. Hardstyle climaxes, gabber, riddim, deathstep. Pure adrenaline, overwhelming walls of sound.
   </div>
 
-  <h2 id="record-labels">10. Record Labels</h2>
+  <h2 id="record-labels">11. Record Labels</h2>
   <ul>
     <li>Track record label information is automatically imported from CSV files.</li>
     <li>Record labels appear in track details between the year and energy level.</li>
@@ -168,15 +208,16 @@
     <li>Use the CSV format: <code>...year - path - genre - Energy # - Record Label</code> to import label data.</li>
   </ul>
 
-  <h2 id="visualizer">11. Visualizer</h2>
+  <h2 id="visualizer">12. Visualizer</h2>
   <ul>
     <li>When previewing audio, visualizer bars animate in sync with the music.</li>
     <li>Both the top and bottom visualizers show the audio spectrum.</li>
   </ul>
 
-  <h2 id="troubleshooting">12. Troubleshooting</h2>
+  <h2 id="troubleshooting">13. Troubleshooting</h2>
   <ul>
     <li><b>Audio preview not working?</b> Make sure you have loaded the correct audio files folder and that filenames match the tracklist.</li>
+    <li><b>Waveform not showing?</b> Ensure you've selected a waveform style from the dropdown and that audio is playing.</li>
     <li><b>Nothing happens when clicking icons?</b> Try refreshing the page or clearing your browser cache.</li>
     <li><b>Favorites, playlists, or tags missing?</b> These are stored in your browser. If you clear your browser data, they may be lost.</li>
     <li><b>Still need help?</b> Contact the project maintainer or check the README for more info.</li>
