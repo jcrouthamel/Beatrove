@@ -1658,6 +1658,12 @@ class AudioManager {
       return;
     }
 
+    // If already connected and working, don't reconnect
+    if (this.reactToAudio && this.audioCtx && this.audioCtx.state === 'running') {
+      console.log('Visualizer already connected and running');
+      return;
+    }
+
     this.isConnectingVisualizer = true;
     
     try {
@@ -1672,9 +1678,13 @@ class AudioManager {
       this.sourceNode.connect(this.analyser);
       this.analyser.connect(this.audioCtx.destination);
       this.reactToAudio = true;
-      await this.audioCtx.resume();
       
-      console.log('Visualizer connected successfully');
+      // Ensure audio context is running
+      if (this.audioCtx.state === 'suspended') {
+        await this.audioCtx.resume();
+      }
+      
+      console.log('Visualizer connected successfully, state:', this.audioCtx.state);
     } catch (error) {
       console.error('Failed to connect audio visualizer:', error);
       this.disconnectVisualizer();
@@ -1896,9 +1906,29 @@ class AudioManager {
       });
 
       audio.addEventListener('pause', () => {
-        // Only disconnect if this is still the current preview
+        // Don't disconnect visualizer on pause - just let it handle the lack of audio data
+        console.log('Audio paused for preview:', audio._previewId);
+      });
+
+      audio.addEventListener('play', () => {
+        // Reconnect visualizer if needed when resuming playback
         if (audio._previewId === this.currentPreviewId) {
-          this.disconnectVisualizer();
+          console.log('Audio resumed for preview:', audio._previewId);
+          // Ensure visualizer is connected
+          if (!this.reactToAudio) {
+            this.connectVisualizer(audio, `waveform-${audio._previewId}`).catch(console.error);
+          }
+        }
+      });
+
+      audio.addEventListener('seeked', () => {
+        // Ensure visualizer stays connected after seeking
+        if (audio._previewId === this.currentPreviewId) {
+          console.log('Audio seeked for preview:', audio._previewId);
+          // Ensure visualizer is connected
+          if (!this.reactToAudio) {
+            this.connectVisualizer(audio, `waveform-${audio._previewId}`).catch(console.error);
+          }
         }
       });
 
