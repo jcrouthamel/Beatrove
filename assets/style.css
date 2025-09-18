@@ -1059,6 +1059,11 @@ body.light-mode .audio-player-waveform {
   border-color: #0088aa;
 }
 
+/* Waveform Style Selector */
+#waveform-style-select {
+  min-width: 140px;
+}
+
 #az-bar-container {
   margin: 16px 0 8px 0;
   text-align: center;

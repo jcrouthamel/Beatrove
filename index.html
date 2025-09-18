@@ -35,6 +35,16 @@
         <label for="tracklist-upload" class="control-btn">📁 Upload Tracklist</label>
         <input type="file" id="tracklist-upload" accept=".txt,.csv,.yaml,.yml" class="hidden">
         <input type="file" id="audio-folder-input" webkitdirectory directory multiple class="hidden">
+        <div class="filter-label">
+          <span>Waveform Style</span>
+          <select id="waveform-style-select">
+            <option value="default">Default (Cyan)</option>
+            <option value="soundcloud">SoundCloud (Orange)</option>
+            <option value="spotify">Spotify (Green)</option>
+            <option value="audacity">Audacity (Blue Stereo)</option>
+            <option value="logic">Logic Pro (Colored)</option>
+          </select>
+        </div>
       </div>
       <div class="top-controls-row margin-top-small">
         <a href="#duplicate-list" id="duplicate-link" class="control-btn no-text-decoration">Duplicate Tracks</a>

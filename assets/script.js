@@ -2982,6 +2982,18 @@ class UIController {
       });
     }
 
+    // Waveform style selector
+    const waveformStyleSelect = document.getElementById('waveform-style-select');
+    if (waveformStyleSelect) {
+      waveformStyleSelect.addEventListener('change', (e) => {
+        const newStyle = e.target.value;
+        if (this.audioManager && this.audioManager.visualizer) {
+          this.audioManager.visualizer.setWaveformStyle(newStyle);
+        }
+        console.log('Waveform style changed to:', newStyle);
+      });
+    }
+
     // AZ bar
     const azBar = document.getElementById('az-bar');
     if (azBar) {
@@ -4061,6 +4073,8 @@ class AudioVisualizer {
     this.currentPosition = 0;
     this.waveformVisible = false;
     this.currentWaveformCanvasId = null; // Track which canvas to render to
+    this.waveformStyle = 'default'; // Current waveform style
+    this.playbackProgress = 0; // For progress-based styles
   }
 
   start() {
@@ -4098,6 +4112,11 @@ class AudioVisualizer {
     this.waveformVisible = false;
     this.currentWaveformCanvasId = null;
     console.log('Waveform hidden');
+  }
+
+  setWaveformStyle(style) {
+    this.waveformStyle = style;
+    console.log('Waveform style changed to:', style);
   }
 
   animate() {
@@ -4186,118 +4205,253 @@ class AudioVisualizer {
     // Clear canvas
     ctx.clearRect(0, 0, w, h);
     
-    // Background - darker like the reference
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(0, 0, w, h);
+    // Set background based on style
+    this.setWaveformBackground(ctx, w, h);
     
-    // Add debug indicator to show renderWaveform is being called
-    console.log('renderWaveform called for canvas:', this.currentWaveformCanvasId, 'audioManager.reactToAudio:', this.audioManager.reactToAudio);
-
-    // Get time domain data for waveform
-    if (this.audioManager.reactToAudio && 
-        this.audioManager.analyser) {
-      
+    // Get audio data if available
+    if (this.audioManager.reactToAudio && this.audioManager.analyser) {
       const bufferLength = this.audioManager.analyser.fftSize;
       const dataArray = new Uint8Array(bufferLength);
       this.audioManager.analyser.getByteTimeDomainData(dataArray);
+      
+      // Update playback progress for styles that need it
+      this.updatePlaybackProgress();
+      
+      // Render based on selected style
+      switch (this.waveformStyle) {
+        case 'soundcloud':
+          this.renderSoundCloudStyle(ctx, w, h, dataArray, bufferLength);
+          break;
+        case 'spotify':
+          this.renderSpotifyStyle(ctx, w, h, dataArray, bufferLength);
+          break;
+        case 'audacity':
+          this.renderAudacityStyle(ctx, w, h, dataArray, bufferLength);
+          break;
+        case 'logic':
+          this.renderLogicStyle(ctx, w, h, dataArray, bufferLength);
+          break;
+        default:
+          this.renderDefaultStyle(ctx, w, h, dataArray, bufferLength);
+      }
+    } else {
+      this.renderPlaceholder(ctx, w, h);
+    }
+  }
 
-      // Draw detailed waveform directly from audio samples
-      ctx.strokeStyle = '#00ffff';
-      ctx.lineWidth = 1;
-      ctx.shadowColor = '#00ffff';
-      ctx.shadowBlur = 2;
-      ctx.beginPath();
+  setWaveformBackground(ctx, w, h) {
+    const backgrounds = {
+      'default': '#0a0a0a',
+      'soundcloud': '#f2f2f2',
+      'spotify': '#121212',
+      'audacity': '#212121',
+      'logic': '#1a1a1a'
+    };
+    
+    ctx.fillStyle = backgrounds[this.waveformStyle] || backgrounds.default;
+    ctx.fillRect(0, 0, w, h);
+  }
+
+  updatePlaybackProgress() {
+    // Simple progress simulation - in a real app this would come from audio element
+    this.playbackProgress = (this.playbackProgress + 0.5) % 100;
+  }
+
+  renderDefaultStyle(ctx, w, h, dataArray, bufferLength) {
+    // Original cyan waveform with fill effect
+    ctx.strokeStyle = '#00ffff';
+    ctx.lineWidth = 1;
+    ctx.shadowColor = '#00ffff';
+    ctx.shadowBlur = 2;
+    ctx.beginPath();
+    
+    const step = bufferLength / w;
+    for (let i = 0; i < w; i++) {
+      const sampleIndex = Math.floor(i * step);
+      const sample = (dataArray[sampleIndex] - 128) / 128;
+      const y = (h / 2) + (sample * h * 0.4);
       
-      // Sample the audio data to fit canvas width
-      const step = bufferLength / w;
-      let x = 0;
+      if (i === 0) ctx.moveTo(i, y);
+      else ctx.lineTo(i, y);
+    }
+    
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    
+    // Add fill effect
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#00ffff';
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2);
+    
+    for (let i = 0; i < w; i++) {
+      const sampleIndex = Math.floor(i * step);
+      const sample = (dataArray[sampleIndex] - 128) / 128;
+      const y = (h / 2) + (sample * h * 0.4);
+      ctx.lineTo(i, y);
+    }
+    
+    ctx.lineTo(w, h / 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  renderSoundCloudStyle(ctx, w, h, dataArray, bufferLength) {
+    // Orange peaks with playback progress like SoundCloud
+    const step = bufferLength / w;
+    const barWidth = Math.max(1, w / 200);
+    const progressX = (this.playbackProgress / 100) * w;
+    
+    for (let i = 0; i < w; i += barWidth) {
+      const sampleIndex = Math.floor(i * step / barWidth);
+      const sample = Math.abs((dataArray[sampleIndex] - 128) / 128);
+      const barHeight = sample * h * 0.8;
       
-      for (let i = 0; i < w; i++) {
-        // Get sample index
-        const sampleIndex = Math.floor(i * step);
-        
-        // Convert byte value (0-255) to normalized range (-1 to 1)
-        const sample = (dataArray[sampleIndex] - 128) / 128;
-        
-        // Convert to canvas coordinates
-        const y = (h / 2) + (sample * h * 0.4); // Scale amplitude to 40% of canvas height
-        
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-        
-        x++;
+      // Color based on playback progress
+      if (i < progressX) {
+        ctx.fillStyle = '#ff5500'; // Played (orange)
+      } else {
+        ctx.fillStyle = '#cccccc'; // Unplayed (light gray)
       }
       
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      // Draw symmetrical bars above and below center
+      const centerY = h / 2;
+      ctx.fillRect(i, centerY - barHeight / 2, barWidth - 1, barHeight);
+    }
+    
+    // Draw playback cursor
+    ctx.strokeStyle = '#ff5500';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(progressX, 0);
+    ctx.lineTo(progressX, h);
+    ctx.stroke();
+  }
+
+  renderSpotifyStyle(ctx, w, h, dataArray, bufferLength) {
+    // Green bar visualization like Spotify
+    const barCount = 64;
+    const barWidth = w / barCount;
+    const step = bufferLength / barCount;
+    
+    for (let i = 0; i < barCount; i++) {
+      const sampleIndex = Math.floor(i * step);
+      const sample = Math.abs((dataArray[sampleIndex] - 128) / 128);
+      const barHeight = sample * h * 0.9;
       
-      // Add subtle fill effect like in the reference image
-      ctx.globalAlpha = 0.3;
-      ctx.fillStyle = '#00ffff';
-      ctx.beginPath();
+      // Spotify green gradient
+      const gradient = ctx.createLinearGradient(0, h, 0, h - barHeight);
+      gradient.addColorStop(0, '#1db954'); // Spotify green
+      gradient.addColorStop(1, '#1ed760'); // Lighter green
       
-      // Create filled area above and below center line
-      x = 0;
-      ctx.moveTo(0, h / 2);
+      ctx.fillStyle = gradient;
+      ctx.fillRect(i * barWidth, h - barHeight, barWidth - 2, barHeight);
+    }
+  }
+
+  renderAudacityStyle(ctx, w, h, dataArray, bufferLength) {
+    // Blue stereo waveforms like Audacity
+    const step = bufferLength / w;
+    
+    // Simulate stereo by splitting the data
+    ctx.strokeStyle = '#4a90e2';
+    ctx.lineWidth = 1;
+    
+    // Top channel (left)
+    ctx.beginPath();
+    for (let i = 0; i < w; i++) {
+      const sampleIndex = Math.floor(i * step);
+      const sample = (dataArray[sampleIndex] - 128) / 128;
+      const y = (h / 4) + (sample * h * 0.2);
       
-      for (let i = 0; i < w; i++) {
-        const sampleIndex = Math.floor(i * step);
-        const sample = (dataArray[sampleIndex] - 128) / 128;
-        const y = (h / 2) + (sample * h * 0.4);
-        ctx.lineTo(x, y);
-        x++;
+      if (i === 0) ctx.moveTo(i, y);
+      else ctx.lineTo(i, y);
+    }
+    ctx.stroke();
+    
+    // Bottom channel (right) - slightly phase shifted
+    ctx.beginPath();
+    for (let i = 0; i < w; i++) {
+      const sampleIndex = Math.floor(i * step);
+      const sample = (dataArray[(sampleIndex + 10) % bufferLength] - 128) / 128;
+      const y = (h * 3/4) + (sample * h * 0.2);
+      
+      if (i === 0) ctx.moveTo(i, y);
+      else ctx.lineTo(i, y);
+    }
+    ctx.stroke();
+    
+    // Draw channel separators
+    ctx.strokeStyle = '#666';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, h / 2);
+    ctx.lineTo(w, h / 2);
+    ctx.stroke();
+  }
+
+  renderLogicStyle(ctx, w, h, dataArray, bufferLength) {
+    // Colored waveforms with frequency-based coloring like Logic Pro
+    const step = bufferLength / w;
+    
+    for (let i = 0; i < w - 1; i++) {
+      const sampleIndex = Math.floor(i * step);
+      const sample = (dataArray[sampleIndex] - 128) / 128;
+      const nextSample = (dataArray[Math.floor((i + 1) * step)] - 128) / 128;
+      
+      // Color based on amplitude and frequency content
+      const amplitude = Math.abs(sample);
+      const frequency = Math.abs(sample - nextSample) * 10; // Rough frequency estimate
+      
+      let color;
+      if (amplitude > 0.7) {
+        color = `hsl(${Math.floor(frequency * 180)}, 70%, 60%)`; // High amplitude - varied hues
+      } else if (amplitude > 0.3) {
+        color = `hsl(${Math.floor(frequency * 120 + 60)}, 60%, 50%)`; // Medium amplitude
+      } else {
+        color = `hsl(${Math.floor(frequency * 60 + 200)}, 50%, 40%)`; // Low amplitude - blues
       }
       
-      ctx.lineTo(w, h / 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalAlpha = 1;
-
-      // Draw center line
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, h / 2);
-      ctx.lineTo(w, h / 2);
-      ctx.stroke();
-
-      // Draw current playback position
-      const currentX = w - 50; // Near the right edge for real-time
-      ctx.strokeStyle = '#ff0040';
+      ctx.strokeStyle = color;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(currentX, 0);
-      ctx.lineTo(currentX, h);
-      ctx.stroke();
-    } else {
-      // Show a test pattern if no audio data
-      console.log('No audio data available, showing test pattern');
-      ctx.strokeStyle = '#666';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let i = 0; i < w; i += 10) {
-        const y = h/2 + Math.sin(i * 0.1 + Date.now() * 0.005) * 20; // Animate the sine wave
-        if (i === 0) ctx.moveTo(i, y);
-        else ctx.lineTo(i, y);
-      }
-      ctx.stroke();
       
-      // Add text
-      ctx.fillStyle = '#666';
-      ctx.font = '12px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Waiting for audio to start...', w/2, h/2 + 30);
+      const y1 = (h / 2) + (sample * h * 0.4);
+      const y2 = (h / 2) + (nextSample * h * 0.4);
       
-      // Add a small pulsing dot to show it's active
-      const pulseSize = 3 + Math.sin(Date.now() * 0.01) * 2;
-      ctx.fillStyle = '#00ffff';
-      ctx.beginPath();
-      ctx.arc(w - 20, 20, pulseSize, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(i, y1);
+      ctx.lineTo(i + 1, y2);
+      ctx.stroke();
     }
+  }
+
+  renderPlaceholder(ctx, w, h) {
+    // Show placeholder based on current style
+    const placeholderColors = {
+      'default': '#666',
+      'soundcloud': '#999',
+      'spotify': '#1db954',
+      'audacity': '#4a90e2',
+      'logic': '#888'
+    };
+    
+    const color = placeholderColors[this.waveformStyle] || placeholderColors.default;
+    
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < w; i += 10) {
+      const y = h/2 + Math.sin(i * 0.1 + Date.now() * 0.005) * 20;
+      if (i === 0) ctx.moveTo(i, y);
+      else ctx.lineTo(i, y);
+    }
+    ctx.stroke();
+    
+    ctx.fillStyle = color;
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${this.waveformStyle.toUpperCase()} style - Waiting for audio...`, w/2, h/2 + 30);
   }
 }
 
