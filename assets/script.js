@@ -1532,6 +1532,7 @@ class AudioManager {
     this.pendingPreviewTrack = null;
     this.notificationSystem = notificationSystem;
     this.cleanupIntervalId = null;
+    this.visualizer = null; // Direct reference to visualizer
     
     // Race condition prevention
     this.isPlayingPreview = false;
@@ -1556,6 +1557,11 @@ class AudioManager {
       this.blobUrls.delete(url);
       this.blobMeta.delete(url);
     }
+  }
+
+  setVisualizer(visualizer) {
+    this.visualizer = visualizer;
+    console.log('AudioManager: Visualizer reference set');
   }
 
   startPeriodicCleanup() {
@@ -1638,9 +1644,14 @@ class AudioManager {
     this.sourceNode = null;
     this.analyser = null;
     this.audioDataArray = null;
+    
+    // Hide waveform when audio stops
+    if (window.app && window.app.visualizer) {
+      window.app.visualizer.hideWaveform();
+    }
   }
 
-  async connectVisualizer(audioElem) {
+  async connectVisualizer(audioElem, waveformCanvasId = null) {
     // Prevent race conditions in visualizer connection
     if (this.isConnectingVisualizer) {
       console.log('Visualizer connection already in progress, skipping');
@@ -1655,7 +1666,7 @@ class AudioManager {
       
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       this.analyser = this.audioCtx.createAnalyser();
-      this.analyser.fftSize = 64;
+      this.analyser.fftSize = 2048; // Increased for better waveform resolution
       this.audioDataArray = new Uint8Array(this.analyser.frequencyBinCount);
       this.sourceNode = this.audioCtx.createMediaElementSource(audioElem);
       this.sourceNode.connect(this.analyser);
@@ -1831,6 +1842,15 @@ class AudioManager {
       
       container.appendChild(audio);
 
+      // Add waveform canvas to the audio player popup
+      const waveformCanvas = document.createElement('canvas');
+      waveformCanvas.id = `waveform-${previewId}`;
+      waveformCanvas.width = 400;
+      waveformCanvas.height = 80;
+      waveformCanvas.className = 'audio-player-waveform';
+      waveformCanvas._previewId = previewId;
+      container.appendChild(waveformCanvas);
+
       // Check again if superseded before adding to DOM
       if (this.currentPreviewId !== previewId) {
         console.log(`Preview ${previewId} was superseded before DOM insertion`);
@@ -1895,7 +1915,41 @@ class AudioManager {
 
       // Connect visualizer only if still current
       if (this.currentPreviewId === previewId) {
-        await this.connectVisualizer(audio);
+        await this.connectVisualizer(audio, `waveform-${previewId}`);
+        
+        // Show waveform immediately to at least display the test pattern
+        console.log('Enabling waveform immediately for test pattern:', `waveform-${previewId}`);
+        console.log('this.visualizer exists:', !!this.visualizer);
+        if (this.visualizer) {
+          console.log('Calling showWaveform with:', `waveform-${previewId}`);
+          this.visualizer.showWaveform(`waveform-${previewId}`);
+        } else {
+          console.error('Cannot call showWaveform - missing this.visualizer');
+        }
+        
+        // Wait for audio to start playing before showing waveform
+        audio.addEventListener('play', () => {
+          console.log('Audio started playing, re-enabling waveform for:', `waveform-${previewId}`);
+          console.log('On play - this.visualizer exists:', !!this.visualizer);
+          if (this.visualizer) {
+            console.log('Calling showWaveform on play with:', `waveform-${previewId}`);
+            this.visualizer.showWaveform(`waveform-${previewId}`);
+          } else {
+            console.error('On play - Cannot call showWaveform - missing this.visualizer');
+          }
+        }, { once: true });
+        
+        // Also try enabling waveform when audio data is loading
+        audio.addEventListener('loadeddata', () => {
+          console.log('Audio data loaded, attempting waveform for:', `waveform-${previewId}`);
+          console.log('On loadeddata - this.visualizer exists:', !!this.visualizer);
+          if (this.visualizer) {
+            console.log('Calling showWaveform on loadeddata with:', `waveform-${previewId}`);
+            this.visualizer.showWaveform(`waveform-${previewId}`);
+          } else {
+            console.error('On loadeddata - Cannot call showWaveform - missing this.visualizer');
+          }
+        }, { once: true });
       }
 
       console.log(`Preview ${previewId} started successfully`);
@@ -4002,6 +4056,11 @@ class AudioVisualizer {
   constructor(audioManager) {
     this.audioManager = audioManager;
     this.animationId = null;
+    this.waveformData = [];
+    this.waveformBuffer = new Array(400).fill(0.5); // Buffer for waveform history (smaller for popup)
+    this.currentPosition = 0;
+    this.waveformVisible = false;
+    this.currentWaveformCanvasId = null; // Track which canvas to render to
   }
 
   start() {
@@ -4017,10 +4076,44 @@ class AudioVisualizer {
 
   cleanup() {
     this.stop();
+    this.hideWaveform();
     console.log('AudioVisualizer cleanup completed');
   }
 
+  showWaveform(canvasId) {
+    console.log('Attempting to show waveform for canvas:', canvasId);
+    
+    // Check if canvas exists
+    const canvas = document.getElementById(canvasId);
+    console.log('Canvas found:', !!canvas, 'Canvas element:', canvas);
+    
+    this.currentWaveformCanvasId = canvasId;
+    this.waveformVisible = true;
+    this.currentPosition = 0;
+    this.waveformBuffer.fill(0.5); // Reset buffer
+    console.log('Waveform enabled - waveformVisible:', this.waveformVisible, 'canvasId:', this.currentWaveformCanvasId);
+  }
+
+  hideWaveform() {
+    this.waveformVisible = false;
+    this.currentWaveformCanvasId = null;
+    console.log('Waveform hidden');
+  }
+
   animate() {
+    // Render frequency visualizers
+    this.renderFrequencyVisualizers();
+    
+    // Render waveform if visible
+    if (this.waveformVisible) {
+      console.log('Rendering waveform - waveformVisible is true, canvas ID:', this.currentWaveformCanvasId);
+      this.renderWaveform();
+    }
+
+    this.animationId = requestAnimationFrame(() => this.animate());
+  }
+
+  renderFrequencyVisualizers() {
     const canvases = ['top-audio-visualizer', 'audio-visualizer'];
     
     canvases.forEach(id => {
@@ -4073,8 +4166,138 @@ class AudioVisualizer {
         ctx.shadowBlur = 0;
       }
     });
+  }
 
-    this.animationId = requestAnimationFrame(() => this.animate());
+  renderWaveform() {
+    if (!this.currentWaveformCanvasId) {
+      return;
+    }
+
+    const canvas = document.getElementById(this.currentWaveformCanvasId);
+    if (!canvas) {
+      console.error('Waveform canvas not found:', this.currentWaveformCanvasId);
+      return;
+    }
+
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, w, h);
+    
+    // Background - darker like the reference
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, w, h);
+    
+    // Add debug indicator to show renderWaveform is being called
+    console.log('renderWaveform called for canvas:', this.currentWaveformCanvasId, 'audioManager.reactToAudio:', this.audioManager.reactToAudio);
+
+    // Get time domain data for waveform
+    if (this.audioManager.reactToAudio && 
+        this.audioManager.analyser) {
+      
+      const bufferLength = this.audioManager.analyser.fftSize;
+      const dataArray = new Uint8Array(bufferLength);
+      this.audioManager.analyser.getByteTimeDomainData(dataArray);
+
+      // Draw detailed waveform directly from audio samples
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 1;
+      ctx.shadowColor = '#00ffff';
+      ctx.shadowBlur = 2;
+      ctx.beginPath();
+      
+      // Sample the audio data to fit canvas width
+      const step = bufferLength / w;
+      let x = 0;
+      
+      for (let i = 0; i < w; i++) {
+        // Get sample index
+        const sampleIndex = Math.floor(i * step);
+        
+        // Convert byte value (0-255) to normalized range (-1 to 1)
+        const sample = (dataArray[sampleIndex] - 128) / 128;
+        
+        // Convert to canvas coordinates
+        const y = (h / 2) + (sample * h * 0.4); // Scale amplitude to 40% of canvas height
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+        
+        x++;
+      }
+      
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      
+      // Add subtle fill effect like in the reference image
+      ctx.globalAlpha = 0.3;
+      ctx.fillStyle = '#00ffff';
+      ctx.beginPath();
+      
+      // Create filled area above and below center line
+      x = 0;
+      ctx.moveTo(0, h / 2);
+      
+      for (let i = 0; i < w; i++) {
+        const sampleIndex = Math.floor(i * step);
+        const sample = (dataArray[sampleIndex] - 128) / 128;
+        const y = (h / 2) + (sample * h * 0.4);
+        ctx.lineTo(x, y);
+        x++;
+      }
+      
+      ctx.lineTo(w, h / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Draw center line
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, h / 2);
+      ctx.lineTo(w, h / 2);
+      ctx.stroke();
+
+      // Draw current playback position
+      const currentX = w - 50; // Near the right edge for real-time
+      ctx.strokeStyle = '#ff0040';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(currentX, 0);
+      ctx.lineTo(currentX, h);
+      ctx.stroke();
+    } else {
+      // Show a test pattern if no audio data
+      console.log('No audio data available, showing test pattern');
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < w; i += 10) {
+        const y = h/2 + Math.sin(i * 0.1 + Date.now() * 0.005) * 20; // Animate the sine wave
+        if (i === 0) ctx.moveTo(i, y);
+        else ctx.lineTo(i, y);
+      }
+      ctx.stroke();
+      
+      // Add text
+      ctx.fillStyle = '#666';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Waiting for audio to start...', w/2, h/2 + 30);
+      
+      // Add a small pulsing dot to show it's active
+      const pulseSize = 3 + Math.sin(Date.now() * 0.01) * 2;
+      ctx.fillStyle = '#00ffff';
+      ctx.beginPath();
+      ctx.arc(w - 20, 20, pulseSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 
@@ -4133,6 +4356,9 @@ class BeatroveApp {
 
       // Start visualizer
       this.visualizer.start();
+      
+      // Set visualizer reference in AudioManager for waveform access
+      this.audioManager.setVisualizer(this.visualizer);
 
       // Initial render
       this.controller.render();
