@@ -820,6 +820,7 @@ class ApplicationState {
       duplicateTracks: [],
       tracksForUI: [],
       trackTags: {},
+      moodVibeTags: {},
       favoriteTracks: {},
       playlists: {},
       currentPlaylist: '',
@@ -838,6 +839,7 @@ class ApplicationState {
     try {
       const stored = {
         trackTags: localStorage.getItem('trackTags'),
+        moodVibeTags: localStorage.getItem('moodVibeTags'),
         energyLevels: localStorage.getItem('energyLevels'),
         favoriteTracks: localStorage.getItem('favoriteTracks'),
         playlists: localStorage.getItem('playlists'),
@@ -846,6 +848,7 @@ class ApplicationState {
       };
 
       if (stored.trackTags) this.data.trackTags = JSON.parse(stored.trackTags);
+      if (stored.moodVibeTags) this.data.moodVibeTags = JSON.parse(stored.moodVibeTags);
       if (stored.energyLevels) this.data.energyLevels = JSON.parse(stored.energyLevels);
       if (stored.favoriteTracks) this.data.favoriteTracks = JSON.parse(stored.favoriteTracks);
       if (stored.playlists) this.data.playlists = JSON.parse(stored.playlists);
@@ -870,6 +873,7 @@ class ApplicationState {
             // Calculate estimated size of data to save
             const dataToSave = {
               trackTags: JSON.stringify(this.data.trackTags),
+              moodVibeTags: JSON.stringify(this.data.moodVibeTags),
               energyLevels: JSON.stringify(this.data.energyLevels),
               favoriteTracks: JSON.stringify(this.data.favoriteTracks),
               playlists: JSON.stringify(this.data.playlists),
@@ -982,6 +986,13 @@ class ApplicationState {
       Object.keys(this.data.trackTags).forEach(trackDisplay => {
         if (!validTrackDisplays.has(trackDisplay)) {
           delete this.data.trackTags[trackDisplay];
+        }
+      });
+      
+      // Clean up orphaned mood & vibe tags
+      Object.keys(this.data.moodVibeTags).forEach(trackDisplay => {
+        if (!validTrackDisplays.has(trackDisplay)) {
+          delete this.data.moodVibeTags[trackDisplay];
         }
       });
       
@@ -1320,6 +1331,7 @@ class ApplicationState {
       duplicateTracks: [],
       tracksForUI: [],
       trackTags: {},
+      moodVibeTags: {},
       energyLevels: {}, // track.display -> 1-10 energy level
       favoriteTracks: {},
       playlists: {},
@@ -2645,6 +2657,24 @@ class UIRenderer {
       trackDiv.appendChild(tagsDiv);
     }
 
+    // Mood & Vibe Tags
+    const moodTags = this.appState.data.moodVibeTags[track.display];
+    if (moodTags && moodTags.length > 0) {
+      const moodTagsDiv = document.createElement('div');
+      moodTagsDiv.className = 'mood-vibe-tags-row';
+      
+      // Add a small icon/label to differentiate from regular tags
+      const moodLabel = SecurityUtils.createSafeElement('span', '😎', 'mood-vibe-label');
+      moodLabel.title = 'Mood & Vibe Tags';
+      moodTagsDiv.appendChild(moodLabel);
+      
+      moodTags.forEach(tag => {
+        const tagSpan = SecurityUtils.createSafeElement('span', tag, 'mood-vibe-pill');
+        moodTagsDiv.appendChild(tagSpan);
+      });
+      trackDiv.appendChild(moodTagsDiv);
+    }
+
     return trackDiv;
   }
 
@@ -2683,6 +2713,14 @@ class UIRenderer {
     tagBtn.textContent = '🏷️';
     tagBtn.dataset.trackDisplay = track.display;
     iconRow.appendChild(tagBtn);
+
+    // Mood & Vibe tag button
+    const moodBtn = document.createElement('button');
+    moodBtn.className = 'mood-vibe-btn';
+    moodBtn.title = 'Edit Mood & Vibe';
+    moodBtn.textContent = '😎';
+    moodBtn.dataset.trackDisplay = track.display;
+    iconRow.appendChild(moodBtn);
 
     // Playlist button
     const addBtn = document.createElement('button');
@@ -3152,6 +3190,10 @@ class UIController {
       event.stopPropagation();
       const track = this.getTrackFromElement(target.closest('.track'));
       this.showTagInput(track, target);
+    } else if (target.classList.contains('mood-vibe-btn')) {
+      event.stopPropagation();
+      const track = this.getTrackFromElement(target.closest('.track'));
+      this.showMoodVibeInput(track, target);
     } else if (target.classList.contains('add-playlist-btn')) {
       event.stopPropagation();
       this.addToPlaylist(target.dataset.trackDisplay);
@@ -3582,6 +3624,144 @@ class UIController {
     }
   }
 
+  showMoodVibeInput(track, anchorElement) {
+    // Remove existing popup and clean up event listeners
+    this.cleanupMoodVibePopup();
+
+    let popup = null;
+    let cleanupPopup = null;
+
+    try {
+      popup = document.createElement('div');
+      popup.className = 'mood-vibe-popup';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Add mood/vibe tags (e.g., Euphoric, Dark, Uplifting)';
+      input.className = 'mood-vibe-input-width';
+
+      const existingTags = (this.appState.data.moodVibeTags[track.display] || []).join(', ');
+      input.value = existingTags;
+
+      const saveBtn = SecurityUtils.createSafeElement('button', 'Save');
+      const cancelBtn = SecurityUtils.createSafeElement('button', 'Cancel');
+
+      popup.appendChild(input);
+      popup.appendChild(saveBtn);
+      popup.appendChild(cancelBtn);
+
+      // Position popup
+      const rect = anchorElement.getBoundingClientRect();
+      popup.style.left = rect.left + window.scrollX + 'px';
+      popup.style.top = rect.bottom + window.scrollY + 'px';
+
+      document.body.appendChild(popup);
+      this.moodVibePopup = popup;
+      input.focus();
+
+      // Create a comprehensive cleanup function
+      cleanupPopup = () => {
+        if (popup._timeoutId) {
+          clearTimeout(popup._timeoutId);
+          popup._timeoutId = null;
+        }
+        
+        if (popup && popup.parentElement) {
+          popup.remove();
+        }
+        this.moodVibePopup = null;
+        
+        if (this.moodVibePopupClickHandler) {
+          document.removeEventListener('mousedown', this.moodVibePopupClickHandler);
+          this.moodVibePopupClickHandler = null;
+        }
+      };
+
+      // Event handlers with proper cleanup
+      const saveHandler = () => {
+        try {
+          const tags = input.value.split(',')
+            .map(t => t.trim())
+            .filter(t => SecurityUtils.validateTag(t));
+          
+          this.appState.data.moodVibeTags[track.display] = tags;
+          this.appState.saveToStorage();
+          cleanupPopup();
+          this.render();
+        } catch (error) {
+          console.error('Error saving mood/vibe tags:', error);
+          cleanupPopup();
+        }
+      };
+
+      const cancelHandler = () => {
+        cleanupPopup();
+      };
+
+      // Add event listeners
+      saveBtn.addEventListener('click', saveHandler);
+      cancelBtn.addEventListener('click', cancelHandler);
+
+      // Handle Enter/Escape keys
+      const keyHandler = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveHandler();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelHandler();
+        }
+      };
+      input.addEventListener('keydown', keyHandler);
+
+      // Close on outside click with proper cleanup
+      this.moodVibePopupClickHandler = (e) => {
+        if (!popup.contains(e.target)) {
+          cleanupPopup();
+        }
+      };
+
+      // Add document listener after a short delay
+      const timeoutId = setTimeout(() => {
+        if (this.moodVibePopup === popup) {
+          document.addEventListener('mousedown', this.moodVibePopupClickHandler);
+        }
+      }, 10);
+      
+      popup._timeoutId = timeoutId;
+      popup._cleanup = cleanupPopup;
+
+    } catch (error) {
+      console.error('Error showing mood/vibe input:', error);
+      if (cleanupPopup) {
+        cleanupPopup();
+      } else {
+        this.cleanupMoodVibePopup();
+      }
+    }
+  }
+
+  cleanupMoodVibePopup() {
+    if (this.moodVibePopup) {
+      if (this.moodVibePopup._timeoutId) {
+        clearTimeout(this.moodVibePopup._timeoutId);
+        this.moodVibePopup._timeoutId = null;
+      }
+      
+      if (this.moodVibePopup._cleanup) {
+        this.moodVibePopup._cleanup();
+      } else {
+        this.moodVibePopup.remove();
+        this.moodVibePopup = null;
+      }
+    }
+
+    if (this.moodVibePopupClickHandler) {
+      document.removeEventListener('mousedown', this.moodVibePopupClickHandler);
+      this.moodVibePopupClickHandler = null;
+    }
+  }
+
   showEnergyLevelInput(track, anchorElement) {
     // Remove any existing energy popup
     this.cleanupEnergyPopup();
@@ -3856,6 +4036,7 @@ class UIController {
       tracks: this.appState.data.tracksForUI,
       playlists: this.appState.data.playlists,
       tags: this.appState.data.trackTags,
+      moodVibeTags: this.appState.data.moodVibeTags,
       favorites: this.appState.data.favoriteTracks
     };
 
@@ -3891,6 +4072,11 @@ class UIController {
       // Import tags
       if (data.tags) {
         this.appState.data.trackTags = data.tags;
+      }
+
+      // Import mood & vibe tags
+      if (data.moodVibeTags) {
+        this.appState.data.moodVibeTags = data.moodVibeTags;
       }
 
       // Import favorites
@@ -4170,6 +4356,9 @@ class UIController {
     
     // Clean up tag popup
     this.cleanupTagPopup();
+    
+    // Clean up mood & vibe tag popup
+    this.cleanupMoodVibePopup();
     
     // Clear any remaining timeouts or intervals
     this.clearAllTimeouts();
@@ -4947,6 +5136,7 @@ document.addEventListener('visibilitychange', () => {
     console.log('Page hidden - keeping audio playing but cleaning up non-audio operations');
     // Don't cleanup audio - let it continue playing in background
     app.controller.cleanupTagPopup();
+    app.controller.cleanupMoodVibePopup();
   }
 });
 
@@ -4954,6 +5144,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('orientationchange', () => {
   // Clean up popups that might be mispositioned
   app.controller.cleanupTagPopup();
+  app.controller.cleanupMoodVibePopup();
 });
 
 // Add style for highlight effect
