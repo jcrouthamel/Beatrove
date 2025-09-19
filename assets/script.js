@@ -2546,23 +2546,41 @@ class UIRenderer {
       }
 
       // Update tracks showing info
-      const startTrack = (this.currentPage - 1) * this.tracksPerPage + 1;
-      const endTrack = Math.min(this.currentPage * this.tracksPerPage, this.totalTracks);
-      const showingText = `Showing ${startTrack}-${endTrack} of ${this.totalTracks} tracks`;
+      let showingText;
+      if (this.tracksPerPage === Infinity) {
+        // Show All mode
+        showingText = `Showing all ${this.totalTracks} tracks`;
+      } else {
+        const startTrack = (this.currentPage - 1) * this.tracksPerPage + 1;
+        const endTrack = Math.min(this.currentPage * this.tracksPerPage, this.totalTracks);
+        showingText = `Showing ${startTrack}-${endTrack} of ${this.totalTracks} tracks`;
+      }
       elements.tracksShowing.textContent = showingText;
 
       // Update page info
-      elements.pageInfo.textContent = `Page ${this.currentPage} of ${Math.max(1, this.totalPages)}`;
+      if (this.tracksPerPage === Infinity) {
+        elements.pageInfo.textContent = 'Showing All';
+      } else {
+        elements.pageInfo.textContent = `Page ${this.currentPage} of ${Math.max(1, this.totalPages)}`;
+      }
 
       // Update button states
       if (elements.firstPageBtn && elements.prevPageBtn && elements.nextPageBtn && elements.lastPageBtn) {
-        const isFirstPage = this.currentPage <= 1;
-        const isLastPage = this.currentPage >= this.totalPages || this.totalPages <= 1;
+        if (this.tracksPerPage === Infinity) {
+          // Disable all pagination buttons when showing all
+          elements.firstPageBtn.disabled = true;
+          elements.prevPageBtn.disabled = true;
+          elements.nextPageBtn.disabled = true;
+          elements.lastPageBtn.disabled = true;
+        } else {
+          const isFirstPage = this.currentPage <= 1;
+          const isLastPage = this.currentPage >= this.totalPages || this.totalPages <= 1;
 
-        elements.firstPageBtn.disabled = isFirstPage;
-        elements.prevPageBtn.disabled = isFirstPage;
-        elements.nextPageBtn.disabled = isLastPage;
-        elements.lastPageBtn.disabled = isLastPage;
+          elements.firstPageBtn.disabled = isFirstPage;
+          elements.prevPageBtn.disabled = isFirstPage;
+          elements.nextPageBtn.disabled = isLastPage;
+          elements.lastPageBtn.disabled = isLastPage;
+        }
       }
     };
 
@@ -2579,7 +2597,11 @@ class UIRenderer {
   }
 
   setTracksPerPage(tracksPerPage) {
-    this.tracksPerPage = parseInt(tracksPerPage);
+    if (tracksPerPage === 'all') {
+      this.tracksPerPage = Infinity; // Show all tracks
+    } else {
+      this.tracksPerPage = parseInt(tracksPerPage);
+    }
     this.currentPage = 1; // Reset to first page when changing page size
     this.render();
   }
