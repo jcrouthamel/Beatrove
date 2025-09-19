@@ -688,13 +688,13 @@ body.light-mode .file-format-info {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   grid-template-rows: masonry;
-  gap: 20px;
+  gap: 35px;
   padding: 20px;
 
   /* Fallback for browsers that don't support masonry */
   column-count: auto;
   column-width: 320px;
-  column-gap: 20px;
+  column-gap: 35px;
   column-fill: balance;
 }
 
@@ -741,9 +741,10 @@ body.light-mode .file-format-info {
 }
 
 .column-group {
-  margin-bottom: 20px;
+  margin: 0 0 35px 0;
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
+  border: 2px solid #ff6b6b;
   padding: 15px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -758,6 +759,7 @@ body.light-mode .file-format-info {
 
 body.light-mode .column-group {
   background-color: rgba(0, 0, 0, 0.03);
+  border-color: #ff6b6b;
 }
 
 .column-group:hover {
@@ -1608,6 +1610,10 @@ body.light-mode .loader {
 
 .track:hover {
   background-color: rgba(255, 255, 255, 0.05);
+}
+
+body.light-mode .track {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 
 body.light-mode .track:hover {
@@ -2487,7 +2493,7 @@ body.light-mode .duplicate-list-container {
 @media (min-width: 1200px) {
   .columns {
     column-width: 350px;
-    gap: 24px;
+    gap: 40px;
     padding: 24px;
   }
 }
@@ -2495,14 +2501,14 @@ body.light-mode .duplicate-list-container {
 @media (min-width: 992px) and (max-width: 1199px) {
   .columns {
     column-width: 320px;
-    gap: 20px;
+    gap: 35px;
   }
 }
 
 @media (min-width: 768px) and (max-width: 991px) {
   .columns {
     column-width: 300px;
-    gap: 18px;
+    gap: 30px;
     padding: 18px;
   }
 }
