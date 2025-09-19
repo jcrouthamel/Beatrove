@@ -682,10 +682,62 @@ body.light-mode .file-format-info {
   color: #555;
 }
 
+/* Masonry Layout for Better Space Utilization */
 .columns {
+  /* Modern masonry layout (experimental) */
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 40px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-rows: masonry;
+  gap: 20px;
+  padding: 20px;
+
+  /* Fallback for browsers that don't support masonry */
+  column-count: auto;
+  column-width: 320px;
+  column-gap: 20px;
+  column-fill: balance;
+}
+
+/* Support for browsers with masonry */
+@supports (grid-template-rows: masonry) {
+  .columns {
+    column-count: unset;
+    column-width: unset;
+    column-gap: unset;
+    column-fill: unset;
+  }
+
+  .column-group {
+    display: block;
+    width: auto;
+  }
+}
+
+/* Enhanced fallback for better browser support */
+@supports not (grid-template-rows: masonry) {
+  .columns {
+    /* Use multi-column layout as fallback */
+    display: block;
+    column-count: auto;
+    column-width: 320px;
+    column-gap: 20px;
+    column-fill: balance;
+  }
+
+  .column-group {
+    /* Optimize for column layout */
+    break-inside: avoid;
+    page-break-inside: avoid;
+    display: inline-block;
+    width: 100%;
+    vertical-align: top;
+    margin-bottom: 20px;
+  }
+
+  /* Prevent orphaned content */
+  .column-group:last-child {
+    margin-bottom: 0;
+  }
 }
 
 .column-group {
@@ -695,6 +747,13 @@ body.light-mode .file-format-info {
   padding: 15px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+
+  /* Masonry layout optimizations */
+  break-inside: avoid;
+  page-break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  vertical-align: top;
 }
 
 body.light-mode .column-group {
@@ -1495,7 +1554,12 @@ body.light-mode .custom-audio-player::-webkit-media-controls-panel {
   }
   
   .columns {
+    /* Mobile: single column layout */
     grid-template-columns: 1fr;
+    column-count: 1;
+    column-width: unset;
+    gap: 16px;
+    padding: 16px;
   }
   
   #search-container {
@@ -2417,6 +2481,30 @@ body.light-mode .duplicate-list-container {
 /* Hide old filter layout */
 .filter-group.left-filters {
   display: none;
+}
+
+/* Masonry Layout Responsive Breakpoints */
+@media (min-width: 1200px) {
+  .columns {
+    column-width: 350px;
+    gap: 24px;
+    padding: 24px;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .columns {
+    column-width: 320px;
+    gap: 20px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .columns {
+    column-width: 300px;
+    gap: 18px;
+    padding: 18px;
+  }
 }
 
 /* Responsive Design */
