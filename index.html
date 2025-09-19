@@ -87,15 +87,15 @@
 
     <!-- Filter Drawer Toggle -->
     <div class="filter-drawer-toggle">
-      <button id="filter-drawer-btn" class="filter-toggle-btn" title="Toggle Filters">
+      <button id="filter-drawer-btn" class="filter-toggle-btn collapsed" title="Toggle Filters">
         <span class="filter-toggle-icon">🎛️</span>
         <span class="filter-toggle-text">Search Filters</span>
-        <span class="filter-toggle-arrow">▼</span>
+        <span class="filter-toggle-arrow">▶</span>
       </button>
     </div>
 
     <!-- Collapsible Filter Drawer -->
-    <div class="filter-drawer" id="filter-drawer">
+    <div class="filter-drawer collapsed" id="filter-drawer">
       <!-- Filter Cards Container -->
       <div class="filters-container">
       <!-- Core Filters Card -->
@@ -315,8 +315,6 @@
   <div id="columns" class="columns">
     <div class="loader"></div>
   </div>
-  
-  <canvas id="audio-visualizer" width="800" height="60"></canvas>
 
   <!-- Bottom Pagination Controls -->
   <div class="pagination-controls pagination-bottom">
@@ -340,6 +338,8 @@
       </select>
     </div>
   </div>
+
+  <canvas id="audio-visualizer" width="800" height="60"></canvas>
 
   <footer>
     <div class="footer-content">
