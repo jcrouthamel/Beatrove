@@ -116,14 +116,22 @@ A powerful web application for DJs to manage, filter, and preview their music co
    cd beatrove
    ```
 
-2. **Open in Browser**
+2. **Install Dependencies (Optional - for testing)**
+   ```bash
+   npm install
+   ```
+
+3. **Open in Browser**
    ```bash
    # Option 1: Direct file access
    open index.html
-   
+
    # Option 2: Local server (recommended)
-   python -m http.server 8000
+   npm run serve
    # Then visit http://localhost:8000
+
+   # Option 3: Python server
+   python -m http.server 8000
    ```
 
 3. **Prepare Your Music Data**
@@ -289,6 +297,50 @@ For best results with Beatrove, follow this preparation workflow:
 2. Select your audio files folder when prompted
 3. Audio files will be matched by filename
 4. Enjoy previewing your tracks with the visualizer
+
+## 🧪 Testing
+
+Beatrove includes a comprehensive test suite to ensure reliability and quality.
+
+### Running Tests
+
+```bash
+# Install dependencies first
+npm install
+
+# Run all tests once
+npm test
+
+# Run tests in watch mode (reruns on changes)
+npm run test:watch
+
+# Open interactive test UI in browser
+npm run test:ui
+
+# Generate test coverage report
+npm run test:coverage
+```
+
+### Test Coverage
+
+The test suite covers:
+- **Fuzzy Search Algorithms**: Validates typo-tolerant search with DJ name examples
+- **Security Utilities**: Tests input sanitization and validation functions
+- **Track Processing**: Ensures CSV parsing handles various track formats correctly
+- **Data Validation**: Validates BPM ranges, years, and file formats
+
+### Test Structure
+
+```
+tests/
+├── unit/
+│   ├── fuzzy-search.test.js    # Search algorithm tests
+│   ├── security-utils.test.js  # Security validation tests
+│   └── track-processor.test.js # CSV parsing tests
+├── fixtures/
+│   └── sample-tracklist.csv    # Test data
+└── setup.js                   # Test environment setup
+```
 
 ## 🔧 Advanced Features
 

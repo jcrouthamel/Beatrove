@@ -1,0 +1,30 @@
+{
+  "name": "beatrove",
+  "version": "1.0.0",
+  "description": "A powerful web application for DJs to manage, filter, and preview their music collections",
+  "main": "index.html",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "serve": "python -m http.server 8000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jcrouthamel/Beatrove.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jcrouthamel/Beatrove/issues"
+  },
+  "homepage": "https://github.com/jcrouthamel/Beatrove#readme",
+  "devDependencies": {
+    "@vitest/ui": "^3.2.4",
+    "jsdom": "^27.0.0",
+    "vitest": "^3.2.4"
+  }
+}
