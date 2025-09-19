@@ -3383,9 +3383,8 @@ class UIController {
     // Waveform style selector
     const waveformStyleSelect = document.getElementById('waveform-style-select');
     if (waveformStyleSelect) {
-      // Set default value
-      waveformStyleSelect.value = 'default';
-      
+      // Leave default placeholder "Waveform Style" showing
+
       waveformStyleSelect.addEventListener('change', (e) => {
         const newStyle = e.target.value;
         // Don't allow empty value
