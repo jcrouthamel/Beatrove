@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="beatrove-logo.png" alt="Beatrove Logo" width="400">
+</div>
+
 # Beatrove - DJ Music Track Management Web Application
 
 A powerful web application for DJs to manage, filter, and preview their music collections. Built with vanilla HTML, CSS, and JavaScript for fast, responsive performance.
