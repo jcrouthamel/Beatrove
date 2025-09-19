@@ -38,9 +38,10 @@
       <li><a href="#mood-vibe-tags">12. Mood & Vibe Tags</a></li>
       <li><a href="#energy-levels">13. Energy Levels</a></li>
       <li><a href="#record-labels">14. Record Labels</a></li>
-      <li><a href="#python-scripts">15. Python Helper Scripts</a></li>
-      <li><a href="#visualizer">16. Visualizer</a></li>
-      <li><a href="#troubleshooting">17. Troubleshooting</a></li>
+      <li><a href="#library-statistics">15. Library Statistics & Charts</a></li>
+      <li><a href="#python-scripts">16. Python Helper Scripts</a></li>
+      <li><a href="#visualizer">17. Visualizer</a></li>
+      <li><a href="#troubleshooting">18. Troubleshooting</a></li>
     </ul>
   </div>
 
@@ -311,7 +312,58 @@
     <li>Use the CSV format: <code>...year - path - genre - Energy # - Record Label</code> to import label data.</li>
   </ul>
 
-  <h2 id="python-scripts">15. Python Helper Scripts</h2>
+  <h2 id="library-statistics">15. Library Statistics & Charts</h2>
+  <p>The Library Statistics feature provides comprehensive visual analytics of your music collection through interactive charts and detailed breakdowns.</p>
+
+  <h3>🎯 Accessing Library Statistics</h3>
+  <ol>
+    <li>Click the <strong>"📊 Library Stats"</strong> button in the top control bar</li>
+    <li>The statistics panel will appear below your tracklist with smooth scrolling</li>
+    <li>Click the button again to hide the statistics panel</li>
+  </ol>
+
+  <h3>📊 Interactive Charts</h3>
+  <p>Library Statistics displays beautiful, interactive charts powered by Chart.js:</p>
+
+  <h4>Chart Types</h4>
+  <ul>
+    <li><strong>Genre Distribution</strong> - Interactive donut chart showing your top 12 genres with dynamic colors</li>
+    <li><strong>Musical Keys</strong> - Blue-themed bar chart displaying key distribution across your collection</li>
+    <li><strong>BPM Ranges</strong> - Red-themed bar chart showing tempo analysis in organized ranges (60-89, 90-109, etc.)</li>
+    <li><strong>Energy Levels</strong> - Yellow-themed bar chart displaying the complete 1-10 energy spectrum</li>
+    <li><strong>Release Years</strong> - Green-themed bar chart showing your collection timeline by year</li>
+    <li><strong>Record Labels</strong> - Full-width donut chart displaying your top 15 record labels</li>
+  </ul>
+
+  <h4>Chart Features</h4>
+  <ul>
+    <li><strong>Hover Tooltips</strong> - Detailed information appears when hovering over chart elements</li>
+    <li><strong>Theme Adaptation</strong> - Charts automatically adjust colors for light/dark mode</li>
+    <li><strong>Responsive Design</strong> - Charts work perfectly on desktop, tablet, and mobile devices</li>
+    <li><strong>Smart Filtering</strong> - Charts show meaningful data by filtering out "Unknown" entries</li>
+    <li><strong>Data Grouping</strong> - Smaller entries are grouped into "Others" category for cleaner visualization</li>
+  </ul>
+
+  <h3>📋 Layout & Organization</h3>
+  <ul>
+    <li><strong>Professional Grid</strong> - Clean 2-column layout for optimal chart viewing</li>
+    <li><strong>Full-Width Labels</strong> - Record labels section spans both columns to prevent text cutoff</li>
+    <li><strong>Overview Section</strong> - Total tracks and artists count at the top</li>
+    <li><strong>Responsive Layout</strong> - Adapts to single column on mobile devices</li>
+  </ul>
+
+  <h3>🔄 Fallback Support</h3>
+  <ul>
+    <li><strong>Graceful Degradation</strong> - If charts fail to load, data displays in list format</li>
+    <li><strong>Complete Information</strong> - List views include all data, including "Unknown" entries</li>
+    <li><strong>Browser Compatibility</strong> - Works across all modern browsers</li>
+  </ul>
+
+  <div class="tip">
+    <strong>💡 Pro Tip:</strong> The Library Statistics feature is perfect for understanding your music collection's composition, identifying gaps in your collection, and planning future acquisitions. Use the energy levels chart to see the complete 1-10 spectrum and identify which energy ranges you might want to expand!
+  </div>
+
+  <h2 id="python-scripts">16. Python Helper Scripts</h2>
   <p>Beatrove includes two Python utility scripts to help prepare your music collection for optimal use with the application.</p>
 
   <div class="tip">
@@ -386,13 +438,13 @@
     Use <code>music_file_fixer.py</code> first to standardize your filenames, then run <code>generate_music_list.py</code> to create a comprehensive tracklist. This ensures the best data quality for your Beatrove experience.
   </div>
 
-  <h2 id="visualizer">16. Visualizer</h2>
+  <h2 id="visualizer">17. Visualizer</h2>
   <ul>
     <li>When previewing audio, visualizer bars animate in sync with the music.</li>
     <li>Both the top and bottom visualizers show the audio spectrum.</li>
   </ul>
 
-  <h2 id="troubleshooting">17. Troubleshooting</h2>
+  <h2 id="troubleshooting">18. Troubleshooting</h2>
   <ul>
     <li><b>Search not finding tracks?</b> Try enabling Fuzzy Search for typo-tolerant matching, or check your spelling.</li>
     <li><b>Multi-criteria search too restrictive?</b> Remove some filters to broaden results, or check if data exists for your criteria.</li>

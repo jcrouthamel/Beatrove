@@ -85,15 +85,19 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Persistent Storage**: Favorites are saved across browser sessions
 
 ### 📊 Library Statistics
-- **Comprehensive Analytics**: Detailed breakdown of your music collection
+- **Interactive Charts**: Beautiful bar charts and donut charts powered by Chart.js
+- **Comprehensive Analytics**: Detailed breakdown of your music collection with visual representations
 - **Overview Stats**: Total tracks and unique artists count
-- **Genre Distribution**: Track counts by musical genre
-- **Key Analysis**: Distribution across musical keys
-- **BPM Ranges**: Tempo analysis with organized ranges (60-89, 90-109, etc.)
-- **Energy Statistics**: Energy level distribution across your collection
-- **Year Breakdown**: Track counts by release year
-- **Record Label Analysis**: Distribution of tracks by record label
-- **Interactive Display**: Toggle stats view with smooth scrolling
+- **Genre Distribution**: Interactive donut chart showing track counts by musical genre (top 12 + others)
+- **Key Analysis**: Color-coded bar chart showing distribution across musical keys
+- **BPM Ranges**: Red bar chart with tempo analysis across organized ranges (60-89, 90-109, etc.)
+- **Energy Statistics**: Sequential 1-10 energy level bar chart showing complete spectrum
+- **Year Breakdown**: Green bar chart displaying track counts by release year
+- **Record Label Analysis**: Full-width donut chart showing distribution by record label (top 15 + others)
+- **Chart Features**: Hover tooltips, responsive design, theme-aware styling (light/dark mode)
+- **Data Filtering**: Smart filtering removes "Unknown" entries from charts while preserving in lists
+- **Fallback Support**: Graceful degradation to list view if charts fail to load
+- **Professional Layout**: Clean 2-column grid with full-width record labels section
 
 ### 🎨 User Interface
 - **Responsive Design**: Works on desktop and mobile devices
@@ -262,7 +266,7 @@ For best results with Beatrove, follow this preparation workflow:
 6. **Select a waveform style** from the "Waveform Style" dropdown for visual audio analysis
 7. Rate tracks with energy levels (⚡) from 1-10 stars
 8. **Add mood & vibe tags** by clicking the 😎 icon to categorize tracks by emotional impact
-9. View library statistics with the "📊 Library Stats" button
+9. **View interactive library statistics** with the "📊 Library Stats" button to see visual charts and analytics
 10. Create playlists and organize your collection
 
 ### Advanced Search Features
@@ -279,6 +283,23 @@ For best results with Beatrove, follow this preparation workflow:
 3. **Switch styles** during playback to compare different visualizations
 4. **Use Full Track Overview** to see the entire song with playback progress
 5. **View different data representations** - from simple bars to complex frequency mapping
+
+### Library Statistics & Charts
+1. **Access Statistics**: Click the "📊 Library Stats" button in the top controls
+2. **Interactive Charts**: View your collection through beautiful, interactive visualizations:
+   - **Genre Donut Chart**: See genre distribution with hover tooltips and dynamic colors
+   - **Keys Bar Chart**: Analyze key distribution across your tracks (blue theme)
+   - **BPM Ranges Bar Chart**: Visualize tempo distribution in organized ranges (red theme)
+   - **Energy Levels Bar Chart**: Complete 1-10 energy spectrum visualization (yellow theme)
+   - **Years Bar Chart**: Track collection timeline by release year (green theme)
+   - **Record Labels Donut Chart**: Full-width chart showing label distribution
+3. **Chart Features**:
+   - Hover over chart elements for detailed tooltips
+   - Charts automatically adapt to light/dark theme
+   - Responsive design works on all screen sizes
+   - Smart data filtering shows top entries with "Others" category
+4. **Fallback Lists**: If charts don't load, complete data is still available in list format
+5. **Layout**: Professional 2-column grid with full-width record labels section
 
 ### Track Format Details
 - **Artist**: The artist or DJ name
