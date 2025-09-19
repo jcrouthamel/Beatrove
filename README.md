@@ -156,6 +156,9 @@ beatrove/
 
 Beatrove includes two Python utility scripts to help prepare your music collection for optimal use with the application.
 
+> **⚠️ IMPORTANT: Backup Your Music Collection**
+> Before using these scripts, especially `music_file_fixer.py`, **always create a complete backup of your music files**. The filename fixing script will rename your audio files, and while it includes safety checks, it's essential to have a backup in case you need to revert changes. Consider using a backup tool or simply copying your music directory to a safe location before proceeding.
+
 ### 📝 generate_music_list.py
 
 Automatically scans your music directory and generates a properly formatted `tracklist.csv` file.
