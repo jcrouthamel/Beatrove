@@ -145,10 +145,96 @@ beatrove/
 │   ├── style.css           # Application styling
 │   └── favicon.png         # App icon
 ├── tracklist.csv           # Default music data (auto-loaded)
+├── generate_music_list.py  # Python script to build tracklist.csv from audio files
+├── music_file_fixer.py     # Python script to standardize audio filenames
 ├── User_Documentation.md   # Detailed user guide
 ├── CLAUDE.md              # Development documentation
 └── README.md              # This file
 ```
+
+## 🐍 Python Helper Scripts
+
+Beatrove includes two Python utility scripts to help prepare your music collection for optimal use with the application.
+
+### 📝 generate_music_list.py
+
+Automatically scans your music directory and generates a properly formatted `tracklist.csv` file.
+
+**Features:**
+- Scans directories recursively for audio files (MP3, FLAC, WAV, AIFF, AAC)
+- Extracts metadata from ID3 tags and file names
+- Supports custom metadata fields (Energy Level, Record Label)
+- Handles both standardized and non-standardized filenames
+- Outputs in CSV or text format
+- Validates BPM and musical key formats
+
+**Requirements:**
+```bash
+pip install tinytag mutagen
+```
+
+**Usage:**
+```bash
+# Basic usage - scan directory and create text file
+python generate_music_list.py /path/to/music/directory
+
+# Output as CSV format
+python generate_music_list.py /path/to/music/directory --csv -o tracklist.csv
+
+# Custom output location
+python generate_music_list.py /path/to/music/directory -o my_tracklist.txt
+```
+
+**Expected Filename Format:**
+The script works best with files named: `Artist - Title - Key - BPM.extension`
+Example: `Deadmau5 - Strobe - 8A - 126.flac`
+
+### 🔧 music_file_fixer.py
+
+Standardizes your music filenames to match the format expected by Beatrove and the generator script.
+
+**Features:**
+- Analyzes existing filenames and identifies formatting issues
+- Suggests standardized renames following the `Artist - Title - Key - BPM.ext` format
+- Dry-run mode to preview changes before applying
+- Extracts BPM and key information from filenames
+- Uses metadata as fallback for missing information
+- Preserves complex track titles with multiple parts
+
+**Requirements:**
+```bash
+pip install tinytag
+```
+
+**Usage:**
+```bash
+# Dry run - see what would be renamed (default)
+python music_file_fixer.py /path/to/music/directory
+
+# Apply renames with confirmation
+python music_file_fixer.py /path/to/music/directory --apply
+
+# Apply all renames without confirmation
+python music_file_fixer.py /path/to/music/directory --apply --auto-yes
+
+# Use custom defaults for missing BPM/key
+python music_file_fixer.py /path/to/music/directory --default-key 1A --default-bpm 128
+```
+
+**Workflow Example:**
+1. Use `music_file_fixer.py` to standardize your audio filenames
+2. Run `generate_music_list.py` to create a comprehensive tracklist
+3. Copy the generated `tracklist.csv` to your Beatrove directory
+4. Open Beatrove and enjoy organized track management
+
+### 🔄 Recommended Workflow
+
+For best results with Beatrove, follow this preparation workflow:
+
+1. **Organize Your Files**: Ensure your music files contain proper ID3 metadata
+2. **Fix Filenames**: Run `music_file_fixer.py` to standardize naming
+3. **Generate Tracklist**: Use `generate_music_list.py` to create your data file
+4. **Load in Beatrove**: Place the generated file as `tracklist.csv` for auto-loading
 
 ## 🎯 Usage
 

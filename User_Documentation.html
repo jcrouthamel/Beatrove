@@ -38,8 +38,9 @@
       <li><a href="#mood-vibe-tags">12. Mood & Vibe Tags</a></li>
       <li><a href="#energy-levels">13. Energy Levels</a></li>
       <li><a href="#record-labels">14. Record Labels</a></li>
-      <li><a href="#visualizer">15. Visualizer</a></li>
-      <li><a href="#troubleshooting">16. Troubleshooting</a></li>
+      <li><a href="#python-scripts">15. Python Helper Scripts</a></li>
+      <li><a href="#visualizer">16. Visualizer</a></li>
+      <li><a href="#troubleshooting">17. Troubleshooting</a></li>
     </ul>
   </div>
 
@@ -310,13 +311,83 @@
     <li>Use the CSV format: <code>...year - path - genre - Energy # - Record Label</code> to import label data.</li>
   </ul>
 
-  <h2 id="visualizer">15. Visualizer</h2>
+  <h2 id="python-scripts">15. Python Helper Scripts</h2>
+  <p>Beatrove includes two Python utility scripts to help prepare your music collection for optimal use with the application.</p>
+
+  <h3>📝 generate_music_list.py</h3>
+  <p>Automatically scans your music directory and generates a properly formatted <code>tracklist.csv</code> file.</p>
+
+  <h4>Requirements</h4>
+  <p>Install required Python packages:</p>
+  <code>pip install tinytag mutagen</code>
+
+  <h4>Usage Examples</h4>
+  <ul>
+    <li><strong>Basic usage:</strong> <code>python generate_music_list.py /path/to/music/directory</code></li>
+    <li><strong>CSV output:</strong> <code>python generate_music_list.py /path/to/music/directory --csv -o tracklist.csv</code></li>
+    <li><strong>Custom location:</strong> <code>python generate_music_list.py /path/to/music/directory -o my_tracklist.txt</code></li>
+  </ul>
+
+  <h4>Features</h4>
+  <ul>
+    <li>Scans directories recursively for audio files (MP3, FLAC, WAV, AIFF, AAC)</li>
+    <li>Extracts metadata from ID3 tags and file names</li>
+    <li>Supports custom metadata fields (Energy Level, Record Label)</li>
+    <li>Handles both standardized and non-standardized filenames</li>
+    <li>Validates BPM and musical key formats</li>
+  </ul>
+
+  <div class="tip">
+    <strong>Expected Filename Format:</strong><br>
+    The script works best with files named: <code>Artist - Title - Key - BPM.extension</code><br>
+    Example: <code>Deadmau5 - Strobe - 8A - 126.flac</code>
+  </div>
+
+  <h3>🔧 music_file_fixer.py</h3>
+  <p>Standardizes your music filenames to match the format expected by Beatrove and the generator script.</p>
+
+  <h4>Requirements</h4>
+  <p>Install required Python package:</p>
+  <code>pip install tinytag</code>
+
+  <h4>Usage Examples</h4>
+  <ul>
+    <li><strong>Dry run (preview changes):</strong> <code>python music_file_fixer.py /path/to/music/directory</code></li>
+    <li><strong>Apply renames with confirmation:</strong> <code>python music_file_fixer.py /path/to/music/directory --apply</code></li>
+    <li><strong>Apply all without confirmation:</strong> <code>python music_file_fixer.py /path/to/music/directory --apply --auto-yes</code></li>
+    <li><strong>Custom defaults:</strong> <code>python music_file_fixer.py /path/to/music/directory --default-key 1A --default-bpm 128</code></li>
+  </ul>
+
+  <h4>Features</h4>
+  <ul>
+    <li>Analyzes existing filenames and identifies formatting issues</li>
+    <li>Suggests standardized renames following the <code>Artist - Title - Key - BPM.ext</code> format</li>
+    <li>Dry-run mode to preview changes before applying</li>
+    <li>Extracts BPM and key information from filenames</li>
+    <li>Uses metadata as fallback for missing information</li>
+    <li>Preserves complex track titles with multiple parts</li>
+  </ul>
+
+  <h4>Recommended Workflow</h4>
+  <ol>
+    <li><strong>Organize Your Files:</strong> Ensure your music files contain proper ID3 metadata</li>
+    <li><strong>Fix Filenames:</strong> Run <code>music_file_fixer.py</code> to standardize naming</li>
+    <li><strong>Generate Tracklist:</strong> Use <code>generate_music_list.py</code> to create your data file</li>
+    <li><strong>Load in Beatrove:</strong> Place the generated file as <code>tracklist.csv</code> for auto-loading</li>
+  </ol>
+
+  <div class="tip">
+    <strong>Pro Tip:</strong><br>
+    Use <code>music_file_fixer.py</code> first to standardize your filenames, then run <code>generate_music_list.py</code> to create a comprehensive tracklist. This ensures the best data quality for your Beatrove experience.
+  </div>
+
+  <h2 id="visualizer">16. Visualizer</h2>
   <ul>
     <li>When previewing audio, visualizer bars animate in sync with the music.</li>
     <li>Both the top and bottom visualizers show the audio spectrum.</li>
   </ul>
 
-  <h2 id="troubleshooting">16. Troubleshooting</h2>
+  <h2 id="troubleshooting">17. Troubleshooting</h2>
   <ul>
     <li><b>Search not finding tracks?</b> Try enabling Fuzzy Search for typo-tolerant matching, or check your spelling.</li>
     <li><b>Multi-criteria search too restrictive?</b> Remove some filters to broaden results, or check if data exists for your criteria.</li>
