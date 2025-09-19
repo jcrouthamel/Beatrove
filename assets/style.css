@@ -2229,24 +2229,29 @@ body.light-mode .duplicate-list-container {
 .search-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
 }
 
 .search-wrapper {
   position: relative;
   display: flex;
   align-items: center;
+  width: 100%;
+  max-width: 500px;
 }
 
 .search-wrapper input {
   flex: 1;
-  padding: 12px 40px 12px 16px;
+  padding: 14px 40px 14px 16px;
   border-radius: 8px;
   border: 1px solid var(--border-color);
   background-color: var(--input-bg);
   color: var(--text-color);
-  font-size: 1em;
+  font-size: 1.1em;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .search-wrapper input:focus {
@@ -2275,7 +2280,7 @@ body.light-mode .duplicate-list-container {
 .fuzzy-search-toggle {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .fuzzy-toggle-label {
@@ -2284,7 +2289,7 @@ body.light-mode .duplicate-list-container {
   gap: 8px;
   cursor: pointer;
   color: var(--text-color);
-  font-size: 0.9em;
+  font-size: 0.95em;
   opacity: 0.9;
   transition: opacity 0.2s ease;
 }
@@ -2443,15 +2448,19 @@ body.light-mode .duplicate-list-container {
   }
 
   .search-content {
-    gap: 12px;
+    gap: 16px;
+  }
+
+  .search-wrapper {
+    max-width: 100%;
   }
 
   .search-wrapper input {
-    padding: 10px 36px 10px 12px;
-    font-size: 0.9em;
+    padding: 12px 36px 12px 14px;
+    font-size: 1em;
   }
 
   .fuzzy-toggle-label {
-    font-size: 0.85em;
+    font-size: 0.9em;
   }
 }
