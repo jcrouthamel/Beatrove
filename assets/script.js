@@ -2418,15 +2418,53 @@ class UIRenderer {
   constructor(appState) {
     this.appState = appState;
     this.azBarActive = null;
+
+    // Pagination state
+    this.currentPage = 1;
+    this.tracksPerPage = 100;
+    this.totalTracks = 0;
+    this.totalPages = 1;
+    this.currentFilteredTracks = [];
   }
 
   render() {
     const filters = this.getActiveFilters();
     const filteredTracks = this.filterTracks(filters);
     const sortedTracks = this.sortTracks(filteredTracks, filters.sortValue);
-    const groupedTracks = this.groupTracks(sortedTracks);
+
+    // Store filtered tracks for pagination
+    this.currentFilteredTracks = sortedTracks;
+    this.totalTracks = sortedTracks.length;
+    this.totalPages = Math.ceil(this.totalTracks / this.tracksPerPage);
+
+    // Reset to page 1 if current page is beyond total pages
+    if (this.currentPage > this.totalPages && this.totalPages > 0) {
+      this.currentPage = 1;
+    }
+
+    // Ensure we're on page 1 if this is the first render with tracks
+    if (this.totalTracks > 0 && this.currentPage === 0) {
+      this.currentPage = 1;
+    }
+
+    // Get tracks for current page
+    const paginatedTracks = this.getPaginatedTracks();
+    const groupedTracks = this.groupTracks(paginatedTracks);
+
+    // Debug logging with more detail
+    console.log(`DEBUG: Page ${this.currentPage}/${this.totalPages}, TracksPerPage: ${this.tracksPerPage}`);
+    console.log(`DEBUG: Total tracks: ${this.totalTracks}, Paginated tracks: ${paginatedTracks.length}`);
+    console.log(`DEBUG: Grouped tracks artists: ${Object.keys(groupedTracks).length}`);
+
+    let totalTracksInGroups = 0;
+    Object.entries(groupedTracks).forEach(([artist, tracks]) => {
+      totalTracksInGroups += tracks.length;
+      console.log(`DEBUG: Artist ${artist}: ${tracks.length} tracks`);
+    });
+    console.log(`DEBUG: Total tracks in groups: ${totalTracksInGroups}`);
 
     this.renderTracks(groupedTracks);
+    this.updatePaginationControls();
     this.updateStats(filteredTracks);
     this.renderAZBar();
 
@@ -2435,20 +2473,92 @@ class UIRenderer {
     }
   }
 
+  getPaginatedTracks() {
+    if (this.currentFilteredTracks.length === 0) {
+      return [];
+    }
+
+    const startIndex = (this.currentPage - 1) * this.tracksPerPage;
+    const endIndex = startIndex + this.tracksPerPage;
+
+    return this.currentFilteredTracks.slice(startIndex, endIndex);
+  }
+
+  updatePaginationControls() {
+    const tracksShowing = document.getElementById('tracks-showing');
+    const pageInfo = document.getElementById('page-info');
+    const firstPageBtn = document.getElementById('first-page-btn');
+    const prevPageBtn = document.getElementById('prev-page-btn');
+    const nextPageBtn = document.getElementById('next-page-btn');
+    const lastPageBtn = document.getElementById('last-page-btn');
+
+    if (!tracksShowing || !pageInfo) return;
+
+    // Handle case where no tracks are loaded yet
+    if (this.totalTracks === 0) {
+      tracksShowing.textContent = 'Loading tracks...';
+      pageInfo.textContent = 'Page 1 of 1';
+
+      if (firstPageBtn && prevPageBtn && nextPageBtn && lastPageBtn) {
+        firstPageBtn.disabled = true;
+        prevPageBtn.disabled = true;
+        nextPageBtn.disabled = true;
+        lastPageBtn.disabled = true;
+      }
+      return;
+    }
+
+    // Update tracks showing info
+    const startTrack = (this.currentPage - 1) * this.tracksPerPage + 1;
+    const endTrack = Math.min(this.currentPage * this.tracksPerPage, this.totalTracks);
+    const showingText = `Showing ${startTrack}-${endTrack} of ${this.totalTracks} tracks`;
+    tracksShowing.textContent = showingText;
+    console.log(`DEBUG: Pagination display: ${showingText}`);
+
+    // Update page info
+    pageInfo.textContent = `Page ${this.currentPage} of ${Math.max(1, this.totalPages)}`;
+
+    // Update button states
+    if (firstPageBtn && prevPageBtn && nextPageBtn && lastPageBtn) {
+      const isFirstPage = this.currentPage <= 1;
+      const isLastPage = this.currentPage >= this.totalPages || this.totalPages <= 1;
+
+      firstPageBtn.disabled = isFirstPage;
+      prevPageBtn.disabled = isFirstPage;
+      nextPageBtn.disabled = isLastPage;
+      lastPageBtn.disabled = isLastPage;
+    }
+  }
+
+  goToPage(page) {
+    this.currentPage = Math.max(1, Math.min(page, this.totalPages));
+    this.render();
+  }
+
+  setTracksPerPage(tracksPerPage) {
+    this.tracksPerPage = parseInt(tracksPerPage);
+    this.currentPage = 1; // Reset to first page when changing page size
+    this.render();
+  }
+
   getActiveFilters() {
-    return {
+    // Ensure elements are defined with fallback to document.getElementById
+    const filters = {
       search: document.getElementById('search')?.value.toLowerCase() || '',
       fuzzySearchEnabled: document.getElementById('fuzzy-search-toggle')?.checked || false,
-      selectedBPM: this.appState.elements.bpmFilter?.value || '',
-      selectedKey: this.appState.elements.keyFilter?.value || '',
-      selectedGenre: this.appState.elements.genreFilter?.value || '',
-      selectedEnergy: this.appState.elements.energyFilter?.value || '',
-      selectedLabel: this.appState.elements.labelFilter?.value || '',
+      selectedBPM: (this.appState.elements?.bpmFilter?.value) || document.getElementById('bpm-filter')?.value || '',
+      selectedKey: (this.appState.elements?.keyFilter?.value) || document.getElementById('key-filter')?.value || '',
+      selectedGenre: (this.appState.elements?.genreFilter?.value) || document.getElementById('genre-filter')?.value || '',
+      selectedEnergy: (this.appState.elements?.energyFilter?.value) || document.getElementById('energy-filter')?.value || '',
+      selectedLabel: (this.appState.elements?.labelFilter?.value) || document.getElementById('label-filter')?.value || '',
       tagSearch: document.getElementById('tag-dropdown')?.value.toLowerCase() || '',
-      sortValue: this.appState.elements.sortSelect?.value || 'name-asc',
-      yearSearch: document.getElementById('year-search')?.value.trim(),
-      showFavoritesOnly: this.appState.data.showFavoritesOnly
+      sortValue: (this.appState.elements?.sortSelect?.value) || document.getElementById('sort-select')?.value || 'name-asc',
+      yearSearch: document.getElementById('year-search')?.value.trim() || '',
+      showFavoritesOnly: this.appState.data.showFavoritesOnly || false
     };
+
+    console.log('Active filters:', filters);
+    return filters;
   }
 
   hasActiveFilters(filters) {
@@ -2458,8 +2568,10 @@ class UIRenderer {
   }
 
   filterTracks(filters) {
+    console.log(`DEBUG: Starting filterTracks with ${this.appState.data.tracksForUI.length} total tracks`);
+
     let yearMin = null, yearMax = null;
-    
+
     if (filters.yearSearch) {
       const match = filters.yearSearch.match(/^(\d{4})(?:\s*-\s*(\d{4}))?$/);
       if (match) {
@@ -2468,7 +2580,7 @@ class UIRenderer {
       }
     }
 
-    return this.appState.data.tracksForUI.filter(track => {
+    const result = this.appState.data.tracksForUI.filter(track => {
       // Search filter (with optional fuzzy matching)
       if (filters.search) {
         let searchMatch = false;
@@ -2527,9 +2639,13 @@ class UIRenderer {
 
       return true;
     });
+
+    console.log(`DEBUG: filterTracks result: ${result.length} tracks after filtering`);
+    return result;
   }
 
   sortTracks(tracks, sortValue) {
+    console.log(`DEBUG: sortTracks input: ${tracks.length} tracks, sortValue: ${sortValue}`);
     const sorted = [...tracks];
 
     if (sortValue === 'tracks-desc' || sortValue === 'tracks-asc') {
@@ -2557,6 +2673,7 @@ class UIRenderer {
       });
     }
 
+    console.log(`DEBUG: sortTracks result: ${sorted.length} tracks after sorting`);
     return sorted;
   }
 
@@ -2571,11 +2688,18 @@ class UIRenderer {
 
   renderTracks(groupedTracks) {
     const container = this.appState.elements.container;
-    if (!container) return;
+    if (!container) {
+      console.log('DEBUG: No container found!');
+      return;
+    }
+
+    // Clear existing DOM and event listeners for memory management
+    this.cleanupTrackElements(container);
 
     // Use document fragment for better performance
     const fragment = document.createDocumentFragment();
 
+    let totalRendered = 0;
     Object.entries(groupedTracks).forEach(([artist, tracks]) => {
       if (tracks.length === 0) return;
 
@@ -2587,13 +2711,34 @@ class UIRenderer {
 
       tracks.forEach(track => {
         groupDiv.appendChild(this.createTrackElement(track));
+        totalRendered++;
       });
 
       fragment.appendChild(groupDiv);
     });
 
-    container.innerHTML = '';
     container.appendChild(fragment);
+    console.log(`DEBUG: Rendered ${totalRendered} track elements to DOM`);
+  }
+
+  cleanupTrackElements(container) {
+    // Remove all existing content and trigger garbage collection
+    const existingTracks = container.querySelectorAll('.track');
+    existingTracks.forEach(track => {
+      // Remove any event listeners that might be attached
+      const buttons = track.querySelectorAll('button');
+      buttons.forEach(button => {
+        button.replaceWith(button.cloneNode(true));
+      });
+    });
+
+    // Clear container
+    container.innerHTML = '';
+
+    // Force garbage collection hint (not guaranteed but helps)
+    if (window.gc) {
+      window.gc();
+    }
   }
 
   createTrackElement(track) {
@@ -3189,6 +3334,9 @@ class UIController {
       });
     }
 
+    // Pagination controls
+    this.attachPaginationListeners();
+
     // Waveform style selector
     const waveformStyleSelect = document.getElementById('waveform-style-select');
     if (waveformStyleSelect) {
@@ -3223,6 +3371,37 @@ class UIController {
     const title = document.getElementById('editable-title');
     if (title) {
       title.textContent = CONFIG.APP_TITLE;
+    }
+  }
+
+  attachPaginationListeners() {
+    // Pagination button listeners
+    const firstPageBtn = document.getElementById('first-page-btn');
+    const prevPageBtn = document.getElementById('prev-page-btn');
+    const nextPageBtn = document.getElementById('next-page-btn');
+    const lastPageBtn = document.getElementById('last-page-btn');
+    const tracksPerPageSelect = document.getElementById('tracks-per-page-select');
+
+    if (firstPageBtn) {
+      firstPageBtn.addEventListener('click', () => this.renderer.goToPage(1));
+    }
+
+    if (prevPageBtn) {
+      prevPageBtn.addEventListener('click', () => this.renderer.goToPage(this.renderer.currentPage - 1));
+    }
+
+    if (nextPageBtn) {
+      nextPageBtn.addEventListener('click', () => this.renderer.goToPage(this.renderer.currentPage + 1));
+    }
+
+    if (lastPageBtn) {
+      lastPageBtn.addEventListener('click', () => this.renderer.goToPage(this.renderer.totalPages));
+    }
+
+    if (tracksPerPageSelect) {
+      tracksPerPageSelect.addEventListener('change', (e) => {
+        this.renderer.setTracksPerPage(e.target.value);
+      });
     }
   }
 
@@ -5528,6 +5707,9 @@ class BeatroveApp {
       // Initial render
       this.controller.render();
 
+      // Set up periodic memory optimization
+      this.setupMemoryOptimization();
+
       // Add testing utilities to window object for development
       if (typeof window !== 'undefined') {
         window.beatroveApp = this;
@@ -5598,6 +5780,29 @@ class BeatroveApp {
       // Ensure appState has the correct accent color
       this.appState.data.accentColor = accentColor;
     }
+  }
+
+  setupMemoryOptimization() {
+    // Clean up memory every 5 minutes
+    setInterval(() => {
+      if (window.gc) {
+        window.gc();
+      }
+
+      // Log memory usage if available
+      if (performance.memory) {
+        const used = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
+        const total = Math.round(performance.memory.totalJSHeapSize / 1024 / 1024);
+        const limit = Math.round(performance.memory.jsHeapSizeLimit / 1024 / 1024);
+
+        console.log(`Memory usage: ${used}MB / ${total}MB (limit: ${limit}MB)`);
+
+        // Warn if memory usage is high
+        if (used > limit * 0.8) {
+          console.warn('High memory usage detected. Consider refreshing the page.');
+        }
+      }
+    }, 5 * 60 * 1000); // Every 5 minutes
   }
 
   async loadDefaultTracklist() {

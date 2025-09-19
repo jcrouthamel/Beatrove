@@ -291,6 +291,28 @@
     <input type="file" id="import-playlists-input" accept="application/json" class="hidden">
   </div>
   
+  <div class="pagination-controls">
+    <div class="pagination-info">
+      <span id="tracks-showing">Showing 0-0 of 0 tracks</span>
+    </div>
+    <div class="pagination-buttons">
+      <button id="first-page-btn" class="control-btn" disabled>⏮️ First</button>
+      <button id="prev-page-btn" class="control-btn" disabled>⬅️ Previous</button>
+      <span id="page-info">Page 1 of 1</span>
+      <button id="next-page-btn" class="control-btn" disabled>Next ➡️</button>
+      <button id="last-page-btn" class="control-btn" disabled>Last ⏭️</button>
+    </div>
+    <div class="tracks-per-page">
+      <label for="tracks-per-page-select">Tracks per page:</label>
+      <select id="tracks-per-page-select">
+        <option value="50">50</option>
+        <option value="100" selected>100</option>
+        <option value="250">250</option>
+        <option value="500">500</option>
+      </select>
+    </div>
+  </div>
+
   <div id="columns" class="columns">
     <div class="loader"></div>
   </div>
