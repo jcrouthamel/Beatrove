@@ -2523,6 +2523,18 @@ body.light-mode .pagination-controls {
   box-shadow: 0 0 0 2px var(--accent-color-alpha);
 }
 
+/* Bottom pagination controls styling */
+.pagination-bottom {
+  margin-top: 30px;
+  margin-bottom: 20px;
+  border-color: var(--accent-color);
+}
+
+/* Add a subtle visual distinction for bottom controls */
+.pagination-bottom .pagination-info {
+  opacity: 0.9;
+}
+
 /* Responsive pagination */
 @media (max-width: 768px) {
   .pagination-controls {

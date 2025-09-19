@@ -2485,49 +2485,68 @@ class UIRenderer {
   }
 
   updatePaginationControls() {
-    const tracksShowing = document.getElementById('tracks-showing');
-    const pageInfo = document.getElementById('page-info');
-    const firstPageBtn = document.getElementById('first-page-btn');
-    const prevPageBtn = document.getElementById('prev-page-btn');
-    const nextPageBtn = document.getElementById('next-page-btn');
-    const lastPageBtn = document.getElementById('last-page-btn');
+    // Get both top and bottom pagination elements
+    const topElements = {
+      tracksShowing: document.getElementById('tracks-showing'),
+      pageInfo: document.getElementById('page-info'),
+      firstPageBtn: document.getElementById('first-page-btn'),
+      prevPageBtn: document.getElementById('prev-page-btn'),
+      nextPageBtn: document.getElementById('next-page-btn'),
+      lastPageBtn: document.getElementById('last-page-btn')
+    };
 
-    if (!tracksShowing || !pageInfo) return;
+    const bottomElements = {
+      tracksShowing: document.getElementById('tracks-showing-bottom'),
+      pageInfo: document.getElementById('page-info-bottom'),
+      firstPageBtn: document.getElementById('first-page-btn-bottom'),
+      prevPageBtn: document.getElementById('prev-page-btn-bottom'),
+      nextPageBtn: document.getElementById('next-page-btn-bottom'),
+      lastPageBtn: document.getElementById('last-page-btn-bottom')
+    };
 
-    // Handle case where no tracks are loaded yet
-    if (this.totalTracks === 0) {
-      tracksShowing.textContent = 'Loading tracks...';
-      pageInfo.textContent = 'Page 1 of 1';
+    const updateElements = (elements) => {
+      if (!elements.tracksShowing || !elements.pageInfo) return;
 
-      if (firstPageBtn && prevPageBtn && nextPageBtn && lastPageBtn) {
-        firstPageBtn.disabled = true;
-        prevPageBtn.disabled = true;
-        nextPageBtn.disabled = true;
-        lastPageBtn.disabled = true;
+      // Handle case where no tracks are loaded yet
+      if (this.totalTracks === 0) {
+        elements.tracksShowing.textContent = 'Loading tracks...';
+        elements.pageInfo.textContent = 'Page 1 of 1';
+
+        if (elements.firstPageBtn && elements.prevPageBtn && elements.nextPageBtn && elements.lastPageBtn) {
+          elements.firstPageBtn.disabled = true;
+          elements.prevPageBtn.disabled = true;
+          elements.nextPageBtn.disabled = true;
+          elements.lastPageBtn.disabled = true;
+        }
+        return;
       }
-      return;
-    }
 
-    // Update tracks showing info
-    const startTrack = (this.currentPage - 1) * this.tracksPerPage + 1;
-    const endTrack = Math.min(this.currentPage * this.tracksPerPage, this.totalTracks);
-    const showingText = `Showing ${startTrack}-${endTrack} of ${this.totalTracks} tracks`;
-    tracksShowing.textContent = showingText;
-    console.log(`DEBUG: Pagination display: ${showingText}`);
+      // Update tracks showing info
+      const startTrack = (this.currentPage - 1) * this.tracksPerPage + 1;
+      const endTrack = Math.min(this.currentPage * this.tracksPerPage, this.totalTracks);
+      const showingText = `Showing ${startTrack}-${endTrack} of ${this.totalTracks} tracks`;
+      elements.tracksShowing.textContent = showingText;
 
-    // Update page info
-    pageInfo.textContent = `Page ${this.currentPage} of ${Math.max(1, this.totalPages)}`;
+      // Update page info
+      elements.pageInfo.textContent = `Page ${this.currentPage} of ${Math.max(1, this.totalPages)}`;
 
-    // Update button states
-    if (firstPageBtn && prevPageBtn && nextPageBtn && lastPageBtn) {
-      const isFirstPage = this.currentPage <= 1;
-      const isLastPage = this.currentPage >= this.totalPages || this.totalPages <= 1;
+      // Update button states
+      if (elements.firstPageBtn && elements.prevPageBtn && elements.nextPageBtn && elements.lastPageBtn) {
+        const isFirstPage = this.currentPage <= 1;
+        const isLastPage = this.currentPage >= this.totalPages || this.totalPages <= 1;
 
-      firstPageBtn.disabled = isFirstPage;
-      prevPageBtn.disabled = isFirstPage;
-      nextPageBtn.disabled = isLastPage;
-      lastPageBtn.disabled = isLastPage;
-    }
+        elements.firstPageBtn.disabled = isFirstPage;
+        elements.prevPageBtn.disabled = isFirstPage;
+        elements.nextPageBtn.disabled = isLastPage;
+        elements.lastPageBtn.disabled = isLastPage;
+      }
+    };
+
+    // Update both top and bottom pagination controls
+    updateElements(topElements);
+    updateElements(bottomElements);
+
+    console.log(`DEBUG: Pagination display updated for both top and bottom controls`);
   }
 
   goToPage(page) {
@@ -3375,32 +3394,63 @@ class UIController {
   }
 
   attachPaginationListeners() {
-    // Pagination button listeners
+    // Top pagination controls
     const firstPageBtn = document.getElementById('first-page-btn');
     const prevPageBtn = document.getElementById('prev-page-btn');
     const nextPageBtn = document.getElementById('next-page-btn');
     const lastPageBtn = document.getElementById('last-page-btn');
     const tracksPerPageSelect = document.getElementById('tracks-per-page-select');
 
+    // Bottom pagination controls
+    const firstPageBtnBottom = document.getElementById('first-page-btn-bottom');
+    const prevPageBtnBottom = document.getElementById('prev-page-btn-bottom');
+    const nextPageBtnBottom = document.getElementById('next-page-btn-bottom');
+    const lastPageBtnBottom = document.getElementById('last-page-btn-bottom');
+    const tracksPerPageSelectBottom = document.getElementById('tracks-per-page-select-bottom');
+
+    // Top controls
     if (firstPageBtn) {
       firstPageBtn.addEventListener('click', () => this.renderer.goToPage(1));
     }
-
     if (prevPageBtn) {
       prevPageBtn.addEventListener('click', () => this.renderer.goToPage(this.renderer.currentPage - 1));
     }
-
     if (nextPageBtn) {
       nextPageBtn.addEventListener('click', () => this.renderer.goToPage(this.renderer.currentPage + 1));
     }
-
     if (lastPageBtn) {
       lastPageBtn.addEventListener('click', () => this.renderer.goToPage(this.renderer.totalPages));
     }
-
     if (tracksPerPageSelect) {
       tracksPerPageSelect.addEventListener('change', (e) => {
         this.renderer.setTracksPerPage(e.target.value);
+        // Sync the bottom selector
+        if (tracksPerPageSelectBottom) {
+          tracksPerPageSelectBottom.value = e.target.value;
+        }
+      });
+    }
+
+    // Bottom controls (same functionality)
+    if (firstPageBtnBottom) {
+      firstPageBtnBottom.addEventListener('click', () => this.renderer.goToPage(1));
+    }
+    if (prevPageBtnBottom) {
+      prevPageBtnBottom.addEventListener('click', () => this.renderer.goToPage(this.renderer.currentPage - 1));
+    }
+    if (nextPageBtnBottom) {
+      nextPageBtnBottom.addEventListener('click', () => this.renderer.goToPage(this.renderer.currentPage + 1));
+    }
+    if (lastPageBtnBottom) {
+      lastPageBtnBottom.addEventListener('click', () => this.renderer.goToPage(this.renderer.totalPages));
+    }
+    if (tracksPerPageSelectBottom) {
+      tracksPerPageSelectBottom.addEventListener('change', (e) => {
+        this.renderer.setTracksPerPage(e.target.value);
+        // Sync the top selector
+        if (tracksPerPageSelect) {
+          tracksPerPageSelect.value = e.target.value;
+        }
       });
     }
   }

@@ -318,7 +318,30 @@
   </div>
   
   <canvas id="audio-visualizer" width="800" height="60"></canvas>
-  
+
+  <!-- Bottom Pagination Controls -->
+  <div class="pagination-controls pagination-bottom">
+    <div class="pagination-info">
+      <span id="tracks-showing-bottom">Showing 0-0 of 0 tracks</span>
+    </div>
+    <div class="pagination-buttons">
+      <button id="first-page-btn-bottom" class="control-btn" disabled>⏮️ First</button>
+      <button id="prev-page-btn-bottom" class="control-btn" disabled>⬅️ Previous</button>
+      <span id="page-info-bottom">Page 1 of 1</span>
+      <button id="next-page-btn-bottom" class="control-btn" disabled>Next ➡️</button>
+      <button id="last-page-btn-bottom" class="control-btn" disabled>Last ⏭️</button>
+    </div>
+    <div class="tracks-per-page">
+      <label for="tracks-per-page-select-bottom">Tracks per page:</label>
+      <select id="tracks-per-page-select-bottom">
+        <option value="50">50</option>
+        <option value="100" selected>100</option>
+        <option value="250">250</option>
+        <option value="500">500</option>
+      </select>
+    </div>
+  </div>
+
   <footer>
     <div class="footer-content">
       <span id="footer-updated">Updated: never</span>
