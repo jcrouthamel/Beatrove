@@ -844,7 +844,8 @@ class ApplicationState {
         favoriteTracks: localStorage.getItem('favoriteTracks'),
         playlists: localStorage.getItem('playlists'),
         currentPlaylist: localStorage.getItem('currentPlaylist'),
-        themePreference: localStorage.getItem('themePreference')
+        themePreference: localStorage.getItem('themePreference'),
+        accentColor: localStorage.getItem('accentColor')
       };
 
       if (stored.trackTags) this.data.trackTags = JSON.parse(stored.trackTags);
@@ -854,6 +855,7 @@ class ApplicationState {
       if (stored.playlists) this.data.playlists = JSON.parse(stored.playlists);
       if (stored.currentPlaylist) this.data.currentPlaylist = stored.currentPlaylist;
       if (stored.themePreference) this.data.themePreference = stored.themePreference;
+      if (stored.accentColor) this.data.accentColor = stored.accentColor;
     } catch (error) {
       console.error('Error loading stored data:', error);
       this.resetData();
@@ -878,7 +880,8 @@ class ApplicationState {
               favoriteTracks: JSON.stringify(this.data.favoriteTracks),
               playlists: JSON.stringify(this.data.playlists),
               currentPlaylist: this.data.currentPlaylist,
-              themePreference: this.data.themePreference
+              themePreference: this.data.themePreference,
+              accentColor: this.data.accentColor
             };
             
             const estimatedSize = Object.values(dataToSave).join('').length * 2; // Rough UTF-16 byte estimate
@@ -1084,6 +1087,7 @@ class ApplicationState {
     if (retryCount === 0) {
       try {
         localStorage.setItem('themePreference', this.data.themePreference || 'dark');
+        localStorage.setItem('accentColor', this.data.accentColor || 'red');
         localStorage.setItem('currentPlaylist', this.data.currentPlaylist || '');
       } catch (fallbackError) {
         console.error('Even fallback save failed:', fallbackError);
@@ -1337,7 +1341,8 @@ class ApplicationState {
       playlists: {},
       currentPlaylist: '',
       showFavoritesOnly: false,
-      themePreference: 'dark' // 'dark' or 'light'
+      themePreference: 'dark', // 'dark' or 'light'
+      accentColor: 'red' // 'cyan', 'red', 'green', 'orange'
     };
   }
 
@@ -3169,6 +3174,17 @@ class UIController {
         const isLightMode = e.target.checked;
         document.body.classList.toggle('light-mode', isLightMode);
         this.appState.data.themePreference = isLightMode ? 'light' : 'dark';
+        this.appState.saveToStorage();
+      });
+    }
+
+    // Accent color selector
+    const accentColorSelect = document.getElementById('accent-color-select');
+    if (accentColorSelect) {
+      accentColorSelect.addEventListener('change', (e) => {
+        const selectedColor = e.target.value;
+        document.documentElement.setAttribute('data-accent', selectedColor);
+        this.appState.data.accentColor = selectedColor;
         this.appState.saveToStorage();
       });
     }
@@ -5559,13 +5575,28 @@ class BeatroveApp {
       // Get theme preference safely to handle first load
       const storedTheme = await this.appState.safeLocalStorageGet('themePreference');
       const isLightMode = storedTheme === 'light';
-      
+
       // Apply theme to DOM immediately
       document.body.classList.toggle('light-mode', isLightMode);
       themeToggle.checked = isLightMode;
-      
+
       // Ensure appState has the correct theme preference
       this.appState.data.themePreference = storedTheme || 'dark';
+    }
+
+    // Initialize accent color
+    const accentColorSelect = document.getElementById('accent-color-select');
+    if (accentColorSelect) {
+      // Get stored accent color preference
+      const storedAccentColor = await this.appState.safeLocalStorageGet('accentColor');
+      const accentColor = storedAccentColor || 'red';
+
+      // Apply accent color to DOM
+      document.documentElement.setAttribute('data-accent', accentColor);
+      accentColorSelect.value = accentColor;
+
+      // Ensure appState has the correct accent color
+      this.appState.data.accentColor = accentColor;
     }
   }
 
