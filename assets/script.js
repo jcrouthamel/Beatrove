@@ -1916,11 +1916,35 @@ class AudioManager {
       container._previewId = previewId; // Track which preview this belongs to
       
       // Add track info
-      const label = SecurityUtils.createSafeElement('div', 
-        `${track.artist || ''} – ${track.title || ''}`, 
+      const label = SecurityUtils.createSafeElement('div',
+        `${track.artist || ''} – ${track.title || ''}`,
         'audio-player-label'
       );
       container.appendChild(label);
+
+      // Add close button
+      const closeButton = document.createElement('button');
+      closeButton.textContent = '✕';
+      closeButton.className = 'audio-player-close';
+      closeButton.title = 'Close audio player';
+      closeButton.addEventListener('click', () => {
+        // Use the existing cleanup handler logic
+        this.disconnectVisualizer();
+        this.isPlayingPreview = false;
+        container.remove();
+
+        // Clear references
+        if (this.currentAudio === audio) {
+          this.currentAudio = null;
+        }
+
+        // Revoke blob URL to free memory
+        this.revokeBlobUrl(url);
+
+        // Clear current preview ID
+        this.currentPreviewId = null;
+      });
+      container.appendChild(closeButton);
 
       // Add audio element
       const audio = document.createElement('audio');

@@ -1616,6 +1616,43 @@ body.light-mode .custom-audio-player::-webkit-media-controls-panel {
   background: #f5f5f5;
 }
 
+/* Audio player close button */
+.audio-player-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: var(--accent-color);
+  border: 1px solid var(--accent-color);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  z-index: 10001;
+  transition: all 0.2s ease;
+}
+
+.audio-player-close:hover {
+  background: var(--accent-color);
+  color: #000;
+  transform: scale(1.1);
+}
+
+body.light-mode .audio-player-close {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--accent-color);
+}
+
+body.light-mode .audio-player-close:hover {
+  background: var(--accent-color);
+  color: #fff;
+}
+
 /* Album art styles removed per user request */
 
 /* Responsive adjustments */
