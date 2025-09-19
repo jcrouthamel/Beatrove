@@ -2985,7 +2985,7 @@ class UIController {
 
   attachFilterListeners() {
     const filters = ['search', 'bpm-filter', 'key-filter', 'genre-filter', 'energy-filter', 'label-filter', 'sort-select', 'year-search', 'tag-dropdown', 'fuzzy-search-toggle'];
-    
+
     filters.forEach(id => {
       const element = document.getElementById(id);
       if (element) {
@@ -3001,6 +3001,9 @@ class UIController {
 
     // Enhanced search functionality
     this.attachSearchEnhancements();
+
+    // Filter drawer toggle functionality
+    this.attachFilterDrawer();
   }
 
   attachSearchEnhancements() {
@@ -3035,6 +3038,30 @@ class UIController {
 
       // Initial state
       updateClearButton();
+    }
+  }
+
+  attachFilterDrawer() {
+    const filterDrawerBtn = document.getElementById('filter-drawer-btn');
+    const filterDrawer = document.getElementById('filter-drawer');
+
+    if (filterDrawerBtn && filterDrawer) {
+      filterDrawerBtn.addEventListener('click', () => {
+        const isCollapsed = filterDrawer.classList.contains('collapsed');
+        const arrow = filterDrawerBtn.querySelector('.filter-toggle-arrow');
+
+        if (isCollapsed) {
+          // Expand
+          filterDrawer.classList.remove('collapsed');
+          filterDrawerBtn.classList.remove('collapsed');
+          if (arrow) arrow.textContent = '▼';
+        } else {
+          // Collapse
+          filterDrawer.classList.add('collapsed');
+          filterDrawerBtn.classList.add('collapsed');
+          if (arrow) arrow.textContent = '▶';
+        }
+      });
     }
   }
 
@@ -3127,6 +3154,12 @@ class UIController {
     const statsBtn = document.getElementById('stats-toggle-btn');
     if (statsBtn) {
       statsBtn.addEventListener('click', () => this.toggleStats());
+    }
+
+    // Duplicate tracks toggle
+    const duplicatesBtn = document.getElementById('duplicates-toggle-btn');
+    if (duplicatesBtn) {
+      duplicatesBtn.addEventListener('click', () => this.toggleDuplicates());
     }
 
     // Theme toggle
@@ -3273,6 +3306,116 @@ class UIController {
         statsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
+  }
+
+  toggleDuplicates() {
+    const duplicatesContainer = document.getElementById('duplicate-tracks');
+    const duplicatesBtn = document.getElementById('duplicates-toggle-btn');
+
+    if (duplicatesContainer && duplicatesBtn) {
+      const isVisible = !duplicatesContainer.classList.contains('hidden');
+
+      if (isVisible) {
+        // Hide duplicates
+        duplicatesContainer.classList.add('hidden');
+        duplicatesBtn.classList.remove('active');
+      } else {
+        // Show duplicates and find them
+        duplicatesContainer.classList.remove('hidden');
+        duplicatesBtn.classList.add('active');
+        this.findAndDisplayDuplicates();
+
+        // Add close button listener
+        const closeBtn = document.getElementById('close-duplicates');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => this.toggleDuplicates());
+        }
+
+        // Add escape key listener
+        const escapeHandler = (e) => {
+          if (e.key === 'Escape') {
+            this.toggleDuplicates();
+            document.removeEventListener('keydown', escapeHandler);
+          }
+        };
+        document.addEventListener('keydown', escapeHandler);
+      }
+    }
+  }
+
+  findAndDisplayDuplicates() {
+    const tracks = this.appState.data.tracksForUI || [];
+    const content = document.getElementById('duplicate-content');
+
+    if (!content) return;
+
+    // Find duplicates based on both artist and title (case-insensitive)
+    const trackGroups = {};
+
+    tracks.forEach(track => {
+      if (track.artist && track.title) {
+        const normalizedKey = `${track.artist.toLowerCase().trim()} - ${track.title.toLowerCase().trim()}`;
+        if (!trackGroups[normalizedKey]) {
+          trackGroups[normalizedKey] = [];
+        }
+        trackGroups[normalizedKey].push(track);
+      }
+    });
+
+    // Filter to only groups with duplicates
+    const duplicateGroups = Object.entries(trackGroups).filter(([title, tracks]) => tracks.length > 1);
+
+    if (duplicateGroups.length === 0) {
+      content.innerHTML = `
+        <div class="duplicate-summary">
+          <div class="duplicate-summary-text">🎉 No duplicate tracks found!</div>
+        </div>
+      `;
+      return;
+    }
+
+    const totalDuplicates = duplicateGroups.reduce((sum, [title, tracks]) => sum + tracks.length, 0);
+
+    let html = `
+      <div class="duplicate-summary">
+        <div class="duplicate-summary-text">
+          Found ${duplicateGroups.length} duplicate groups (${totalDuplicates} total tracks)
+        </div>
+      </div>
+    `;
+
+    duplicateGroups.forEach(([artistTitle, tracks]) => {
+      html += `
+        <div class="duplicate-group">
+          <h3>🔄 ${this.escapeHtml(tracks[0].artist)} - ${this.escapeHtml(tracks[0].title)} (${tracks.length} copies)</h3>
+      `;
+
+      tracks.forEach(track => {
+        html += `
+          <div class="duplicate-track">
+            <div class="duplicate-track-info">
+              <strong>Artist:</strong> ${this.escapeHtml(track.artist)}<br>
+              <strong>BPM:</strong> ${track.bpm || 'Unknown'} |
+              <strong>Key:</strong> ${track.key || 'Unknown'} |
+              <strong>Year:</strong> ${track.year || 'Unknown'}<br>
+              <strong>Genre:</strong> ${track.genre || 'Unknown'}<br>
+              <strong>Path:</strong> ${this.escapeHtml(track.absPath || 'Unknown')}
+            </div>
+          </div>
+        `;
+      });
+
+      html += '</div>';
+    });
+
+    content.innerHTML = html;
+  }
+
+  escapeHtml(text) {
+    if (typeof text !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   calculateAndDisplayStats() {
