@@ -2209,12 +2209,11 @@ body.light-mode .duplicate-list-container {
 /* Main Search Card */
 .search-section-card {
   background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  border: 2px solid #ff6b6b;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
-  border-left: 4px solid #ff6b6b;
 }
 
 .search-section-card:hover {
@@ -2308,7 +2307,7 @@ body.light-mode .duplicate-list-container {
 /* Filter Cards */
 .filter-card {
   background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  border: 2px solid #ff6b6b;
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -2391,16 +2390,16 @@ body.light-mode .duplicate-list-container {
 
 /* Core Filters Styling */
 .core-filters {
-  border-left: 4px solid var(--accent-color);
+  border: 2px solid #ff6b6b;
 }
 
 .core-filters .filter-card-icon {
-  color: var(--accent-color);
+  color: #ff6b6b;
 }
 
 /* Advanced Filters Styling */
 .advanced-filters {
-  border-left: 4px solid #ff6b6b;
+  border: 2px solid #ff6b6b;
 }
 
 .advanced-filters .filter-card-icon {
