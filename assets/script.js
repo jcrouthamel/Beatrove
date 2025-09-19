@@ -3259,9 +3259,10 @@ class UIController {
       const isVisible = !statsContainer.classList.contains('hidden');
       
       if (isVisible) {
-        // Hide stats
+        // Hide stats and cleanup charts
         statsContainer.classList.add('hidden');
         statsBtn.classList.remove('active');
+        this.cleanupAllCharts();
       } else {
         // Show stats and calculate them
         statsContainer.classList.remove('hidden');
@@ -3276,7 +3277,14 @@ class UIController {
 
   calculateAndDisplayStats() {
     const tracks = this.appState.data.tracksForUI || [];
-    
+
+    // Debug: Check Chart.js availability
+    console.log('Chart.js available:', typeof Chart !== 'undefined');
+    if (typeof Chart !== 'undefined') {
+      console.log('Chart.js version:', Chart.version);
+      this.testChartJS();
+    }
+
     // Debug: Log first track to see structure
     if (tracks.length > 0) {
       console.log('First track structure:', tracks[0]);
@@ -3308,9 +3316,20 @@ class UIController {
       const genre = track.genre || 'Unknown';
       genreStats[genre] = (genreStats[genre] || 0) + 1;
     });
-    
+
     console.log('Genre stats:', genreStats);
+
+    // Always display the stat list first
     this.displayStatList('genre-stats', genreStats);
+
+    // Try to create chart, which will overlay the list if successful
+    if (typeof Chart !== 'undefined') {
+      const chart = this.createDonutChart('genre-chart', genreStats, 'Genres');
+      if (chart) {
+        // Hide the stat list since chart was created successfully
+        document.getElementById('genre-stats').style.display = 'none';
+      }
+    }
   }
 
   displayKeyStats(tracks) {
@@ -3319,9 +3338,16 @@ class UIController {
       const key = track.key || 'Unknown';
       keyStats[key] = (keyStats[key] || 0) + 1;
     });
-    
+
     console.log('Key stats:', keyStats);
     this.displayStatList('key-stats', keyStats);
+
+    if (typeof Chart !== 'undefined') {
+      const chart = this.createBarChart('key-chart', keyStats, 'Keys', '#2196f3');
+      if (chart) {
+        document.getElementById('key-stats').style.display = 'none';
+      }
+    }
   }
 
   displayBPMStats(tracks) {
@@ -3378,6 +3404,13 @@ class UIController {
     
     console.log('BPM stats:', bpmStats);
     this.displayStatList('bpm-stats', bpmStats);
+
+    if (typeof Chart !== 'undefined') {
+      const chart = this.createBarChart('bpm-chart', bpmStats, 'BPM Ranges', '#ff6b6b');
+      if (chart) {
+        document.getElementById('bpm-stats').style.display = 'none';
+      }
+    }
   }
 
   displayEnergyStats(tracks) {
@@ -3408,6 +3441,13 @@ class UIController {
     });
     
     this.displayStatList('energy-stats', filteredEnergyStats);
+
+    if (typeof Chart !== 'undefined') {
+      const chart = this.createBarChart('energy-chart', filteredEnergyStats, 'Energy Levels', '#ffeb3b');
+      if (chart) {
+        document.getElementById('energy-stats').style.display = 'none';
+      }
+    }
   }
 
   displayYearStats(tracks) {
@@ -3430,6 +3470,13 @@ class UIController {
       });
     
     this.displayStatList('year-stats', sortedYearStats);
+
+    if (typeof Chart !== 'undefined') {
+      const chart = this.createBarChart('year-chart', sortedYearStats, 'Years', '#4caf50');
+      if (chart) {
+        document.getElementById('year-stats').style.display = 'none';
+      }
+    }
   }
 
   displayLabelStats(tracks) {
@@ -3441,21 +3488,216 @@ class UIController {
     
     console.log('Label stats:', labelStats);
     this.displayStatList('label-stats', labelStats);
+
+    if (typeof Chart !== 'undefined') {
+      const chart = this.createDonutChart('label-chart', labelStats, 'Record Labels');
+      if (chart) {
+        document.getElementById('label-stats').style.display = 'none';
+      }
+    }
   }
 
   displayStatList(containerId, stats) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    
+
     // Sort by count (highest first)
     const sortedEntries = Object.entries(stats).sort(([,a], [,b]) => b - a);
-    
+
     container.innerHTML = sortedEntries.map(([label, count]) => `
       <div class="stat-item">
         <span class="stat-label">${SecurityUtils.escapeHtml(label)}</span>
         <span class="stat-value">${count.toLocaleString()}</span>
       </div>
     `).join('');
+  }
+
+  // === Chart Methods ===
+
+  // Store chart instances for cleanup
+  chartInstances = {};
+
+  // Test Chart.js functionality
+  testChartJS() {
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js is not available');
+      return false;
+    }
+
+    try {
+      // Try to create a minimal chart to test functionality
+      const testCanvas = document.createElement('canvas');
+      testCanvas.width = 100;
+      testCanvas.height = 100;
+
+      const testChart = new Chart(testCanvas, {
+        type: 'bar',
+        data: {
+          labels: ['Test'],
+          datasets: [{
+            data: [1],
+            backgroundColor: '#00ffff'
+          }]
+        },
+        options: {
+          responsive: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      testChart.destroy();
+      console.log('Chart.js test successful');
+      return true;
+    } catch (error) {
+      console.error('Chart.js test failed:', error);
+      return false;
+    }
+  }
+
+  destroyChart(chartId) {
+    if (this.chartInstances[chartId]) {
+      this.chartInstances[chartId].destroy();
+      delete this.chartInstances[chartId];
+    }
+  }
+
+  cleanupAllCharts() {
+    Object.keys(this.chartInstances).forEach(chartId => {
+      this.destroyChart(chartId);
+    });
+  }
+
+  createBarChart(canvasId, data, title, color = '#00ffff') {
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js is not loaded');
+      return;
+    }
+
+    this.destroyChart(canvasId);
+
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      console.error(`Canvas element not found: ${canvasId}`);
+      return;
+    }
+
+    const sortedData = Object.entries(data).sort(([,a], [,b]) => b - a);
+    const labels = sortedData.map(([label]) => label);
+    const values = sortedData.map(([,value]) => value);
+
+    // Check if light mode is active
+    const isLightMode = document.body.classList.contains('light-mode');
+    const textColor = isLightMode ? '#333' : '#fff';
+    const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
+
+    const chart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: title,
+          data: values,
+          backgroundColor: color + '80', // Add transparency
+          borderColor: color,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: textColor
+            },
+            grid: {
+              color: gridColor
+            }
+          },
+          x: {
+            ticks: {
+              color: textColor,
+              maxRotation: 45
+            },
+            grid: {
+              color: gridColor
+            }
+          }
+        }
+      }
+    });
+
+    this.chartInstances[canvasId] = chart;
+    return chart;
+  }
+
+  createDonutChart(canvasId, data, title) {
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js is not loaded');
+      return;
+    }
+
+    this.destroyChart(canvasId);
+
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      console.error(`Canvas element not found: ${canvasId}`);
+      return;
+    }
+
+    const sortedData = Object.entries(data).sort(([,a], [,b]) => b - a);
+    const labels = sortedData.map(([label]) => label);
+    const values = sortedData.map(([,value]) => value);
+
+    // Generate colors for each segment
+    const colors = labels.map((_, index) => {
+      const hue = (index * 137.5) % 360; // Golden angle for nice distribution
+      return `hsl(${hue}, 70%, 60%)`;
+    });
+
+    // Check if light mode is active
+    const isLightMode = document.body.classList.contains('light-mode');
+    const textColor = isLightMode ? '#333' : '#fff';
+    const borderColor = isLightMode ? '#fff' : '#333';
+
+    const chart = new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: title,
+          data: values,
+          backgroundColor: colors,
+          borderColor: borderColor,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: textColor,
+              padding: 15,
+              usePointStyle: true
+            }
+          }
+        }
+      }
+    });
+
+    this.chartInstances[canvasId] = chart;
+    return chart;
   }
 
   // === Clipboard Operations ===
@@ -5115,8 +5357,12 @@ const app = new BeatroveApp();
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => app.init());
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM ready, Chart.js available:', typeof Chart !== 'undefined');
+    app.init();
+  });
 } else {
+  console.log('DOM already ready, Chart.js available:', typeof Chart !== 'undefined');
   app.init();
 }
 

@@ -2138,6 +2138,31 @@ body.light-mode .dialog-btn-confirm:hover {
   overflow-y: auto;
 }
 
+/* Chart Container Styling */
+.chart-container {
+  position: relative;
+  height: 300px;
+  width: 100%;
+  margin: 15px 0;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+body.light-mode .chart-container {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.chart-container canvas {
+  max-height: 100%;
+  max-width: 100%;
+}
+
+/* Show stat lists by default, charts will overlay if available */
+.stat-list {
+  display: block;
+}
+
 .stat-list::-webkit-scrollbar {
   width: 4px;
 }

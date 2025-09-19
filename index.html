@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="DJ Total Kaos - EDM Bangers Tracklist - Find and filter electronic music tracks by BPM, key, and genre">
   <!-- Content Security Policy with inline support for audio player -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; font-src 'self'; connect-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' blob:; font-src 'self'; connect-src 'self';">
   <title>DJ Total Kaos - EDM Bangers</title>
   <link rel="stylesheet" href="assets/style.css" />
   <!-- rest of head -->
@@ -197,31 +197,49 @@
         
         <div class="stat-section">
           <h3>🎵 Genres</h3>
+          <div class="chart-container">
+            <canvas id="genre-chart"></canvas>
+          </div>
           <div id="genre-stats" class="stat-list"></div>
         </div>
-        
+
         <div class="stat-section">
           <h3>🎹 Keys</h3>
+          <div class="chart-container">
+            <canvas id="key-chart"></canvas>
+          </div>
           <div id="key-stats" class="stat-list"></div>
         </div>
-        
+
         <div class="stat-section">
           <h3>🥁 BPM Ranges</h3>
+          <div class="chart-container">
+            <canvas id="bpm-chart"></canvas>
+          </div>
           <div id="bpm-stats" class="stat-list"></div>
         </div>
-        
+
         <div class="stat-section">
           <h3>⚡ Energy Levels</h3>
+          <div class="chart-container">
+            <canvas id="energy-chart"></canvas>
+          </div>
           <div id="energy-stats" class="stat-list"></div>
         </div>
-        
+
         <div class="stat-section">
           <h3>📅 Years</h3>
+          <div class="chart-container">
+            <canvas id="year-chart"></canvas>
+          </div>
           <div id="year-stats" class="stat-list"></div>
         </div>
-        
+
         <div class="stat-section">
           <h3>🏷️ Record Labels</h3>
+          <div class="chart-container">
+            <canvas id="label-chart"></canvas>
+          </div>
           <div id="label-stats" class="stat-list"></div>
         </div>
       </div>
@@ -262,6 +280,7 @@
     </div>
   </footer>
   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script src="assets/script.js" defer></script>
 </body>
 </html>
