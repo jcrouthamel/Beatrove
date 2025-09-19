@@ -1027,6 +1027,102 @@ body.light-mode .tag-pill {
   color: #fff;
 }
 
+/* ============= MOOD & VIBE TAGS ============= */
+.mood-vibe-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.mood-vibe-label {
+  font-size: 14px;
+  margin-right: 4px;
+  opacity: 0.8;
+}
+
+.mood-vibe-pill {
+  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  color: #fff;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  display: inline-block;
+  margin-right: 3px;
+  margin-bottom: 2px;
+  line-height: 1.3;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+body.light-mode .mood-vibe-pill {
+  background: linear-gradient(135deg, #e91e63, #ff5722);
+  color: #fff;
+}
+
+/* Mood & Vibe Popup */
+.mood-vibe-popup {
+  position: absolute;
+  background: #222;
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
+  padding: 10px 12px;
+  z-index: 1000;
+  min-width: 280px;
+  font-size: 14px;
+  border: 1px solid #444;
+}
+
+body.light-mode .mood-vibe-popup {
+  background: #fff;
+  color: #222;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  border: 1px solid #ddd;
+}
+
+.mood-vibe-popup input[type="text"] {
+  border-radius: 6px;
+  border: 1px solid #666;
+  background: #333;
+  color: #fff;
+  padding: 6px 10px;
+  margin-right: 6px;
+  font-size: 13px;
+  width: 200px;
+}
+
+body.light-mode .mood-vibe-popup input[type="text"] {
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #222;
+}
+
+.mood-vibe-popup button {
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+  color: #fff;
+  padding: 6px 12px;
+  font-size: 13px;
+  margin-left: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.mood-vibe-popup button:hover {
+  background: linear-gradient(135deg, #ff5252, #ff7043);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+.mood-vibe-input-width {
+  width: 200px;
+}
+
 .add-playlist-btn {
   background: none;
   border: none;
@@ -1648,6 +1744,7 @@ body.light-mode .notification-close:hover {
   background: rgba(0, 0, 0, 0.1);
 }
 
+
 /* ============= DIALOG SYSTEM ============= */
 .dialog-overlay {
   position: fixed;
@@ -2095,4 +2192,177 @@ body.light-mode .duplicate-list-container {
 
 .tag-input-width {
   width: 180px;
+}
+
+/* ===== MODERN CARD-BASED SEARCH INTERFACE ===== */
+
+/* Search Container */
+#search-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Main Search Card */
+.search-section-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.search-section-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-color: var(--accent-color);
+}
+
+/* Filters Container */
+.filters-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* Filter Cards */
+.filter-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.filter-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Filter Card Headers */
+.filter-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.filter-card-icon {
+  font-size: 1.2em;
+  opacity: 0.8;
+}
+
+.filter-card-title {
+  margin: 0;
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+/* Filter Grid */
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* Filter Items */
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-item label {
+  font-size: 0.9em;
+  font-weight: 500;
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+.filter-item select,
+.filter-item input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.filter-item select:focus,
+.filter-item input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.filter-item select:hover,
+.filter-item input:hover {
+  border-color: var(--accent-color);
+}
+
+/* Core Filters Styling */
+.core-filters {
+  border-left: 4px solid var(--accent-color);
+}
+
+.core-filters .filter-card-icon {
+  color: var(--accent-color);
+}
+
+/* Advanced Filters Styling */
+.advanced-filters {
+  border-left: 4px solid #ff6b6b;
+}
+
+.advanced-filters .filter-card-icon {
+  color: #ff6b6b;
+}
+
+/* Hide old filter layout */
+.filter-group.left-filters {
+  display: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .filters-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .filter-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  #search-container {
+    padding: 0 16px;
+    gap: 16px;
+  }
+
+  .search-section-card,
+  .filter-card {
+    padding: 16px;
+  }
+
+  .filter-card-header {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+
+  .filter-card-title {
+    font-size: 1em;
+  }
 }

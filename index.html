@@ -55,7 +55,8 @@
     <h1 id="editable-title" class="editable-title">DJ Total Kaos - EDM Bangers</h1>
   </div>
   <div id="search-container">
-    <div class="main-search-section">
+    <!-- Main Search Section -->
+    <div class="search-section-card">
       <div class="search-wrapper">
         <span class="search-icon">🔍</span>
         <input type="text" id="search" placeholder="Search tracks, artists, or any metadata..." />
@@ -68,79 +69,98 @@
         </label>
       </div>
     </div>
-    
-    <div class="filter-group left-filters">
-      <div class="filter-label">
-        <span>BPM</span>
-        <select id="bpm-filter">
-          <option value="">All BPMs</option>
-        </select>
+
+    <!-- Filter Cards Container -->
+    <div class="filters-container">
+      <!-- Core Filters Card -->
+      <div class="filter-card core-filters">
+        <div class="filter-card-header">
+          <span class="filter-card-icon">🎵</span>
+          <h3 class="filter-card-title">Core Filters</h3>
+        </div>
+        <div class="filter-grid">
+          <div class="filter-item">
+            <label for="bpm-filter">BPM</label>
+            <select id="bpm-filter">
+              <option value="">All BPMs</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="key-filter">Key</label>
+            <select id="key-filter">
+              <option value="">All Keys</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="year-search">Year</label>
+            <input type="text" id="year-search" placeholder="e.g. 2023 or 2020-2023" />
+          </div>
+
+          <div class="filter-item">
+            <label for="genre-filter">Genre</label>
+            <select id="genre-filter">
+              <option value="">All Genres</option>
+            </select>
+          </div>
+        </div>
       </div>
-      
-      <div class="filter-label">
-        <span>Key</span>
-        <select id="key-filter">
-          <option value="">All Keys</option>
-        </select>
-      </div>
-      
-      <div class="filter-label">
-        <span>Year</span>
-        <input type="text" id="year-search" placeholder="e.g. 2023 or 2020-2023" />
-      </div>
-      
-      <div class="filter-label">
-        <span>Sort By</span>
-        <select id="sort-select">
-          <option value="name-asc">Artist (A-Z)</option>
-          <option value="name-desc">Artist (Z-A)</option>
-          <option value="tracks-desc">Most Tracks</option>
-          <option value="tracks-asc">Fewest Tracks</option>
-          <option value="bpm-asc">BPM (Low to High)</option>
-          <option value="bpm-desc">BPM (High to Low)</option>
-          <option value="key-asc">Key (A-Z)</option>
-          <option value="key-desc">Key (Z-A)</option>
-          <option value="title-asc">Title (A-Z)</option>
-          <option value="title-desc">Title (Z-A)</option>
-        </select>
-      </div>
-      
-      <div class="filter-label">
-        <span>Genre</span>
-        <select id="genre-filter">
-          <option value="">All Genres</option>
-        </select>
-      </div>
-      
-      <div class="filter-label">
-        <span>Tag</span>
-        <select id="tag-dropdown" class="margin-left-small">
-          <option value="">All Tags</option>
-        </select>
-      </div>
-      
-      <div class="filter-label">
-        <span>Energy</span>
-        <select id="energy-filter">
-          <option value="">All Energy Levels</option>
-          <option value="1">1 ★☆☆☆☆☆☆☆☆☆</option>
-          <option value="2">2 ★★☆☆☆☆☆☆☆☆</option>
-          <option value="3">3 ★★★☆☆☆☆☆☆☆</option>
-          <option value="4">4 ★★★★☆☆☆☆☆☆</option>
-          <option value="5">5 ★★★★★☆☆☆☆☆</option>
-          <option value="6">6 ★★★★★★☆☆☆☆</option>
-          <option value="7">7 ★★★★★★★☆☆☆</option>
-          <option value="8">8 ★★★★★★★★☆☆</option>
-          <option value="9">9 ★★★★★★★★★☆</option>
-          <option value="10">10 ★★★★★★★★★★</option>
-        </select>
-      </div>
-      
-      <div class="filter-label">
-        <span>Label</span>
-        <select id="label-filter">
-          <option value="">All Labels</option>
-        </select>
+
+      <!-- Advanced Filters Card -->
+      <div class="filter-card advanced-filters">
+        <div class="filter-card-header">
+          <span class="filter-card-icon">⚡</span>
+          <h3 class="filter-card-title">Advanced</h3>
+        </div>
+        <div class="filter-grid">
+          <div class="filter-item">
+            <label for="energy-filter">Energy</label>
+            <select id="energy-filter">
+              <option value="">All Energy Levels</option>
+              <option value="1">1 ★☆☆☆☆☆☆☆☆☆</option>
+              <option value="2">2 ★★☆☆☆☆☆☆☆☆</option>
+              <option value="3">3 ★★★☆☆☆☆☆☆☆</option>
+              <option value="4">4 ★★★★☆☆☆☆☆☆</option>
+              <option value="5">5 ★★★★★☆☆☆☆☆</option>
+              <option value="6">6 ★★★★★★☆☆☆☆</option>
+              <option value="7">7 ★★★★★★★☆☆☆</option>
+              <option value="8">8 ★★★★★★★★☆☆</option>
+              <option value="9">9 ★★★★★★★★★☆</option>
+              <option value="10">10 ★★★★★★★★★★</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="tag-dropdown">Tags</label>
+            <select id="tag-dropdown">
+              <option value="">All Tags</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="label-filter">Label</label>
+            <select id="label-filter">
+              <option value="">All Labels</option>
+            </select>
+          </div>
+
+          <div class="filter-item">
+            <label for="sort-select">Sort By</label>
+            <select id="sort-select">
+              <option value="name-asc">Artist (A-Z)</option>
+              <option value="name-desc">Artist (Z-A)</option>
+              <option value="tracks-desc">Most Tracks</option>
+              <option value="tracks-asc">Fewest Tracks</option>
+              <option value="bpm-asc">BPM (Low to High)</option>
+              <option value="bpm-desc">BPM (High to Low)</option>
+              <option value="key-asc">Key (A-Z)</option>
+              <option value="key-desc">Key (Z-A)</option>
+              <option value="title-asc">Title (A-Z)</option>
+              <option value="title-desc">Title (Z-A)</option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
   </div>
