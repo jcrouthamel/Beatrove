@@ -2068,15 +2068,22 @@ body.light-mode .dialog-btn-confirm:hover {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
 }
 
 .stat-section {
   background: #181818;
   border-radius: 8px;
-  padding: 16px;
+  padding: 24px;
   border: 1px solid #333;
+  min-height: 480px;
+}
+
+/* Make record labels section span full width */
+.record-labels-section {
+  grid-column: 1 / -1;
+  min-height: 400px;
 }
 
 .light-mode .stat-section {
@@ -2141,12 +2148,12 @@ body.light-mode .dialog-btn-confirm:hover {
 /* Chart Container Styling */
 .chart-container {
   position: relative;
-  height: 300px;
+  height: 380px;
   width: 100%;
-  margin: 15px 0;
+  margin: 16px 0;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  padding: 10px;
+  padding: 20px;
 }
 
 body.light-mode .chart-container {
@@ -2590,5 +2597,49 @@ body.light-mode .duplicate-list-container {
 
   .fuzzy-toggle-label {
     font-size: 0.9em;
+  }
+
+  /* Library Stats responsive design */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .stat-section {
+    min-height: 380px;
+    padding: 20px;
+  }
+
+  .chart-container {
+    height: 320px;
+    padding: 16px;
+  }
+
+  .record-labels-section {
+    grid-column: 1 / -1;
+    min-height: 320px;
+  }
+}
+
+/* Medium screens - maintain 2 columns but adjust sizing */
+@media (min-width: 769px) and (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .stat-section {
+    min-height: 420px;
+    padding: 20px;
+  }
+
+  .chart-container {
+    height: 340px;
+    padding: 16px;
+  }
+
+  .record-labels-section {
+    grid-column: 1 / -1;
+    min-height: 360px;
   }
 }

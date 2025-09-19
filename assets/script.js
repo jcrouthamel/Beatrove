@@ -3324,7 +3324,28 @@ class UIController {
 
     // Try to create chart, which will overlay the list if successful
     if (typeof Chart !== 'undefined') {
-      const chart = this.createDonutChart('genre-chart', genreStats, 'Genres');
+      // Filter out 'Unknown' for chart display and limit to top genres
+      const filteredGenreStats = {};
+      const sortedGenres = Object.entries(genreStats)
+        .filter(([genre]) => genre !== 'Unknown')
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 12); // Show top 12 genres
+
+      sortedGenres.forEach(([genre, count]) => {
+        filteredGenreStats[genre] = count;
+      });
+
+      // Add 'Others' category if there are more genres
+      const totalFilteredCount = sortedGenres.reduce((sum, [,count]) => sum + count, 0);
+      const totalCount = Object.values(genreStats).reduce((sum, count) => sum + count, 0);
+      const unknownCount = genreStats['Unknown'] || 0;
+      const othersCount = totalCount - totalFilteredCount - unknownCount;
+
+      if (othersCount > 0) {
+        filteredGenreStats['Others'] = othersCount;
+      }
+
+      const chart = this.createDonutChart('genre-chart', filteredGenreStats, 'Genres');
       if (chart) {
         // Hide the stat list since chart was created successfully
         document.getElementById('genre-stats').style.display = 'none';
@@ -3432,18 +3453,19 @@ class UIController {
       }
     });
     
-    // Filter out zero counts for cleaner display
+    // Filter out zero counts for cleaner list display
     const filteredEnergyStats = {};
     Object.entries(energyStats).forEach(([key, count]) => {
       if (count > 0) {
         filteredEnergyStats[key] = count;
       }
     });
-    
+
     this.displayStatList('energy-stats', filteredEnergyStats);
 
     if (typeof Chart !== 'undefined') {
-      const chart = this.createBarChart('energy-chart', filteredEnergyStats, 'Energy Levels', '#ffeb3b');
+      // For chart display, show all energy levels 1-10 in order (exclude 'No Rating')
+      const chart = this.createOrderedBarChart('energy-chart', energyStats, 'Energy Levels', '#ffeb3b');
       if (chart) {
         document.getElementById('energy-stats').style.display = 'none';
       }
@@ -3485,12 +3507,33 @@ class UIController {
       const label = track.recordLabel || 'Unknown';
       labelStats[label] = (labelStats[label] || 0) + 1;
     });
-    
+
     console.log('Label stats:', labelStats);
     this.displayStatList('label-stats', labelStats);
 
     if (typeof Chart !== 'undefined') {
-      const chart = this.createDonutChart('label-chart', labelStats, 'Record Labels');
+      // Filter out 'Unknown' for chart display and limit to top labels
+      const filteredLabelStats = {};
+      const sortedLabels = Object.entries(labelStats)
+        .filter(([label]) => label !== 'Unknown')
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 15); // Show top 15 labels
+
+      sortedLabels.forEach(([label, count]) => {
+        filteredLabelStats[label] = count;
+      });
+
+      // Add 'Others' category if there are more labels
+      const totalFilteredCount = sortedLabels.reduce((sum, [,count]) => sum + count, 0);
+      const totalCount = Object.values(labelStats).reduce((sum, count) => sum + count, 0);
+      const unknownCount = labelStats['Unknown'] || 0;
+      const othersCount = totalCount - totalFilteredCount - unknownCount;
+
+      if (othersCount > 0) {
+        filteredLabelStats['Others'] = othersCount;
+      }
+
+      const chart = this.createDonutChart('label-chart', filteredLabelStats, 'Record Labels');
       if (chart) {
         document.getElementById('label-stats').style.display = 'none';
       }
@@ -3690,6 +3733,83 @@ class UIController {
               color: textColor,
               padding: 15,
               usePointStyle: true
+            }
+          }
+        }
+      }
+    });
+
+    this.chartInstances[canvasId] = chart;
+    return chart;
+  }
+
+  createOrderedBarChart(canvasId, allData, title, color = '#ffeb3b') {
+    // Check if Chart.js is loaded
+    if (typeof Chart === 'undefined') {
+      console.error('Chart.js is not loaded');
+      return;
+    }
+
+    this.destroyChart(canvasId);
+
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) {
+      console.error(`Canvas element not found: ${canvasId}`);
+      return;
+    }
+
+    // Create ordered data for energy levels 1-10
+    const labels = [];
+    const values = [];
+
+    for (let i = 1; i <= 10; i++) {
+      const key = `${i} ${'★'.repeat(i)}${'☆'.repeat(10-i)}`;
+      labels.push(`Level ${i}`); // Simplified label for better chart readability
+      values.push(allData[key] || 0);
+    }
+
+    // Check if light mode is active
+    const isLightMode = document.body.classList.contains('light-mode');
+    const textColor = isLightMode ? '#333' : '#fff';
+    const gridColor = isLightMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)';
+
+    const chart = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: title,
+          data: values,
+          backgroundColor: color + '80', // Add transparency
+          borderColor: color,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              color: textColor
+            },
+            grid: {
+              color: gridColor
+            }
+          },
+          x: {
+            ticks: {
+              color: textColor,
+              maxRotation: 0 // Keep labels horizontal for energy levels
+            },
+            grid: {
+              color: gridColor
             }
           }
         }
