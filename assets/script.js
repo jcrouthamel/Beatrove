@@ -823,6 +823,7 @@ class ApplicationState {
       moodVibeTags: {},
       favoriteTracks: {},
       playlists: {},
+      smartPlaylists: {},
       currentPlaylist: '',
       showFavoritesOnly: false
     };
@@ -843,6 +844,7 @@ class ApplicationState {
         energyLevels: localStorage.getItem('energyLevels'),
         favoriteTracks: localStorage.getItem('favoriteTracks'),
         playlists: localStorage.getItem('playlists'),
+        smartPlaylists: localStorage.getItem('smartPlaylists'),
         currentPlaylist: localStorage.getItem('currentPlaylist'),
         themePreference: localStorage.getItem('themePreference'),
         accentColor: localStorage.getItem('accentColor')
@@ -853,6 +855,7 @@ class ApplicationState {
       if (stored.energyLevels) this.data.energyLevels = JSON.parse(stored.energyLevels);
       if (stored.favoriteTracks) this.data.favoriteTracks = JSON.parse(stored.favoriteTracks);
       if (stored.playlists) this.data.playlists = JSON.parse(stored.playlists);
+      if (stored.smartPlaylists) this.data.smartPlaylists = JSON.parse(stored.smartPlaylists);
       if (stored.currentPlaylist) this.data.currentPlaylist = stored.currentPlaylist;
       if (stored.themePreference) this.data.themePreference = stored.themePreference;
       if (stored.accentColor) this.data.accentColor = stored.accentColor;
@@ -879,6 +882,7 @@ class ApplicationState {
               energyLevels: JSON.stringify(this.data.energyLevels),
               favoriteTracks: JSON.stringify(this.data.favoriteTracks),
               playlists: JSON.stringify(this.data.playlists),
+              smartPlaylists: JSON.stringify(this.data.smartPlaylists || {}),
               currentPlaylist: this.data.currentPlaylist,
               themePreference: this.data.themePreference,
               accentColor: this.data.accentColor
@@ -2453,7 +2457,26 @@ class UIRenderer {
 
   render() {
     const filters = this.getActiveFilters();
-    const filteredTracks = this.filterTracks(filters);
+    let filteredTracks = this.filterTracks(filters);
+
+    // Apply smart playlist filtering if a smart playlist is selected
+    const currentPlaylist = this.appState.data.currentPlaylist;
+    if (currentPlaylist && currentPlaylist.startsWith('smart:')) {
+      const smartPlaylistName = currentPlaylist.replace('smart:', '');
+      const smartPlaylist = this.appState.data.smartPlaylists?.[smartPlaylistName];
+
+      console.log('Applying smart playlist filtering:', smartPlaylistName);
+      console.log('Available smart playlists:', Object.keys(this.appState.data.smartPlaylists || {}));
+      console.log('Smart playlist data:', smartPlaylist);
+      console.log('Tracks before smart filtering:', filteredTracks.length);
+
+      if (smartPlaylist) {
+        // Apply smart playlist rules to the already filtered tracks
+        filteredTracks = this.filterTracksBySmartRules(filteredTracks, smartPlaylist.rules, smartPlaylist.logic);
+        console.log('Tracks after smart filtering:', filteredTracks.length);
+      }
+    }
+
     const sortedTracks = this.sortTracks(filteredTracks, filters.sortValue);
 
     // Store filtered tracks for pagination
@@ -2707,6 +2730,62 @@ class UIRenderer {
 
     console.log(`DEBUG: filterTracks result: ${result.length} tracks after filtering`);
     return result;
+  }
+
+  filterTracksBySmartRules(tracks, rules, logic) {
+    if (!rules || !rules.length) return tracks;
+
+    return tracks.filter(track => {
+      if (logic === 'AND') {
+        return rules.every(rule => this.trackMatchesRule(track, rule));
+      } else {
+        return rules.some(rule => this.trackMatchesRule(track, rule));
+      }
+    });
+  }
+
+  trackMatchesRule(track, rule) {
+    const { field, operator, value, value2 } = rule;
+    let trackValue = track[field] || '';
+
+    // Special handling for energy levels
+    if (field === 'energy') {
+      trackValue = this.appState.data.energyLevels[track.display] || 0;
+    }
+
+    // Convert to string for comparison
+    const trackValueStr = String(trackValue).toLowerCase();
+    const ruleValueStr = value.toLowerCase();
+
+    switch (operator) {
+      case 'is':
+        if (['bpm', 'year', 'energy'].includes(field)) {
+          return parseFloat(trackValue) === parseFloat(value);
+        }
+        return trackValueStr === ruleValueStr;
+
+      case 'contains':
+        return trackValueStr.includes(ruleValueStr);
+
+      case 'starts_with':
+        return trackValueStr.startsWith(ruleValueStr);
+
+      case 'greater_than':
+        return parseFloat(trackValue) > parseFloat(value);
+
+      case 'less_than':
+        return parseFloat(trackValue) < parseFloat(value);
+
+      case 'between':
+        if (!value2) return false;
+        const numValue = parseFloat(trackValue);
+        const min = Math.min(parseFloat(value), parseFloat(value2));
+        const max = Math.max(parseFloat(value), parseFloat(value2));
+        return numValue >= min && numValue <= max;
+
+      default:
+        return false;
+    }
   }
 
   sortTracks(tracks, sortValue) {
@@ -3287,12 +3366,23 @@ class UIController {
         this.appState.data.currentPlaylist = e.target.value;
         this.appState.saveToStorage();
         this.updatePlaylistButtonStates();
+
+        // If it's a smart playlist, trigger a render to show filtered tracks
+        if (e.target.value.startsWith('smart:')) {
+          console.log('Smart playlist selected:', e.target.value);
+          this.renderer.render();
+        }
       });
     }
 
     const createBtn = document.getElementById('create-playlist-btn');
     if (createBtn) {
       createBtn.addEventListener('click', () => this.createPlaylist());
+    }
+
+    const createSmartBtn = document.getElementById('create-smart-playlist-btn');
+    if (createSmartBtn) {
+      createSmartBtn.addEventListener('click', () => this.showSmartPlaylistModal());
     }
 
     const deleteBtn = document.getElementById('delete-playlist-btn');
@@ -4806,6 +4896,8 @@ class UIController {
     if (!dropdown) return;
 
     dropdown.innerHTML = '<option value="">Select Playlist</option>';
+
+    // Add regular playlists
     Object.keys(this.appState.data.playlists).forEach(name => {
       const option = SecurityUtils.createSafeElement('option', name);
       option.value = name;
@@ -4814,6 +4906,18 @@ class UIController {
       }
       dropdown.appendChild(option);
     });
+
+    // Add smart playlists
+    if (this.appState.data.smartPlaylists) {
+      Object.keys(this.appState.data.smartPlaylists).forEach(name => {
+        const option = SecurityUtils.createSafeElement('option', `🧠 ${name} (Smart)`);
+        option.value = `smart:${name}`;
+        if (`smart:${name}` === this.appState.data.currentPlaylist) {
+          option.selected = true;
+        }
+        dropdown.appendChild(option);
+      });
+    }
   }
 
   updatePlaylistButtonStates() {
@@ -5177,6 +5281,298 @@ class UIController {
     for (let i = 1; i < 1000; i++) {
       clearTimeout(i);
       clearInterval(i);
+    }
+  }
+
+  // ============= SMART PLAYLIST FUNCTIONALITY =============
+
+  showSmartPlaylistModal() {
+    const modal = document.getElementById('smart-playlist-modal');
+    if (!modal) return;
+
+    modal.classList.remove('hidden');
+    this.initializeSmartPlaylistModal();
+  }
+
+  initializeSmartPlaylistModal() {
+    // Clear previous state
+    const nameInput = document.getElementById('smart-playlist-name-input');
+    const rulesContainer = document.getElementById('smart-playlist-rules-container');
+    const previewContainer = document.getElementById('smart-playlist-preview-tracks');
+    const previewCount = document.getElementById('preview-count');
+
+    if (nameInput) nameInput.value = '';
+    if (rulesContainer) rulesContainer.innerHTML = '';
+    if (previewContainer) previewContainer.innerHTML = '';
+    if (previewCount) previewCount.textContent = '0';
+
+    // Add initial rule
+    this.addSmartPlaylistRule();
+
+    // Set up event listeners
+    this.setupSmartPlaylistEventListeners();
+  }
+
+  setupSmartPlaylistEventListeners() {
+    // Close modal
+    const closeBtn = document.getElementById('close-smart-playlist-modal');
+    const cancelBtn = document.getElementById('cancel-smart-playlist-btn');
+
+    if (closeBtn) {
+      closeBtn.onclick = () => this.hideSmartPlaylistModal();
+    }
+    if (cancelBtn) {
+      cancelBtn.onclick = () => this.hideSmartPlaylistModal();
+    }
+
+    // Add rule button
+    const addRuleBtn = document.getElementById('add-rule-btn');
+    if (addRuleBtn) {
+      addRuleBtn.onclick = () => this.addSmartPlaylistRule();
+    }
+
+    // Save playlist button
+    const saveBtn = document.getElementById('save-smart-playlist-btn');
+    if (saveBtn) {
+      saveBtn.onclick = () => this.saveSmartPlaylist();
+    }
+
+    // Preview updates
+    const nameInput = document.getElementById('smart-playlist-name-input');
+    if (nameInput) {
+      nameInput.addEventListener('input', () => this.updateSmartPlaylistPreview());
+    }
+
+    // Logic radio buttons
+    const logicRadios = document.querySelectorAll('input[name="rule-logic"]');
+    logicRadios.forEach(radio => {
+      radio.addEventListener('change', () => this.updateSmartPlaylistPreview());
+    });
+  }
+
+  addSmartPlaylistRule() {
+    const rulesContainer = document.getElementById('smart-playlist-rules-container');
+    if (!rulesContainer) return;
+
+    const ruleDiv = document.createElement('div');
+    ruleDiv.className = 'smart-rule-item';
+
+    ruleDiv.innerHTML = `
+      <select class="rule-field">
+        <option value="genre">Genre</option>
+        <option value="bpm">BPM</option>
+        <option value="key">Key</option>
+        <option value="year">Year</option>
+        <option value="energy">Energy Level</option>
+        <option value="artist">Artist</option>
+        <option value="title">Title</option>
+        <option value="recordLabel">Record Label</option>
+      </select>
+      <select class="rule-operator">
+        <option value="is">is</option>
+        <option value="contains">contains</option>
+        <option value="starts_with">starts with</option>
+        <option value="greater_than">greater than</option>
+        <option value="less_than">less than</option>
+        <option value="between">between</option>
+      </select>
+      <input type="text" class="rule-value" placeholder="Enter value...">
+      <input type="text" class="rule-value-2 hidden" placeholder="and...">
+      <button class="remove-rule-btn" title="Remove rule">×</button>
+    `;
+
+    rulesContainer.appendChild(ruleDiv);
+
+    // Set up rule-specific event listeners
+    this.setupRuleEventListeners(ruleDiv);
+  }
+
+  setupRuleEventListeners(ruleDiv) {
+    const fieldSelect = ruleDiv.querySelector('.rule-field');
+    const operatorSelect = ruleDiv.querySelector('.rule-operator');
+    const valueInput = ruleDiv.querySelector('.rule-value');
+    const value2Input = ruleDiv.querySelector('.rule-value-2');
+    const removeBtn = ruleDiv.querySelector('.remove-rule-btn');
+
+    // Update operators based on field type
+    fieldSelect.addEventListener('change', () => {
+      this.updateOperatorsForField(fieldSelect.value, operatorSelect);
+      this.updateSmartPlaylistPreview();
+    });
+
+    // Show/hide second value input for "between" operator
+    operatorSelect.addEventListener('change', () => {
+      if (operatorSelect.value === 'between') {
+        value2Input.classList.remove('hidden');
+      } else {
+        value2Input.classList.add('hidden');
+      }
+      this.updateSmartPlaylistPreview();
+    });
+
+    // Update preview when values change
+    valueInput.addEventListener('input', () => this.updateSmartPlaylistPreview());
+    value2Input.addEventListener('input', () => this.updateSmartPlaylistPreview());
+
+    // Remove rule
+    removeBtn.addEventListener('click', () => {
+      ruleDiv.remove();
+      this.updateSmartPlaylistPreview();
+    });
+
+    // Initial setup
+    this.updateOperatorsForField(fieldSelect.value, operatorSelect);
+  }
+
+  updateOperatorsForField(field, operatorSelect) {
+    const numericFields = ['bpm', 'year', 'energy'];
+    const stringFields = ['genre', 'artist', 'title', 'recordLabel', 'key'];
+
+    operatorSelect.innerHTML = '';
+
+    if (numericFields.includes(field)) {
+      operatorSelect.innerHTML = `
+        <option value="is">is</option>
+        <option value="greater_than">greater than</option>
+        <option value="less_than">less than</option>
+        <option value="between">between</option>
+      `;
+    } else if (stringFields.includes(field)) {
+      operatorSelect.innerHTML = `
+        <option value="is">is</option>
+        <option value="contains">contains</option>
+        <option value="starts_with">starts with</option>
+      `;
+    }
+  }
+
+  updateSmartPlaylistPreview() {
+    const rules = this.getSmartPlaylistRules();
+    const logic = document.querySelector('input[name="rule-logic"]:checked')?.value || 'AND';
+
+    const matchingTracks = this.filterTracksBySmartRules(rules, logic);
+
+    const previewContainer = document.getElementById('smart-playlist-preview-tracks');
+    const previewCount = document.getElementById('preview-count');
+
+    if (previewCount) {
+      previewCount.textContent = matchingTracks.length;
+    }
+
+    if (previewContainer) {
+      previewContainer.innerHTML = '';
+
+      // Show first 10 tracks in preview
+      const previewTracks = matchingTracks.slice(0, 10);
+      previewTracks.forEach(track => {
+        const trackDiv = document.createElement('div');
+        trackDiv.className = 'preview-track-item';
+        trackDiv.textContent = `${track.artist} - ${track.title}`;
+        previewContainer.appendChild(trackDiv);
+      });
+
+      if (matchingTracks.length > 10) {
+        const moreDiv = document.createElement('div');
+        moreDiv.className = 'preview-track-item';
+        moreDiv.style.fontStyle = 'italic';
+        moreDiv.textContent = `... and ${matchingTracks.length - 10} more tracks`;
+        previewContainer.appendChild(moreDiv);
+      }
+    }
+  }
+
+  getSmartPlaylistRules() {
+    const ruleItems = document.querySelectorAll('.smart-rule-item');
+    const rules = [];
+
+    ruleItems.forEach(ruleDiv => {
+      const field = ruleDiv.querySelector('.rule-field').value;
+      const operator = ruleDiv.querySelector('.rule-operator').value;
+      const value = ruleDiv.querySelector('.rule-value').value.trim();
+      const value2 = ruleDiv.querySelector('.rule-value-2').value.trim();
+
+      if (value) {
+        rules.push({
+          field,
+          operator,
+          value,
+          value2: operator === 'between' ? value2 : null
+        });
+      }
+    });
+
+    return rules;
+  }
+
+  filterTracksBySmartRules(rules, logic) {
+    // Delegate to renderer method
+    return this.renderer.filterTracksBySmartRules(this.appState.data.tracksForUI, rules, logic);
+  }
+
+  saveSmartPlaylist() {
+    const nameInput = document.getElementById('smart-playlist-name-input');
+    const name = nameInput?.value.trim();
+
+    if (!name) {
+      alert('Please enter a playlist name.');
+      return;
+    }
+
+    const rules = this.getSmartPlaylistRules();
+    if (!rules.length) {
+      alert('Please add at least one rule.');
+      return;
+    }
+
+    const logic = document.querySelector('input[name="rule-logic"]:checked')?.value || 'AND';
+
+    // Create smart playlist object
+    const smartPlaylist = {
+      name,
+      type: 'smart',
+      rules,
+      logic,
+      created: new Date().toISOString()
+    };
+
+    // Save to app state
+    if (!this.appState.data.smartPlaylists) {
+      this.appState.data.smartPlaylists = {};
+      console.log('Created smartPlaylists object');
+    }
+
+    this.appState.data.smartPlaylists[name] = smartPlaylist;
+    console.log('Saved smart playlist to appState:', name);
+    console.log('Current smartPlaylists:', Object.keys(this.appState.data.smartPlaylists));
+
+    this.appState.saveToStorage();
+    console.log('Saved to localStorage');
+
+    // Update playlist dropdown to include smart playlists
+    this.updatePlaylistDropdown();
+
+    // Set as current smart playlist
+    this.appState.data.currentPlaylist = `smart:${name}`;
+    this.appState.saveToStorage();
+    this.updatePlaylistButtonStates();
+
+    // Update dropdown selection
+    const playlistSelect = document.getElementById('playlist-select');
+    if (playlistSelect) {
+      playlistSelect.value = `smart:${name}`;
+    }
+
+    this.hideSmartPlaylistModal();
+
+    // Show success message
+    console.log(`Smart playlist "${name}" created with ${rules.length} rules`);
+    console.log('Smart playlist data:', smartPlaylist);
+  }
+
+  hideSmartPlaylistModal() {
+    const modal = document.getElementById('smart-playlist-modal');
+    if (modal) {
+      modal.classList.add('hidden');
     }
   }
 }

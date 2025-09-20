@@ -283,6 +283,7 @@
       </select>
     </div>
     <button id="create-playlist-btn" class="control-btn">📝 New Playlist</button>
+    <button id="create-smart-playlist-btn" class="control-btn">🧠 Smart Playlist</button>
     <button id="rename-playlist-btn" class="control-btn" disabled>✏️ Rename</button>
     <button id="delete-playlist-btn" class="control-btn" disabled>🗑️ Delete</button>
     <button id="export-playlist-btn" class="control-btn" disabled>Export Playlists</button>
@@ -342,6 +343,52 @@
   </div>
 
   <canvas id="audio-visualizer" width="800" height="60"></canvas>
+
+  <!-- Smart Playlist Creation Modal -->
+  <div id="smart-playlist-modal" class="modal hidden">
+    <div class="modal-content smart-playlist-content">
+      <div class="modal-header">
+        <h2>🧠 Create Smart Playlist</h2>
+        <button class="modal-close" id="close-smart-playlist-modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="smart-playlist-name">
+          <label for="smart-playlist-name-input">Playlist Name:</label>
+          <input type="text" id="smart-playlist-name-input" placeholder="e.g., High Energy House, 90s Hip-Hop, Dinner Music">
+        </div>
+
+        <div class="smart-playlist-rules">
+          <h3>Rules <span class="rule-logic-selector">
+            <label>
+              <input type="radio" name="rule-logic" value="AND" checked> All rules must match (AND)
+            </label>
+            <label>
+              <input type="radio" name="rule-logic" value="OR"> Any rule can match (OR)
+            </label>
+          </span></h3>
+
+          <div id="smart-playlist-rules-container">
+            <!-- Rules will be added here dynamically -->
+          </div>
+
+          <button id="add-rule-btn" class="control-btn">+ Add Rule</button>
+        </div>
+
+        <div class="smart-playlist-preview">
+          <h3>Preview (<span id="preview-count">0</span> tracks)</h3>
+          <div id="smart-playlist-preview-tracks" class="preview-tracks-list">
+            <!-- Preview tracks will be shown here -->
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="save-smart-playlist-btn" class="control-btn">Create Smart Playlist</button>
+        <button id="cancel-smart-playlist-btn" class="control-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
 
   <footer>
     <div class="footer-content">
