@@ -4856,15 +4856,49 @@ class UIController {
 
   exportPlaylist() {
     if (!this.appState.data.currentPlaylist) return;
-    
-    const playlist = this.appState.data.playlists[this.appState.data.currentPlaylist];
-    if (!playlist || playlist.length === 0) {
-      this.notificationSystem.warning('Playlist is empty');
-      return;
+
+    const currentPlaylist = this.appState.data.currentPlaylist;
+    let tracksToExport = [];
+    let playlistName = currentPlaylist;
+
+    if (currentPlaylist.startsWith('smart:')) {
+      // Handle smart playlist export
+      const smartPlaylistName = currentPlaylist.replace('smart:', '');
+      const smartPlaylist = this.appState.data.smartPlaylists?.[smartPlaylistName];
+
+      if (!smartPlaylist) {
+        this.notificationSystem.warning('Smart playlist not found');
+        return;
+      }
+
+      // Get tracks that match the smart playlist rules
+      const matchingTracks = this.renderer.filterTracksBySmartRules(
+        this.appState.data.tracksForUI,
+        smartPlaylist.rules,
+        smartPlaylist.logic
+      );
+
+      if (matchingTracks.length === 0) {
+        this.notificationSystem.warning('Smart playlist has no matching tracks');
+        return;
+      }
+
+      // Convert tracks to the same format as regular playlists (display names)
+      tracksToExport = matchingTracks.map(track => track.display);
+      playlistName = smartPlaylistName;
+
+    } else {
+      // Handle regular playlist export
+      const playlist = this.appState.data.playlists[currentPlaylist];
+      if (!playlist || playlist.length === 0) {
+        this.notificationSystem.warning('Playlist is empty');
+        return;
+      }
+      tracksToExport = playlist;
     }
 
-    const data = playlist.join('\n');
-    this.downloadText(`${this.appState.data.currentPlaylist}.txt`, data);
+    const data = tracksToExport.join('\n');
+    this.downloadText(`${playlistName}.txt`, data);
   }
 
   async importPlaylists(event) {
@@ -4922,8 +4956,27 @@ class UIController {
 
   updatePlaylistButtonStates() {
     const selected = this.appState.data.currentPlaylist;
-    const hasTracks = selected && this.appState.data.playlists[selected]?.length > 0;
-    
+    let hasTracks = false;
+
+    if (selected) {
+      if (selected.startsWith('smart:')) {
+        // For smart playlists, check if there are any tracks that match the rules
+        const smartPlaylistName = selected.replace('smart:', '');
+        const smartPlaylist = this.appState.data.smartPlaylists?.[smartPlaylistName];
+        if (smartPlaylist && this.appState.data.tracksForUI.length > 0) {
+          const matchingTracks = this.renderer.filterTracksBySmartRules(
+            this.appState.data.tracksForUI,
+            smartPlaylist.rules,
+            smartPlaylist.logic
+          );
+          hasTracks = matchingTracks.length > 0;
+        }
+      } else {
+        // For regular playlists
+        hasTracks = this.appState.data.playlists[selected]?.length > 0;
+      }
+    }
+
     document.getElementById('rename-playlist-btn')?.toggleAttribute('disabled', !selected);
     document.getElementById('delete-playlist-btn')?.toggleAttribute('disabled', !selected);
     document.getElementById('export-playlist-btn')?.toggleAttribute('disabled', !hasTracks);
