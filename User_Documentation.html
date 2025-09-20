@@ -34,14 +34,15 @@
       <li><a href="#audio-preview">8. Audio Preview</a></li>
       <li><a href="#waveform-visualization">9. Waveform Visualization</a></li>
       <li><a href="#playlists">10. Playlists</a></li>
-      <li><a href="#tags">11. Tags</a></li>
-      <li><a href="#mood-vibe-tags">12. Mood & Vibe Tags</a></li>
-      <li><a href="#energy-levels">13. Energy Levels</a></li>
-      <li><a href="#record-labels">14. Record Labels</a></li>
-      <li><a href="#library-statistics">15. Library Statistics & Charts</a></li>
-      <li><a href="#python-scripts">16. Python Helper Scripts</a></li>
-      <li><a href="#visualizer">17. Visualizer</a></li>
-      <li><a href="#troubleshooting">18. Troubleshooting</a></li>
+      <li><a href="#smart-playlists">11. Smart Playlists</a></li>
+      <li><a href="#tags">12. Tags</a></li>
+      <li><a href="#mood-vibe-tags">13. Mood & Vibe Tags</a></li>
+      <li><a href="#energy-levels">14. Energy Levels</a></li>
+      <li><a href="#record-labels">15. Record Labels</a></li>
+      <li><a href="#library-statistics">16. Library Statistics & Charts</a></li>
+      <li><a href="#python-scripts">17. Python Helper Scripts</a></li>
+      <li><a href="#visualizer">18. Visualizer</a></li>
+      <li><a href="#troubleshooting">19. Troubleshooting</a></li>
     </ul>
   </div>
 
@@ -192,13 +193,66 @@
     <li>Export playlists to save them, or import previously saved playlists.</li>
   </ul>
 
-  <h2 id="tags">11. Tags</h2>
+  <h2 id="smart-playlists">11. Smart Playlists</h2>
+  <p>Smart playlists automatically populate with tracks that match specific criteria. They update dynamically as your library changes, making them perfect for DJ set preparation and music organization.</p>
+
+  <h3>Creating Smart Playlists</h3>
+  <ul>
+    <li>Click the <strong>🧠 Smart Playlist</strong> button in the playlist controls</li>
+    <li>Enter a descriptive name (e.g., "High Energy House", "90s Hip-Hop", "Peak Time Techno")</li>
+    <li>Click <strong>+ Add Rule</strong> to create filtering conditions</li>
+    <li>Configure each rule with Field, Operator, and Value(s)</li>
+    <li>Choose between <strong>AND</strong> logic (all rules must match) or <strong>OR</strong> logic (any rule can match)</li>
+    <li>See live preview of matching tracks count and track list</li>
+    <li>Click <strong>Create Smart Playlist</strong> to save</li>
+  </ul>
+
+  <h3>Rule Configuration</h3>
+  <ul>
+    <li><strong>Field Options</strong>: Genre, BPM, Key, Year, Energy Level, Artist, Title, Record Label</li>
+    <li><strong>String Operators</strong>: "is" (exact match), "contains" (partial match), "starts with"</li>
+    <li><strong>Numeric Operators</strong>: "is", "greater than", "less than", "between" (range)</li>
+    <li><strong>Between Values</strong>: For ranges, enter two values (e.g., BPM between 128 and 132)</li>
+  </ul>
+
+  <h3>Smart Playlist Examples</h3>
+  <div class="tip">
+    <strong>DJ Set Planning Examples</strong><br>
+    • <strong>High Energy Techno</strong>: Genre "contains" "Techno" AND Energy Level "greater than" 7<br>
+    • <strong>Harmonic House</strong>: Genre "contains" "House" AND Key "is" "8A"<br>
+    • <strong>2020s Progressive</strong>: Genre "contains" "Progressive" AND Year "between" 2020-2024<br>
+    • <strong>Peak Time</strong>: BPM "between" 128-132 AND Energy Level "greater than" 8<br>
+    • <strong>Melodic Breakdown</strong>: Genre "contains" "Melodic" AND BPM "less than" 125<br>
+    • <strong>Closing Tracks</strong>: Energy Level "between" 3-5 AND BPM "less than" 120
+  </div>
+
+  <h3>Using Smart Playlists</h3>
+  <ul>
+    <li>Smart playlists appear in the playlist dropdown with a <strong>🧠 emoji</strong></li>
+    <li>Select a smart playlist to instantly filter tracks by its rules</li>
+    <li>Tracks automatically update when your library changes</li>
+    <li>Export smart playlists to save current matching tracks as text files</li>
+    <li>Smart playlists persist across browser sessions</li>
+  </ul>
+
+  <h3>Professional DJ Workflow</h3>
+  <div class="tip">
+    <strong>Smart Playlist Strategy</strong><br>
+    Create smart playlists for different parts of your sets:<br>
+    • <strong>Opening</strong>: Low-medium energy, specific genres, slower BPMs<br>
+    • <strong>Building</strong>: Medium energy, driving tracks, harmonic keys<br>
+    • <strong>Peak Time</strong>: High energy, fast BPMs, crowd favorites<br>
+    • <strong>Closing</strong>: Emotional tracks, lower energy, memorable tracks<br>
+    Use energy levels + BPM + genre combinations for precise curation
+  </div>
+
+  <h2 id="tags">12. Tags</h2>
   <ul>
     <li>Click the <strong>tag icon (🏷️)</strong> to add or edit tags for a track.</li>
     <li>Filter tracks by tag using the tag dropdown.</li>
   </ul>
 
-  <h2 id="mood-vibe-tags">12. Mood & Vibe Tags</h2>
+  <h2 id="mood-vibe-tags">13. Mood & Vibe Tags</h2>
   <ul>
     <li>Click the <strong>mood & vibe icon (😎)</strong> to add emotional and atmospheric tags to tracks.</li>
     <li>Add tags that describe the mood and vibe of your tracks for better set planning.</li>
@@ -239,7 +293,7 @@
     • <strong>Closing</strong>: Melancholic, Reflective, Underground
   </div>
 
-  <h2 id="energy-levels">13. Energy Levels</h2>
+  <h2 id="energy-levels">14. Energy Levels</h2>
   <ul>
     <li>Rate tracks on a <strong>1-10 star energy scale</strong> to organize by intensity level.</li>
     <li>Click the <strong>energy icon (⚡)</strong> next to any track to set its energy level.</li>
@@ -302,7 +356,7 @@
     Maximum speed and intensity. Hardstyle climaxes, gabber, riddim, deathstep. Pure adrenaline, overwhelming walls of sound.
   </div>
 
-  <h2 id="record-labels">14. Record Labels</h2>
+  <h2 id="record-labels">15. Record Labels</h2>
   <ul>
     <li>Track record label information is automatically imported from CSV files.</li>
     <li>Record labels appear in track details between the year and energy level.</li>
@@ -312,7 +366,7 @@
     <li>Use the CSV format: <code>...year - path - genre - Energy # - Record Label</code> to import label data.</li>
   </ul>
 
-  <h2 id="library-statistics">15. Library Statistics & Charts</h2>
+  <h2 id="library-statistics">16. Library Statistics & Charts</h2>
   <p>The Library Statistics feature provides comprehensive visual analytics of your music collection through interactive charts and detailed breakdowns.</p>
 
   <h3>🎯 Accessing Library Statistics</h3>
@@ -363,7 +417,7 @@
     <strong>💡 Pro Tip:</strong> The Library Statistics feature is perfect for understanding your music collection's composition, identifying gaps in your collection, and planning future acquisitions. Use the energy levels chart to see the complete 1-10 spectrum and identify which energy ranges you might want to expand!
   </div>
 
-  <h2 id="python-scripts">16. Python Helper Scripts</h2>
+  <h2 id="python-scripts">17. Python Helper Scripts</h2>
   <p>Beatrove includes two Python utility scripts to help prepare your music collection for optimal use with the application.</p>
 
   <div class="tip">
@@ -438,13 +492,13 @@
     Use <code>music_file_fixer.py</code> first to standardize your filenames, then run <code>generate_music_list.py</code> to create a comprehensive tracklist. This ensures the best data quality for your Beatrove experience.
   </div>
 
-  <h2 id="visualizer">17. Visualizer</h2>
+  <h2 id="visualizer">18. Visualizer</h2>
   <ul>
     <li>When previewing audio, visualizer bars animate in sync with the music.</li>
     <li>Both the top and bottom visualizers show the audio spectrum.</li>
   </ul>
 
-  <h2 id="troubleshooting">18. Troubleshooting</h2>
+  <h2 id="troubleshooting">19. Troubleshooting</h2>
   <ul>
     <li><b>Search not finding tracks?</b> Try enabling Fuzzy Search for typo-tolerant matching, or check your spelling.</li>
     <li><b>Multi-criteria search too restrictive?</b> Remove some filters to broaden results, or check if data exists for your criteria.</li>

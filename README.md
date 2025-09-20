@@ -56,6 +56,17 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Export/Import**: Save and restore playlists as JSON files
 - **Playlist Switching**: Easy dropdown selection between playlists
 
+### 🧠 Smart Playlists
+- **Rule-Based Filtering**: Automatically populate playlists based on metadata criteria
+- **Multiple Rule Support**: Combine multiple conditions for precise track selection
+- **Logical Operators**: Use AND/OR logic to create complex filtering rules
+- **Real-time Updates**: Smart playlists dynamically update when your library changes
+- **Professional Criteria**: Filter by BPM, genre, key, year, energy level, artist, title, and record label
+- **Advanced Operators**: Support for "is", "contains", "starts with", "greater than", "less than", and "between" comparisons
+- **Live Preview**: See matching tracks count and preview while creating rules
+- **Export Support**: Export smart playlist results as regular playlists
+- **Brain Icon**: Smart playlists display with 🧠 emoji in the dropdown for easy identification
+
 ### 🏷️ Tagging System
 - **Custom Tags**: Add multiple tags to any track
 - **Tag Filtering**: Filter tracks by specific tags
@@ -284,6 +295,24 @@ For best results with Beatrove, follow this preparation workflow:
 4. **Use Full Track Overview** to see the entire song with playback progress
 5. **View different data representations** - from simple bars to complex frequency mapping
 
+### Smart Playlist Creation
+1. **Access Creation**: Click the "🧠 Smart Playlist" button in the playlist controls
+2. **Name Your Playlist**: Enter a descriptive name (e.g., "High Energy House", "90s Hip-Hop")
+3. **Add Rules**: Click "+ Add Rule" to create filtering conditions
+4. **Configure Each Rule**:
+   - **Field**: Select from Genre, BPM, Key, Year, Energy Level, Artist, Title, Record Label
+   - **Operator**: Choose from "is", "contains", "starts with", "greater than", "less than", "between"
+   - **Value**: Enter the criteria value (for "between", enter two values)
+5. **Set Logic**: Choose "All rules must match (AND)" or "Any rule can match (OR)"
+6. **Live Preview**: See real-time track count and preview of matching tracks
+7. **Save & Use**: Create the smart playlist and it appears in the dropdown with 🧠 emoji
+
+**Smart Playlist Examples**:
+- **High Energy Techno**: Genre "contains" "Techno" AND Energy Level "greater than" 7
+- **Harmonic House**: Genre "contains" "House" AND Key "is" "8A"
+- **2020s Progressive**: Genre "contains" "Progressive" AND Year "between" 2020-2024
+- **Peak Time**: BPM "between" 128-132 AND Energy Level "greater than" 8
+
 ### Library Statistics & Charts
 1. **Access Statistics**: Click the "📊 Library Stats" button in the top controls
 2. **Interactive Charts**: View your collection through beautiful, interactive visualizations:
@@ -366,9 +395,10 @@ tests/
 ## 🔧 Advanced Features
 
 ### Import/Export
-- **Export All**: Save tracks, playlists, tags, mood/vibe tags, and energy levels as JSON
+- **Export All**: Save tracks, playlists, smart playlists, tags, mood/vibe tags, and energy levels as JSON
 - **Import All**: Restore complete data from JSON backup
-- **Export Playlists**: Save individual playlists
+- **Export Playlists**: Save individual playlists (regular and smart playlists)
+- **Export Smart Playlists**: Export current track matches from smart playlists as text files
 - **Export Tags**: Save tagging data
 
 ### Mood & Vibe Tag Management
