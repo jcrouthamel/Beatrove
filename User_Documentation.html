@@ -35,14 +35,15 @@
       <li><a href="#waveform-visualization">9. Waveform Visualization</a></li>
       <li><a href="#playlists">10. Playlists</a></li>
       <li><a href="#smart-playlists">11. Smart Playlists</a></li>
-      <li><a href="#tags">12. Tags</a></li>
-      <li><a href="#mood-vibe-tags">13. Mood & Vibe Tags</a></li>
-      <li><a href="#energy-levels">14. Energy Levels</a></li>
-      <li><a href="#record-labels">15. Record Labels</a></li>
-      <li><a href="#library-statistics">16. Library Statistics & Charts</a></li>
-      <li><a href="#python-scripts">17. Python Helper Scripts</a></li>
-      <li><a href="#visualizer">18. Visualizer</a></li>
-      <li><a href="#troubleshooting">19. Troubleshooting</a></li>
+      <li><a href="#playlist-export">12. Playlist Export Formats</a></li>
+      <li><a href="#tags">13. Tags</a></li>
+      <li><a href="#mood-vibe-tags">14. Mood & Vibe Tags</a></li>
+      <li><a href="#energy-levels">15. Energy Levels</a></li>
+      <li><a href="#record-labels">16. Record Labels</a></li>
+      <li><a href="#library-statistics">17. Library Statistics & Charts</a></li>
+      <li><a href="#python-scripts">18. Python Helper Scripts</a></li>
+      <li><a href="#visualizer">19. Visualizer</a></li>
+      <li><a href="#troubleshooting">20. Troubleshooting</a></li>
     </ul>
   </div>
 
@@ -246,13 +247,72 @@
     Use energy levels + BPM + genre combinations for precise curation
   </div>
 
-  <h2 id="tags">12. Tags</h2>
+  <h2 id="playlist-export">12. Playlist Export Formats</h2>
+  <p>Export your playlists in multiple professional formats for sharing, backup, or use with other DJ software and media players.</p>
+
+  <h3>🎯 Accessing Playlist Export</h3>
+  <ul>
+    <li>Select any playlist (regular or smart) from the playlist dropdown</li>
+    <li>Click the <strong>Export Playlists</strong> button in the playlist controls</li>
+    <li>Choose your preferred export format from the interactive modal</li>
+  </ul>
+
+  <h3>📄 TXT Format</h3>
+  <ul>
+    <li><strong>Content</strong>: Simple text file with track names, one per line</li>
+    <li><strong>Use Cases</strong>: DJ software compatibility, lightweight sharing</li>
+    <li><strong>Benefits</strong>: Universal support, small file size, easy to edit</li>
+    <li><strong>Example</strong>: Perfect for importing into Serato, Traktor, or Virtual DJ</li>
+  </ul>
+
+  <h3>📊 CSV Format</h3>
+  <ul>
+    <li><strong>Content</strong>: Complete track metadata in spreadsheet format</li>
+    <li><strong>Includes</strong>: Artist, Title, Key, BPM, Track Time, Year, Path, Genre, Energy Level, Record Label</li>
+    <li><strong>Use Cases</strong>: Data analysis, Excel processing, metadata backup</li>
+    <li><strong>Benefits</strong>: Proper CSV escaping, complete information, Excel-ready</li>
+    <li><strong>Example</strong>: Analyze your collection's BPM distribution or track energy levels</li>
+  </ul>
+
+  <h3>🌐 HTML Format</h3>
+  <ul>
+    <li><strong>Content</strong>: Professional styled web page with searchable table</li>
+    <li><strong>Features</strong>: Dark theme styling, energy level stars, responsive design</li>
+    <li><strong>Use Cases</strong>: Web sharing, printing, offline viewing</li>
+    <li><strong>Benefits</strong>: Beautiful presentation, interactive table, printer-friendly</li>
+    <li><strong>Example</strong>: Share your set list on social media or print for gigs</li>
+  </ul>
+
+  <h3>🎵 M3U Format</h3>
+  <ul>
+    <li><strong>Content</strong>: Standard playlist format for media players</li>
+    <li><strong>Includes</strong>: Track duration, file paths, artist/title metadata</li>
+    <li><strong>Use Cases</strong>: VLC, iTunes, Winamp, media player import</li>
+    <li><strong>Benefits</strong>: Industry standard, broad compatibility, duration info</li>
+    <li><strong>Example</strong>: Load your playlist directly into VLC for listening</li>
+  </ul>
+
+  <h3>💡 Smart Playlist Export</h3>
+  <div class="tip">
+    <strong>Dynamic Export</strong><br>
+    Smart playlists export their current filtered results in real-time. The exported file contains all tracks that currently match your smart playlist rules, making it perfect for creating dynamic set lists that automatically update as your library grows.
+  </div>
+
+  <h3>📋 Export Tips</h3>
+  <ul>
+    <li><strong>File Names</strong>: Exported files use the playlist name with proper extensions (.txt, .csv, .html, .m3u)</li>
+    <li><strong>Metadata Quality</strong>: Ensure your tracks have complete metadata for best export results</li>
+    <li><strong>File Paths</strong>: M3U exports include original file paths for direct media player access</li>
+    <li><strong>Energy Levels</strong>: HTML exports display energy ratings as gold stars (★★★★★☆☆☆☆☆)</li>
+  </ul>
+
+  <h2 id="tags">13. Tags</h2>
   <ul>
     <li>Click the <strong>tag icon (🏷️)</strong> to add or edit tags for a track.</li>
     <li>Filter tracks by tag using the tag dropdown.</li>
   </ul>
 
-  <h2 id="mood-vibe-tags">13. Mood & Vibe Tags</h2>
+  <h2 id="mood-vibe-tags">14. Mood & Vibe Tags</h2>
   <ul>
     <li>Click the <strong>mood & vibe icon (😎)</strong> to add emotional and atmospheric tags to tracks.</li>
     <li>Add tags that describe the mood and vibe of your tracks for better set planning.</li>
@@ -293,7 +353,7 @@
     • <strong>Closing</strong>: Melancholic, Reflective, Underground
   </div>
 
-  <h2 id="energy-levels">14. Energy Levels</h2>
+  <h2 id="energy-levels">15. Energy Levels</h2>
   <ul>
     <li>Rate tracks on a <strong>1-10 star energy scale</strong> to organize by intensity level.</li>
     <li>Click the <strong>energy icon (⚡)</strong> next to any track to set its energy level.</li>
@@ -356,7 +416,7 @@
     Maximum speed and intensity. Hardstyle climaxes, gabber, riddim, deathstep. Pure adrenaline, overwhelming walls of sound.
   </div>
 
-  <h2 id="record-labels">15. Record Labels</h2>
+  <h2 id="record-labels">16. Record Labels</h2>
   <ul>
     <li>Track record label information is automatically imported from CSV files.</li>
     <li>Record labels appear in track details between the year and energy level.</li>
@@ -366,7 +426,7 @@
     <li>Use the CSV format: <code>...year - path - genre - Energy # - Record Label</code> to import label data.</li>
   </ul>
 
-  <h2 id="library-statistics">16. Library Statistics & Charts</h2>
+  <h2 id="library-statistics">17. Library Statistics & Charts</h2>
   <p>The Library Statistics feature provides comprehensive visual analytics of your music collection through interactive charts and detailed breakdowns.</p>
 
   <h3>🎯 Accessing Library Statistics</h3>
@@ -417,7 +477,7 @@
     <strong>💡 Pro Tip:</strong> The Library Statistics feature is perfect for understanding your music collection's composition, identifying gaps in your collection, and planning future acquisitions. Use the energy levels chart to see the complete 1-10 spectrum and identify which energy ranges you might want to expand!
   </div>
 
-  <h2 id="python-scripts">17. Python Helper Scripts</h2>
+  <h2 id="python-scripts">18. Python Helper Scripts</h2>
   <p>Beatrove includes two Python utility scripts to help prepare your music collection for optimal use with the application.</p>
 
   <div class="tip">
@@ -492,13 +552,13 @@
     Use <code>music_file_fixer.py</code> first to standardize your filenames, then run <code>generate_music_list.py</code> to create a comprehensive tracklist. This ensures the best data quality for your Beatrove experience.
   </div>
 
-  <h2 id="visualizer">18. Visualizer</h2>
+  <h2 id="visualizer">19. Visualizer</h2>
   <ul>
     <li>When previewing audio, visualizer bars animate in sync with the music.</li>
     <li>Both the top and bottom visualizers show the audio spectrum.</li>
   </ul>
 
-  <h2 id="troubleshooting">19. Troubleshooting</h2>
+  <h2 id="troubleshooting">20. Troubleshooting</h2>
   <ul>
     <li><b>Search not finding tracks?</b> Try enabling Fuzzy Search for typo-tolerant matching, or check your spelling.</li>
     <li><b>Multi-criteria search too restrictive?</b> Remove some filters to broaden results, or check if data exists for your criteria.</li>

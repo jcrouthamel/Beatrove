@@ -313,6 +313,37 @@ For best results with Beatrove, follow this preparation workflow:
 - **2020s Progressive**: Genre "contains" "Progressive" AND Year "between" 2020-2024
 - **Peak Time**: BPM "between" 128-132 AND Energy Level "greater than" 8
 
+### Playlist Export Formats
+1. **Access Export**: Select any playlist and click "Export Playlists" button
+2. **Choose Format**: Interactive modal with 4 professional export options:
+
+**📄 TXT Format**:
+- Simple text file with track names, one per line
+- Perfect for DJ software compatibility
+- Lightweight and universally supported
+
+**📊 CSV Format**:
+- Complete track metadata in spreadsheet format
+- Includes artist, title, BPM, key, year, genre, energy level, record label
+- Perfect for Excel analysis and data processing
+- Proper CSV escaping for special characters
+
+**🌐 HTML Format**:
+- Professional styled web page with searchable table
+- Dark theme styling consistent with app
+- Energy levels displayed as gold stars (★★★★★☆☆☆☆☆)
+- Perfect for sharing, printing, or web publishing
+- Responsive design for all devices
+
+**🎵 M3U Format**:
+- Standard playlist format for media players
+- Compatible with VLC, iTunes, Winamp, and DJ software
+- Includes track duration and metadata
+- Uses proper file paths for local playback
+
+3. **Smart Playlist Support**: All formats work with both regular and smart playlists
+4. **Automatic Download**: Files download with proper extensions and MIME types
+
 ### Library Statistics & Charts
 1. **Access Statistics**: Click the "📊 Library Stats" button in the top controls
 2. **Interactive Charts**: View your collection through beautiful, interactive visualizations:
@@ -397,8 +428,13 @@ tests/
 ### Import/Export
 - **Export All**: Save tracks, playlists, smart playlists, tags, mood/vibe tags, and energy levels as JSON
 - **Import All**: Restore complete data from JSON backup
-- **Export Playlists**: Save individual playlists (regular and smart playlists)
-- **Export Smart Playlists**: Export current track matches from smart playlists as text files
+- **Multi-Format Playlist Export**: Choose from 4 professional formats:
+  - **TXT**: Simple text format, one track per line (DJ software compatible)
+  - **CSV**: Complete metadata spreadsheet (Excel/data analysis ready)
+  - **HTML**: Styled web page with searchable table (sharing/printing)
+  - **M3U**: Standard playlist format (VLC, iTunes, media players)
+- **Smart Playlist Export**: Export filtered results from smart playlists in any format
+- **Interactive Format Selection**: Professional modal with format descriptions and icons
 - **Export Tags**: Save tagging data
 
 ### Mood & Vibe Tag Management
