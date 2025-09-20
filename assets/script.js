@@ -4804,16 +4804,36 @@ class UIController {
 
   async deletePlaylist() {
     if (!this.appState.data.currentPlaylist) return;
-    
-    const confirmed = await this.notificationSystem.confirm(`Delete playlist "${this.appState.data.currentPlaylist}"?`, 'Delete Playlist');
+
+    const currentPlaylist = this.appState.data.currentPlaylist;
+    let displayName = currentPlaylist;
+
+    // Get display name for confirmation dialog
+    if (currentPlaylist.startsWith('smart:')) {
+      displayName = currentPlaylist.replace('smart:', '') + ' (Smart)';
+    }
+
+    const confirmed = await this.notificationSystem.confirm(`Delete playlist "${displayName}"?`, 'Delete Playlist');
     if (confirmed) {
-      const playlistName = this.appState.data.currentPlaylist;
-      delete this.appState.data.playlists[this.appState.data.currentPlaylist];
+      if (currentPlaylist.startsWith('smart:')) {
+        // Handle smart playlist deletion
+        const smartPlaylistName = currentPlaylist.replace('smart:', '');
+        delete this.appState.data.smartPlaylists[smartPlaylistName];
+      } else {
+        // Handle regular playlist deletion
+        delete this.appState.data.playlists[currentPlaylist];
+      }
+
+      // Reset current playlist and trigger view reset
       this.appState.data.currentPlaylist = '';
       this.appState.saveToStorage();
       this.updatePlaylistDropdown();
       this.updatePlaylistButtonStates();
-      this.notificationSystem.success(`Playlist "${playlistName}" deleted successfully`);
+
+      // Trigger render to reset to default view
+      this.renderer.render();
+
+      this.notificationSystem.success(`Playlist "${displayName}" deleted successfully`);
     }
   }
 
