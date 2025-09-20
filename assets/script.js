@@ -5062,6 +5062,7 @@ ${trackObjects.map((track, index) => {
     }
 
     const m3u8Lines = ['#EXTM3U'];
+    let missingPaths = 0;
 
     trackObjects.forEach(track => {
       // Calculate duration in seconds (if available)
@@ -5077,14 +5078,28 @@ ${trackObjects.map((track, index) => {
       const artistTitle = `${track.artist || 'Unknown Artist'} - ${track.title || 'Unknown Title'}`;
       m3u8Lines.push(`#EXTINF:${duration},${artistTitle}`);
 
-      // Add file path (use relative path or just filename if no path)
-      const filePath = track.path || `${track.artist} - ${track.title}.mp3`;
+      // Add file path - M3U spec requires actual media file paths
+      let filePath = track.path || track.absPath;
+
+      if (!filePath) {
+        // If no path available, create a fallback filename
+        filePath = `${track.artist || 'Unknown Artist'} - ${track.title || 'Unknown Title'}.mp3`;
+        // Clean up filename for filesystem compatibility
+        filePath = filePath.replace(/[<>:"|?*]/g, '_').replace(/\s+/g, ' ');
+        missingPaths++;
+      }
+
       m3u8Lines.push(filePath);
     });
 
     const m3u8Content = m3u8Lines.join('\n');
     const blob = new Blob([m3u8Content], { type: 'application/vnd.apple.mpegurl;charset=utf-8;' });
     this.downloadBlob(blob, `${playlistName}.m3u`);
+
+    // Notify user about missing file paths
+    if (missingPaths > 0) {
+      this.notificationSystem.info(`M3U exported with ${missingPaths} fallback filename(s). For full compatibility, ensure your tracks have file path information.`);
+    }
   }
 
   escapeCsvField(field) {
