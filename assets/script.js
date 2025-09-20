@@ -2203,11 +2203,29 @@ class TrackProcessor {
     const seenTracks = new Map();
     const errors = [];
 
-    lines.forEach((line, index) => {
-      const parts = line.split(' - ');
-      if (parts.length < 6) return;
+    // Detect if this is a CSV format with headers
+    const isCSVFormat = this.detectCSVFormat(lines[0]);
+    let dataLines = lines;
+    let csvHeaders = null;
 
-      const track = this.parseTrackLine(parts);
+    if (isCSVFormat) {
+      console.log('Detected new CSV format with headers');
+      csvHeaders = this.parseCSVLine(lines[0]);
+      dataLines = lines.slice(1); // Skip header row
+    } else {
+      console.log('Detected legacy dash-separated format');
+    }
+
+    dataLines.forEach((line, index) => {
+      let track;
+
+      if (isCSVFormat) {
+        track = this.parseCSVTrackLine(line, csvHeaders);
+      } else {
+        const parts = line.split(' - ');
+        if (parts.length < 6) return;
+        track = this.parseTrackLine(parts);
+      }
       
       if (!track.artist && !track.title) {
         errors.push(`Line ${index + 1}: Missing required fields`);
@@ -2368,6 +2386,115 @@ class TrackProcessor {
         track.genre = genreParts.join(' - ').trim();
       }
     }
+
+    // Normalize year
+    const yearMatch = track.year.match(/(19\d{2}|20\d{2})/);
+    if (yearMatch) track.year = yearMatch[1];
+
+    return track;
+  }
+
+  // ============= CSV FORMAT PARSING =============
+
+  static detectCSVFormat(firstLine) {
+    // Check if the first line contains expected CSV headers
+    const lowerLine = firstLine.toLowerCase();
+    return lowerLine.includes('artist,title') ||
+           lowerLine.includes('artist,') ||
+           (lowerLine.includes('artist') && lowerLine.includes(','));
+  }
+
+  static parseCSVLine(line) {
+    // Simple CSV parser that handles quoted fields
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    // Add the last field
+    result.push(current.trim());
+    return result;
+  }
+
+  static parseCSVTrackLine(line, headers) {
+    const values = this.parseCSVLine(line);
+    const track = {
+      artist: '',
+      title: '',
+      key: '',
+      bpm: '',
+      trackTime: '',
+      year: '',
+      absPath: '',
+      genre: '',
+      recordLabel: '',
+      energyLevel: 0
+    };
+
+    // Map CSV values to track properties based on headers
+    headers.forEach((header, index) => {
+      const value = values[index] || '';
+      const headerLower = header.toLowerCase();
+
+      switch (headerLower) {
+        case 'artist':
+          track.artist = value;
+          break;
+        case 'title':
+          track.title = value;
+          break;
+        case 'key':
+          track.key = value;
+          break;
+        case 'bpm':
+          track.bpm = value;
+          break;
+        case 'extension':
+          // Extension is separate in new format, we'll ignore it here
+          // as it's part of the path
+          break;
+        case 'duration':
+          track.trackTime = value;
+          break;
+        case 'year':
+          track.year = value;
+          break;
+        case 'path':
+          track.absPath = value;
+          break;
+        case 'genre':
+          track.genre = value;
+          break;
+        case 'energy':
+          // Handle "Energy 7" format
+          if (value) {
+            const energyMatch = value.match(/(\d+)/);
+            if (energyMatch) {
+              track.energyLevel = parseInt(energyMatch[1]);
+            }
+          }
+          break;
+        case 'label':
+          track.recordLabel = value;
+          break;
+        case 'artwork':
+          // Store artwork path if needed in the future
+          track.artworkPath = value;
+          break;
+      }
+    });
 
     // Normalize year
     const yearMatch = track.year.match(/(19\d{2}|20\d{2})/);
