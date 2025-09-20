@@ -3397,7 +3397,7 @@ class UIController {
 
     const exportBtn = document.getElementById('export-playlist-btn');
     if (exportBtn) {
-      exportBtn.addEventListener('click', () => this.exportPlaylist());
+      exportBtn.addEventListener('click', () => this.showExportFormatModal());
     }
 
     const importBtn = document.getElementById('import-playlists-btn');
@@ -4874,11 +4874,12 @@ class UIController {
     }
   }
 
-  exportPlaylist() {
+  exportPlaylist(format = 'txt') {
     if (!this.appState.data.currentPlaylist) return;
 
     const currentPlaylist = this.appState.data.currentPlaylist;
     let tracksToExport = [];
+    let trackObjects = [];
     let playlistName = currentPlaylist;
 
     if (currentPlaylist.startsWith('smart:')) {
@@ -4903,7 +4904,8 @@ class UIController {
         return;
       }
 
-      // Convert tracks to the same format as regular playlists (display names)
+      // Store both track objects and display names
+      trackObjects = matchingTracks;
       tracksToExport = matchingTracks.map(track => track.display);
       playlistName = smartPlaylistName;
 
@@ -4914,11 +4916,185 @@ class UIController {
         this.notificationSystem.warning('Playlist is empty');
         return;
       }
+
+      // For regular playlists, we need to find the track objects
+      trackObjects = playlist.map(displayName => {
+        return this.appState.data.tracksForUI.find(track => track.display === displayName);
+      }).filter(track => track !== undefined);
+
       tracksToExport = playlist;
     }
 
-    const data = tracksToExport.join('\n');
-    this.downloadText(`${playlistName}.txt`, data);
+    // Export based on format
+    switch (format.toLowerCase()) {
+      case 'csv':
+        this.exportPlaylistAsCSV(playlistName, trackObjects);
+        break;
+      case 'html':
+        this.exportPlaylistAsHTML(playlistName, trackObjects);
+        break;
+      case 'm3u8':
+        this.exportPlaylistAsM3U8(playlistName, trackObjects);
+        break;
+      case 'txt':
+      default:
+        const data = tracksToExport.join('\n');
+        this.downloadText(`${playlistName}.txt`, data);
+        break;
+    }
+  }
+
+  exportPlaylistAsCSV(playlistName, trackObjects) {
+    if (!trackObjects.length) {
+      this.notificationSystem.warning('No tracks to export');
+      return;
+    }
+
+    // CSV Header
+    const headers = ['Artist', 'Title', 'Key', 'BPM', 'Track Time', 'Year', 'Path', 'Genre', 'Energy Level', 'Record Label'];
+    const csvRows = [headers.join(',')];
+
+    // Add track data
+    trackObjects.forEach(track => {
+      const row = [
+        this.escapeCsvField(track.artist || ''),
+        this.escapeCsvField(track.title || ''),
+        this.escapeCsvField(track.key || ''),
+        track.bpm || '',
+        this.escapeCsvField(track.trackTime || ''),
+        track.year || '',
+        this.escapeCsvField(track.path || ''),
+        this.escapeCsvField(track.genre || ''),
+        this.appState.data.energyLevels[track.display] || '',
+        this.escapeCsvField(track.recordLabel || '')
+      ];
+      csvRows.push(row.join(','));
+    });
+
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    this.downloadBlob(blob, `${playlistName}.csv`);
+  }
+
+  exportPlaylistAsHTML(playlistName, trackObjects) {
+    if (!trackObjects.length) {
+      this.notificationSystem.warning('No tracks to export');
+      return;
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${SecurityUtils.escapeHtml(playlistName)} - Playlist</title>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #181818; color: #fff; padding: 40px; }
+    h1 { color: #00ffff; margin-bottom: 0.5em; }
+    .playlist-info { margin-bottom: 2em; color: #ccc; }
+    table { width: 100%; border-collapse: collapse; background: #222; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+    th { background: #333; color: #00ffff; font-weight: bold; }
+    tr:nth-child(even) { background: #252525; }
+    tr:hover { background: #2a2a2a; }
+    .track-number { width: 50px; text-align: center; color: #888; }
+    .energy-stars { color: #ffd700; }
+    .footer { margin-top: 2em; color: #666; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>${SecurityUtils.escapeHtml(playlistName)}</h1>
+  <div class="playlist-info">
+    <strong>Tracks:</strong> ${trackObjects.length} |
+    <strong>Generated:</strong> ${new Date().toLocaleString()}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Artist</th>
+        <th>Title</th>
+        <th>Key</th>
+        <th>BPM</th>
+        <th>Time</th>
+        <th>Year</th>
+        <th>Genre</th>
+        <th>Energy</th>
+        <th>Label</th>
+      </tr>
+    </thead>
+    <tbody>
+${trackObjects.map((track, index) => {
+  const energyLevel = this.appState.data.energyLevels[track.display] || 0;
+  const energyStars = energyLevel > 0 ? '★'.repeat(energyLevel) + '☆'.repeat(10 - energyLevel) : '';
+
+  return `      <tr>
+        <td class="track-number">${index + 1}</td>
+        <td>${SecurityUtils.escapeHtml(track.artist || '')}</td>
+        <td>${SecurityUtils.escapeHtml(track.title || '')}</td>
+        <td>${SecurityUtils.escapeHtml(track.key || '')}</td>
+        <td>${track.bpm || ''}</td>
+        <td>${SecurityUtils.escapeHtml(track.trackTime || '')}</td>
+        <td>${track.year || ''}</td>
+        <td>${SecurityUtils.escapeHtml(track.genre || '')}</td>
+        <td class="energy-stars">${energyStars}</td>
+        <td>${SecurityUtils.escapeHtml(track.recordLabel || '')}</td>
+      </tr>`;
+}).join('\n')}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Generated by Beatrove - EDM Tracklist Management
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+    this.downloadBlob(blob, `${playlistName}.html`);
+  }
+
+  exportPlaylistAsM3U8(playlistName, trackObjects) {
+    if (!trackObjects.length) {
+      this.notificationSystem.warning('No tracks to export');
+      return;
+    }
+
+    const m3u8Lines = ['#EXTM3U'];
+
+    trackObjects.forEach(track => {
+      // Calculate duration in seconds (if available)
+      let duration = -1;
+      if (track.trackTime) {
+        const timeMatch = track.trackTime.match(/(\d+):(\d+)/);
+        if (timeMatch) {
+          duration = parseInt(timeMatch[1]) * 60 + parseInt(timeMatch[2]);
+        }
+      }
+
+      // Add extended info line
+      const artistTitle = `${track.artist || 'Unknown Artist'} - ${track.title || 'Unknown Title'}`;
+      m3u8Lines.push(`#EXTINF:${duration},${artistTitle}`);
+
+      // Add file path (use relative path or just filename if no path)
+      const filePath = track.path || `${track.artist} - ${track.title}.mp3`;
+      m3u8Lines.push(filePath);
+    });
+
+    const m3u8Content = m3u8Lines.join('\n');
+    const blob = new Blob([m3u8Content], { type: 'application/vnd.apple.mpegurl;charset=utf-8;' });
+    this.downloadBlob(blob, `${playlistName}.m3u`);
+  }
+
+  escapeCsvField(field) {
+    if (!field) return '';
+    const stringField = String(field);
+    // Escape quotes and wrap in quotes if contains comma, quote, or newline
+    if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+      return `"${stringField.replace(/"/g, '""')}"`;
+    }
+    return stringField;
   }
 
   async importPlaylists(event) {
@@ -5635,6 +5811,9 @@ class UIController {
       playlistSelect.value = `smart:${name}`;
     }
 
+    // Trigger render to display the smart playlist tracks
+    this.renderer.render();
+
     this.hideSmartPlaylistModal();
 
     // Show success message
@@ -5646,6 +5825,102 @@ class UIController {
     const modal = document.getElementById('smart-playlist-modal');
     if (modal) {
       modal.classList.add('hidden');
+    }
+  }
+
+  // ============= EXPORT FORMAT MODAL =============
+
+  showExportFormatModal() {
+    if (!this.appState.data.currentPlaylist) return;
+
+    // Create modal dynamically
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content export-format-content">
+        <div class="modal-header">
+          <h2>📤 Export Playlist</h2>
+          <button class="modal-close" id="close-export-format-modal">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p>Choose the export format for your playlist:</p>
+
+          <div class="export-format-options">
+            <div class="format-option" data-format="txt">
+              <div class="format-icon">📄</div>
+              <div class="format-info">
+                <h3>Text (TXT)</h3>
+                <p>Simple text file with track names, one per line. Compatible with most DJ software.</p>
+              </div>
+            </div>
+
+            <div class="format-option" data-format="csv">
+              <div class="format-icon">📊</div>
+              <div class="format-info">
+                <h3>CSV Spreadsheet</h3>
+                <p>Comma-separated file with complete track metadata. Perfect for Excel or data analysis.</p>
+              </div>
+            </div>
+
+            <div class="format-option" data-format="html">
+              <div class="format-icon">🌐</div>
+              <div class="format-info">
+                <h3>HTML Web Page</h3>
+                <p>Styled web page with searchable table. Great for sharing or printing.</p>
+              </div>
+            </div>
+
+            <div class="format-option" data-format="m3u8">
+              <div class="format-icon">🎵</div>
+              <div class="format-info">
+                <h3>M3U Playlist</h3>
+                <p>Standard playlist format for media players like VLC, iTunes, and DJ software.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="cancel-export-btn" class="control-btn">Cancel</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Set up event listeners
+    const closeBtn = modal.querySelector('#close-export-format-modal');
+    const cancelBtn = modal.querySelector('#cancel-export-btn');
+    const formatOptions = modal.querySelectorAll('.format-option');
+
+    if (closeBtn) {
+      closeBtn.onclick = () => this.hideExportFormatModal(modal);
+    }
+    if (cancelBtn) {
+      cancelBtn.onclick = () => this.hideExportFormatModal(modal);
+    }
+
+    // Format option click handlers
+    formatOptions.forEach(option => {
+      option.addEventListener('click', () => {
+        const format = option.dataset.format;
+        this.hideExportFormatModal(modal);
+        this.exportPlaylist(format);
+      });
+    });
+
+    // Close on outside click
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        this.hideExportFormatModal(modal);
+      }
+    });
+  }
+
+  hideExportFormatModal(modal) {
+    if (modal && modal.parentElement) {
+      modal.remove();
     }
   }
 }

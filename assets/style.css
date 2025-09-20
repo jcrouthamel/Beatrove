@@ -2789,6 +2789,75 @@ body.light-mode .modal-close:hover {
   color: #fff;
 }
 
+/* ============= EXPORT FORMAT MODAL ============= */
+.export-format-content {
+  max-width: 600px;
+}
+
+.export-format-options {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.format-option {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.format-option:hover {
+  border-color: var(--accent-color);
+  background: rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.format-icon {
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  background: rgba(0, 255, 255, 0.1);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.format-info h3 {
+  margin: 0 0 8px 0;
+  color: var(--accent-color);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.format-info p {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 0.8;
+}
+
+/* Light mode adjustments */
+body.light-mode .format-option {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .format-option:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .format-icon {
+  background: rgba(0, 255, 255, 0.1);
+}
+
 /* ============= UTILITY CLASSES FOR INLINE STYLES ============= */
 .hidden {
   display: none !important;
