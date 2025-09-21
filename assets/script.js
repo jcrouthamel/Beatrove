@@ -17,12 +17,21 @@ const CONFIG = {
   MAX_YEAR: new Date().getFullYear() + 1,
   ALLOWED_FILE_EXTENSIONS: ['.csv', '.txt', '.yaml', '.yml'],
   ALLOWED_AUDIO_EXTENSIONS: ['.mp3', '.wav', '.flac', '.ogg', '.aiff'],
+  ALLOWED_IMAGE_EXTENSIONS: ['.jpg', '.jpeg', '.png', '.webp'],
   DEBOUNCE_DELAY: 300,
   CACHE_SIZE_LIMIT: 50,
   MAX_TRACKS_PER_FILE: 10000,
   MAX_LINE_LENGTH: 2000,
   RATE_LIMIT_WINDOW: 10000, // 10 seconds
-  MAX_OPERATIONS_PER_WINDOW: 5
+  MAX_OPERATIONS_PER_WINDOW: 5,
+  // Cover Art Configuration
+  COVER_ART: {
+    DIRECTORY: 'artwork', // Default cover art directory relative to selected audio folder
+    SHOW_BY_DEFAULT: true, // Show cover art by default
+    MAX_SIZE: '150px', // Maximum cover art display size
+    FALLBACK_ENABLED: true, // Show placeholder when cover art not found
+    CACHE_ENABLED: true // Cache loaded cover art images
+  }
 };
 
 // ============= FUZZY SEARCH UTILITIES =============
@@ -825,7 +834,13 @@ class ApplicationState {
       playlists: {},
       smartPlaylists: {},
       currentPlaylist: '',
-      showFavoritesOnly: false
+      showFavoritesOnly: false,
+      coverArtSettings: {
+        showCoverArt: CONFIG.COVER_ART.SHOW_BY_DEFAULT,
+        artworkDirectory: CONFIG.COVER_ART.DIRECTORY,
+        audioFolderPath: null
+      },
+      coverArtCache: new Map()
     };
     this.cache = {
       filterResults: new Map(),
@@ -847,7 +862,8 @@ class ApplicationState {
         smartPlaylists: localStorage.getItem('smartPlaylists'),
         currentPlaylist: localStorage.getItem('currentPlaylist'),
         themePreference: localStorage.getItem('themePreference'),
-        accentColor: localStorage.getItem('accentColor')
+        accentColor: localStorage.getItem('accentColor'),
+        coverArtSettings: localStorage.getItem('coverArtSettings')
       };
 
       if (stored.trackTags) this.data.trackTags = JSON.parse(stored.trackTags);
@@ -859,6 +875,9 @@ class ApplicationState {
       if (stored.currentPlaylist) this.data.currentPlaylist = stored.currentPlaylist;
       if (stored.themePreference) this.data.themePreference = stored.themePreference;
       if (stored.accentColor) this.data.accentColor = stored.accentColor;
+      if (stored.coverArtSettings) {
+        this.data.coverArtSettings = { ...this.data.coverArtSettings, ...JSON.parse(stored.coverArtSettings) };
+      }
     } catch (error) {
       console.error('Error loading stored data:', error);
       this.resetData();
@@ -885,7 +904,8 @@ class ApplicationState {
               smartPlaylists: JSON.stringify(this.data.smartPlaylists || {}),
               currentPlaylist: this.data.currentPlaylist,
               themePreference: this.data.themePreference,
-              accentColor: this.data.accentColor
+              accentColor: this.data.accentColor,
+              coverArtSettings: JSON.stringify(this.data.coverArtSettings)
             };
             
             const estimatedSize = Object.values(dataToSave).join('').length * 2; // Rough UTF-16 byte estimate
@@ -3031,10 +3051,23 @@ class UIRenderer {
     trackDiv.dataset.display = track.display || '';
     trackDiv.dataset.trackTime = track.trackTime || '';
 
-    // Main content
+    // Main content container
+    const mainContainer = document.createElement('div');
+    mainContainer.className = 'track-main-container';
+
+    // Cover art (if enabled)
+    if (this.appState.data.coverArtSettings.showCoverArt) {
+      const coverArtContainer = this.createCoverArtElement(track);
+      if (coverArtContainer) {
+        mainContainer.appendChild(coverArtContainer);
+      }
+    }
+
+    // Track info container
     const nameContainer = document.createElement('div');
-    
-    const trackMain = SecurityUtils.createSafeElement('span', 
+    nameContainer.className = 'track-info-container';
+
+    const trackMain = SecurityUtils.createSafeElement('span',
       `${track.artist} - ${track.title}`, 'track-main');
     nameContainer.appendChild(trackMain);
 
@@ -3060,10 +3093,13 @@ class UIRenderer {
       }
     });
 
+    // Append track info to main container
+    mainContainer.appendChild(nameContainer);
+
     // Icons row
     const iconRow = this.createIconRow(track);
 
-    trackDiv.appendChild(nameContainer);
+    trackDiv.appendChild(mainContainer);
     trackDiv.appendChild(iconRow);
 
     // Tags
@@ -3097,6 +3133,44 @@ class UIRenderer {
     }
 
     return trackDiv;
+  }
+
+  createCoverArtElement(track) {
+    const coverArtContainer = document.createElement('div');
+    coverArtContainer.className = 'track-cover-art';
+
+    const coverArtImg = document.createElement('img');
+    coverArtImg.className = 'cover-art-image';
+
+    // Try to find cover art for this track
+    const coverArtPath = this.resolveCoverArtPath(track);
+
+    if (coverArtPath) {
+      // Check cache first
+      if (this.appState.data.coverArtCache.has(coverArtPath)) {
+        const cachedUrl = this.appState.data.coverArtCache.get(coverArtPath);
+        coverArtImg.src = cachedUrl;
+      } else {
+        // Load cover art
+        this.loadCoverArt(coverArtPath, coverArtImg);
+      }
+    } else {
+      // Show placeholder
+      coverArtImg.src = this.createPlaceholderDataUrl();
+      coverArtImg.classList.add('placeholder');
+    }
+
+    coverArtImg.alt = `Cover art for ${track.artist} - ${track.title}`;
+    coverArtImg.title = `Cover art for ${track.artist} - ${track.title}`;
+
+    // Error handling
+    coverArtImg.onerror = () => {
+      coverArtImg.src = this.createPlaceholderDataUrl();
+      coverArtImg.classList.add('placeholder');
+    };
+
+    coverArtContainer.appendChild(coverArtImg);
+    return coverArtContainer;
   }
 
   createIconRow(track) {
@@ -3177,6 +3251,77 @@ class UIRenderer {
     iconRow.appendChild(previewBtn);
 
     return iconRow;
+  }
+
+  // === Cover Art Methods ===
+  resolveCoverArtPath(track) {
+    if (!this.appState.data.coverArtSettings.audioFolderPath) {
+      return null;
+    }
+
+    // Try to get filename without extension for cover art lookup
+    const trackFilename = track.filename || track.display;
+    const baseFilename = trackFilename.replace(/\.[^/.]+$/, ''); // Remove extension
+
+    // Generate possible cover art paths
+    const artworkDir = this.appState.data.coverArtSettings.artworkDirectory;
+    const basePath = this.appState.data.coverArtSettings.audioFolderPath;
+
+    const possiblePaths = [
+      `${basePath}/${artworkDir}/${baseFilename}.jpg`,
+      `${basePath}/${artworkDir}/${baseFilename}.jpeg`,
+      `${basePath}/${artworkDir}/${baseFilename}.png`,
+      `${basePath}/${artworkDir}/${baseFilename}.webp`
+    ];
+
+    // For now, return the first possible path (we'll check if it exists during loading)
+    return possiblePaths[0];
+  }
+
+  async loadCoverArt(coverArtPath, imgElement) {
+    try {
+      // Create a temporary FileReader to check if file exists
+      // For now, just set the path and let the browser handle it
+      imgElement.src = `file://${coverArtPath}`;
+
+      // Cache the URL if successful
+      if (CONFIG.COVER_ART.CACHE_ENABLED) {
+        this.appState.data.coverArtCache.set(coverArtPath, `file://${coverArtPath}`);
+      }
+    } catch (error) {
+      console.warn('Failed to load cover art:', coverArtPath, error);
+      imgElement.src = this.createPlaceholderDataUrl();
+      imgElement.classList.add('placeholder');
+    }
+  }
+
+  createPlaceholderDataUrl() {
+    // Create a simple SVG placeholder for cover art
+    const svg = `
+      <svg width="150" height="150" xmlns="http://www.w3.org/2000/svg">
+        <rect width="150" height="150" fill="#2a2a2a"/>
+        <g fill="#555" stroke="none">
+          <circle cx="75" cy="60" r="20"/>
+          <rect x="55" y="85" width="40" height="3" rx="1"/>
+          <rect x="60" y="92" width="30" height="2" rx="1"/>
+          <rect x="65" y="98" width="20" height="2" rx="1"/>
+        </g>
+        <text x="75" y="125" font-family="Arial, sans-serif" font-size="12" fill="#777" text-anchor="middle">No Cover</text>
+      </svg>
+    `;
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+  }
+
+  updateCoverArtDirectory(directoryPath) {
+    if (directoryPath) {
+      this.appState.data.coverArtSettings.audioFolderPath = directoryPath;
+      this.appState.saveToStorage();
+
+      // Re-render tracks if cover art is currently shown
+      if (this.appState.data.coverArtSettings.showCoverArt) {
+        this.render();
+      }
+    }
   }
 
   updateStats(tracks) {
@@ -3594,6 +3739,12 @@ class UIController {
       duplicatesBtn.addEventListener('click', () => this.toggleDuplicates());
     }
 
+    // Cover art toggle
+    const coverArtBtn = document.getElementById('cover-art-toggle-btn');
+    if (coverArtBtn) {
+      coverArtBtn.addEventListener('click', () => this.toggleCoverArt());
+    }
+
     // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
@@ -3848,6 +3999,20 @@ class UIController {
         document.addEventListener('keydown', escapeHandler);
       }
     }
+  }
+
+  toggleCoverArt() {
+    this.appState.data.coverArtSettings.showCoverArt = !this.appState.data.coverArtSettings.showCoverArt;
+    const btn = document.getElementById('cover-art-toggle-btn');
+    if (btn) {
+      btn.classList.toggle('active', this.appState.data.coverArtSettings.showCoverArt);
+    }
+
+    // Save setting to localStorage
+    this.appState.saveToStorage();
+
+    // Re-render tracks to show/hide cover art
+    this.render();
   }
 
   findAndDisplayDuplicates() {
@@ -5320,6 +5485,20 @@ ${trackObjects.map((track, index) => {
     document.getElementById('export-playlist-btn')?.toggleAttribute('disabled', !hasTracks);
   }
 
+  updateToggleButtonStates() {
+    // Update favorites toggle button state
+    const favBtn = document.getElementById('favorites-toggle-btn');
+    if (favBtn) {
+      favBtn.classList.toggle('active', this.appState.data.showFavoritesOnly);
+    }
+
+    // Update cover art toggle button state
+    const coverArtBtn = document.getElementById('cover-art-toggle-btn');
+    if (coverArtBtn) {
+      coverArtBtn.classList.toggle('active', this.appState.data.coverArtSettings.showCoverArt);
+    }
+  }
+
   // === Import/Export ===
   exportAll() {
     const data = {
@@ -5566,12 +5745,19 @@ ${trackObjects.map((track, index) => {
     
     if (loaded > 0) {
       const rejectedCount = files.length - loaded;
-      const message = rejectedCount > 0 
+      const message = rejectedCount > 0
         ? `Loaded ${loaded} audio files (${rejectedCount} rejected). You can now preview tracks.`
         : `Loaded ${loaded} audio files. You can now preview tracks.`;
-        
+
       this.notificationSystem.success(message);
-      
+
+      // Update cover art directory path from the first file's path
+      if (files.length > 0 && files[0].webkitRelativePath) {
+        const firstFilePath = files[0].webkitRelativePath;
+        const folderPath = firstFilePath.substring(0, firstFilePath.lastIndexOf('/'));
+        this.renderer.updateCoverArtDirectory(folderPath);
+      }
+
       if (this.audioManager.pendingPreviewTrack) {
         this.audioManager.playPreview(this.audioManager.pendingPreviewTrack);
         this.audioManager.pendingPreviewTrack = null;
@@ -6678,6 +6864,7 @@ class BeatroveApp {
       this.controller.updateTagDropdown();
       this.controller.updatePlaylistDropdown();
       this.controller.updatePlaylistButtonStates();
+      this.controller.updateToggleButtonStates();
 
       // Start visualizer
       this.visualizer.start();
