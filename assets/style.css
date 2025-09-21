@@ -1413,7 +1413,7 @@ body.light-mode #waveform-canvas {
 /* Audio Player Waveform Styling */
 .audio-player-waveform {
   width: 100%;
-  max-width: 400px;
+  max-width: 560px;
   height: 80px;
   margin: 8px 0;
   border: 1px solid #0088aa;
@@ -1605,7 +1605,7 @@ body.light-mode .star-btn:focus {
   flex-direction: column;
   align-items: center;
   pointer-events: auto;
-  width: 460px;
+  width: 600px;
   max-width: 99vw;
   border: 2.5px solid var(--accent-color);
   border-radius: 20px;
