@@ -58,9 +58,33 @@
     <li>Click the <strong>Upload</strong> button or drag and drop your tracklist file (CSV or TXT) into the app.</li>
     <li>The tracklist will be processed and displayed in the main area.</li>
     <li>If the file is invalid, an error message will appear.</li>
-    <li>The tracklist format should be: artist - title - key - BPM.extension - track time - year - path - genre - Energy # - Record Label</li>
-    <li>Energy levels and record labels are optional fields that can be included at the end of each track line.</li>
-    <li>The track time and year are extracted from file metadata using tinytag.</li>
+    <li>Beatrove automatically detects and supports two tracklist formats.</li>
+  </ul>
+
+  <h3>📊 New CSV Format (Recommended)</h3>
+  <p>Professional organized format with proper column headers:</p>
+  <div class="tip">
+    <strong>CSV Format Example:</strong><br>
+    <code>Artist,Title,Key,BPM,Extension,Duration,Year,Path,Genre,Energy,Label</code><br>
+    <code>Artbat,Horizon,8A,124,.wav,7:23,2022,/path/to/file.wav,Techno,Energy 7,Diynamic</code><br>
+    <code>CamelPhat,Hope - Edit,4B,122,.flac,6:45,2023,/path/to/file.flac,House,Energy 8,Anjunadeep</code>
+  </div>
+
+  <h3>📄 Legacy Format (Still Supported)</h3>
+  <p>Dash-separated format for backward compatibility:</p>
+  <div class="tip">
+    <strong>Legacy Format Example:</strong><br>
+    <code>Artist - Title - Key - BPM.extension - Duration - Year - Path - Genre - Energy # - Label</code><br>
+    <code>Artbat - Horizon - 8A - 124.wav - 7:23 - 2022 - /path/to/file.wav - Techno - Energy 7 - Diynamic</code>
+  </div>
+
+  <h3>🔧 Format Details</h3>
+  <ul>
+    <li><strong>Automatic Detection</strong>: Beatrove automatically identifies which format your file uses</li>
+    <li><strong>Energy Levels</strong>: Optional 1-10 scale using "Energy #" format</li>
+    <li><strong>Record Labels</strong>: Optional field for professional music management</li>
+    <li><strong>File Paths</strong>: Absolute paths enable direct audio preview and M3U export</li>
+    <li><strong>Artwork Support</strong>: CSV format includes optional artwork path column</li>
   </ul>
 
   <h2 id="advanced-search-filtering">3. Advanced Search & Filtering</h2>

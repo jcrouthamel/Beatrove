@@ -235,19 +235,30 @@ def apply_renames(renames, confirm_each=True):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fix music filenames to match 'Artist - Title - Key - BPM.ext' format"
+        description="Fix music filenames to match 'Artist - Title - Key - BPM.ext' format",
+        epilog="""
+Examples:
+  %(prog)s /path/to/music --dry-run
+  %(prog)s /path/to/music --apply
+  %(prog)s /path/to/music --apply --auto-yes --default-key 7A --default-bpm 128
+
+Expected format: Artist - Title - Key - BPM.ext
+Handles complex titles: Artist - Title (Remix) (feat. Someone) - Key - BPM.ext
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("directory", help="Directory containing music files")
+    parser.add_argument("directory", 
+                       help="Directory containing music files to analyze/fix")
     parser.add_argument("--dry-run", action="store_true", default=True,
-                       help="Show what would be renamed without making changes")
+                       help="Show what would be renamed without making changes (default behavior)")
     parser.add_argument("--apply", action="store_true", 
-                       help="Actually apply the renames")
+                       help="Actually apply the renames (overrides --dry-run)")
     parser.add_argument("--default-key", default="8A",
-                       help="Default key for files missing key info (default: 8A)")
+                       help="Default key for files missing key info (default: %(default)s)")
     parser.add_argument("--default-bpm", default="120",
-                       help="Default BPM for files missing BPM info (default: 120)")
+                       help="Default BPM for files missing BPM info (default: %(default)s)")
     parser.add_argument("--auto-yes", action="store_true",
-                       help="Don't ask for confirmation on each rename")
+                       help="Don't ask for confirmation on each rename (use with --apply)")
     
     args = parser.parse_args()
     

@@ -361,17 +361,38 @@ For best results with Beatrove, follow this preparation workflow:
 4. **Fallback Lists**: If charts don't load, complete data is still available in list format
 5. **Layout**: Professional 2-column grid with full-width record labels section
 
-### Track Format Details
-- **Artist**: The artist or DJ name
-- **Title**: Track title
-- **Key**: Musical key in Camelot notation (e.g., 5A, 12B)
-- **BPM.extension**: Tempo followed by file extension (e.g., 120.flac)
-- **Track Time**: Duration in MM:SS format
-- **Year**: Release year
-- **Path**: Full file path to the audio file
-- **Genre**: Musical genre (optional)
-- **Energy Level**: "Energy #" format where # is 1-10 (optional)
-- **Record Label**: Label name (optional)
+### Supported File Formats
+Beatrove supports two tracklist formats with automatic detection:
+
+#### **New CSV Format** (Recommended)
+Professional organized format with proper column headers:
+```csv
+Artist,Title,Key,BPM,Extension,Duration,Year,Path,Genre,Energy,Label
+Artbat,Horizon,8A,124,.wav,7:23,2022,/path/to/file.wav,Techno,Energy 7,Diynamic
+CamelPhat,Hope - Edit,4B,122,.flac,6:45,2023,/path/to/file.flac,House,Energy 8,Anjunadeep
+```
+
+**CSV Column Details**:
+- **Artist**: Artist or DJ name
+- **Title**: Track title (including remix info, features)
+- **Key**: Musical key in Camelot notation (5A, 12B)
+- **BPM**: Beats per minute (numeric only)
+- **Extension**: File extension (.mp3, .flac, .wav)
+- **Duration**: Track length in MM:SS format
+- **Year**: Release year (4 digits)
+- **Path**: Full absolute path to audio file
+- **Genre**: Musical genre
+- **Energy**: Energy level format "Energy 7" (1-10 scale)
+- **Label**: Record label name
+- **Artwork**: Cover art path (optional)
+
+#### **Legacy Format** (Still Supported)
+Dash-separated format for backward compatibility:
+```
+Artist - Title - Key - BPM.extension - Duration - Year - Path - Genre - Energy # - Label
+```
+
+**Automatic Detection**: Beatrove automatically detects which format your file uses and parses accordingly.
 
 ### Audio Preview Setup
 1. Click any preview button (▶️) 
