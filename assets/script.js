@@ -878,6 +878,17 @@ class ApplicationState {
       if (stored.coverArtSettings) {
         this.data.coverArtSettings = { ...this.data.coverArtSettings, ...JSON.parse(stored.coverArtSettings) };
       }
+
+      // Ensure coverArtSettings exists and set correct artworkDirectory
+      if (!this.data.coverArtSettings) {
+        this.data.coverArtSettings = {
+          showCoverArt: CONFIG.COVER_ART.SHOW_BY_DEFAULT,
+          artworkDirectory: CONFIG.COVER_ART.DIRECTORY,
+          audioFolderPath: null
+        };
+      }
+      this.data.coverArtSettings.artworkDirectory = CONFIG.COVER_ART.DIRECTORY;
+      console.log('Cover art debug - forced artworkDirectory to:', CONFIG.COVER_ART.DIRECTORY);
     } catch (error) {
       console.error('Error loading stored data:', error);
       this.resetData();
@@ -2268,10 +2279,23 @@ class TrackProcessor {
       if (track.genre) result.allGenres.add(track.genre);
       if (track.recordLabel) result.allLabels.add(track.recordLabel);
 
-      // Create track object
+      // Create track object with safety checks
+      const safeArtist = track.artist || 'Unknown Artist';
+      const safeTitle = track.title || 'Unknown Title';
+      const safeTrackTime = track.trackTime || '';
+      const safeYear = track.year || '';
+      const safeGenre = track.genre || '';
+
       const trackObj = {
-        display: `${track.artist} - ${track.title} - ${track.trackTime} - ${track.year}` + 
-                 (track.genre ? ` - ${track.genre}` : ''),
+        display: `${safeArtist} - ${safeTitle}` +
+                 (safeTrackTime ? ` - ${safeTrackTime}` : '') +
+                 (safeYear ? ` - ${safeYear}` : '') +
+                 (safeGenre ? ` - ${safeGenre}` : ''),
+        artist: safeArtist,
+        title: safeTitle,
+        trackTime: safeTrackTime,
+        year: safeYear,
+        genre: safeGenre,
         ...track
       };
 
@@ -2600,6 +2624,9 @@ class UIRenderer {
     this.totalTracks = 0;
     this.totalPages = 1;
     this.currentFilteredTracks = [];
+
+    // Image file map for cover art
+    this.imageFileMap = {};
   }
 
   render() {
@@ -3001,8 +3028,11 @@ class UIRenderer {
       groupDiv.appendChild(h2);
 
       tracks.forEach(track => {
-        groupDiv.appendChild(this.createTrackElement(track));
-        totalRendered++;
+        const trackElement = this.createTrackElement(track);
+        if (trackElement) {
+          groupDiv.appendChild(trackElement);
+          totalRendered++;
+        }
       });
 
       fragment.appendChild(groupDiv);
@@ -3033,6 +3063,17 @@ class UIRenderer {
   }
 
   createTrackElement(track) {
+    // Safety check - ensure track has required properties
+    if (!track || typeof track !== 'object') {
+      console.error('Invalid track object:', track);
+      return null;
+    }
+
+    // Ensure display property exists
+    if (!track.display) {
+      track.display = `${track.artist || 'Unknown'} - ${track.title || 'Unknown'}`;
+    }
+
     const trackDiv = document.createElement('div');
     trackDiv.className = 'track';
     
@@ -3056,7 +3097,7 @@ class UIRenderer {
     mainContainer.className = 'track-main-container';
 
     // Cover art (if enabled)
-    if (this.appState.data.coverArtSettings.showCoverArt) {
+    if (this.appState.data.coverArtSettings && this.appState.data.coverArtSettings.showCoverArt) {
       const coverArtContainer = this.createCoverArtElement(track);
       if (coverArtContainer) {
         mainContainer.appendChild(coverArtContainer);
@@ -3072,7 +3113,8 @@ class UIRenderer {
     nameContainer.appendChild(trackMain);
 
     // Details
-    const energyLevel = this.appState.data.energyLevels[track.display];
+    const trackKey = track.display || track.filename || `${track.artist} - ${track.title}`;
+    const energyLevel = this.appState.data.energyLevels[trackKey];
     const energyDisplay = energyLevel ? `${'★'.repeat(energyLevel)}${'☆'.repeat(10 - energyLevel)} (${energyLevel}/10)` : '';
     
     const details = [
@@ -3146,14 +3188,8 @@ class UIRenderer {
     const coverArtPath = this.resolveCoverArtPath(track);
 
     if (coverArtPath) {
-      // Check cache first
-      if (this.appState.data.coverArtCache.has(coverArtPath)) {
-        const cachedUrl = this.appState.data.coverArtCache.get(coverArtPath);
-        coverArtImg.src = cachedUrl;
-      } else {
-        // Load cover art
-        this.loadCoverArt(coverArtPath, coverArtImg);
-      }
+      // Always load cover art fresh to avoid revoked blob URL issues
+      this.loadCoverArt(coverArtPath, coverArtImg);
     } else {
       // Show placeholder
       coverArtImg.src = this.createPlaceholderDataUrl();
@@ -3256,15 +3292,24 @@ class UIRenderer {
   // === Cover Art Methods ===
   resolveCoverArtPath(track) {
     if (!this.appState.data.coverArtSettings.audioFolderPath) {
+      console.log('Cover art debug: No audio folder path set');
       return null;
     }
 
     const artworkDir = this.appState.data.coverArtSettings.artworkDirectory;
     const basePath = this.appState.data.coverArtSettings.audioFolderPath;
 
+    console.log('Cover art debug - basePath:', basePath);
+    console.log('Cover art debug - artworkDir:', artworkDir);
+    console.log('Cover art debug - track artist:', track.artist);
+    console.log('Cover art debug - track title:', track.title);
+    console.log('Cover art debug - CONFIG.COVER_ART.DIRECTORY:', CONFIG.COVER_ART.DIRECTORY);
+
     // Try simplified format first: Artist - Title.extension (new format)
     const simplifiedName = `${track.artist} - ${track.title}`;
     const cleanSimplifiedName = simplifiedName.replace(/[<>:"/\\|?*]/g, '_');
+
+    console.log('Cover art debug - cleanSimplifiedName:', cleanSimplifiedName);
 
     // Try full filename format: Artist - Title - Key - BPM.extension (legacy format)
     const trackFilename = track.filename || track.display;
@@ -3284,25 +3329,81 @@ class UIRenderer {
       `${basePath}/${artworkDir}/${fullFilename}.webp`
     ];
 
+    console.log('Cover art debug - possible paths:', possiblePaths);
+    console.log('Cover art debug - returning path:', possiblePaths[0]);
+
     // For now, return the first possible path (we'll check if it exists during loading)
     return possiblePaths[0];
   }
 
   async loadCoverArt(coverArtPath, imgElement) {
     try {
-      // Create a temporary FileReader to check if file exists
-      // For now, just set the path and let the browser handle it
-      imgElement.src = `file://${coverArtPath}`;
+      console.log('Cover art debug - loadCoverArt called with path:', coverArtPath);
 
-      // Cache the URL if successful
-      if (CONFIG.COVER_ART.CACHE_ENABLED) {
-        this.appState.data.coverArtCache.set(coverArtPath, `file://${coverArtPath}`);
+      // Check if we have the cover art file in our audio manager's file map
+      const coverArtFile = this.findCoverArtFile(coverArtPath);
+
+      if (coverArtFile) {
+        console.log('Cover art debug - found cover art file:', coverArtFile.name);
+        // Create blob URL for the file
+        const blobUrl = URL.createObjectURL(coverArtFile);
+        imgElement.src = blobUrl;
+
+        // Note: Not caching blob URLs since they can be revoked
+
+        // Don't immediately revoke blob URLs since they might be reused
+        // Store cleanup function for later use if needed
+        imgElement.dataset.blobUrl = blobUrl;
+      } else {
+        console.log('Cover art debug - no cover art file found, using placeholder');
+        imgElement.src = this.createPlaceholderDataUrl();
+        imgElement.classList.add('placeholder');
       }
     } catch (error) {
       console.warn('Failed to load cover art:', coverArtPath, error);
       imgElement.src = this.createPlaceholderDataUrl();
       imgElement.classList.add('placeholder');
     }
+  }
+
+  findCoverArtFile(coverArtPath) {
+    // Extract the expected filename from the path
+    const filename = coverArtPath.split('/').pop();
+    console.log('Cover art debug - looking for filename:', filename);
+
+    // Check if we have any files in the audio manager
+    if (this.audioManager && this.audioManager.fileMap) {
+      console.log('Cover art debug - available audio files:', Object.keys(this.audioManager.fileMap).slice(0, 5)); // Show first 5 to avoid spam
+
+      // Look for the exact filename in the fileMap
+      for (const [filePath, file] of Object.entries(this.audioManager.fileMap)) {
+        const filePathParts = filePath.split('/');
+        const actualFilename = filePathParts[filePathParts.length - 1];
+
+        if (actualFilename === filename) {
+          console.log('Cover art debug - found matching file:', actualFilename);
+          return file;
+        }
+      }
+    }
+
+    // Also check if we have any image files stored separately
+    if (this.imageFileMap) {
+      console.log('Cover art debug - available image files:', Object.keys(this.imageFileMap));
+
+      for (const [filePath, file] of Object.entries(this.imageFileMap)) {
+        const filePathParts = filePath.split('/');
+        const actualFilename = filePathParts[filePathParts.length - 1];
+
+        if (actualFilename === filename) {
+          console.log('Cover art debug - found matching image file:', actualFilename);
+          return file;
+        }
+      }
+    }
+
+    console.log('Cover art debug - no matching file found');
+    return null;
   }
 
   createPlaceholderDataUrl() {
@@ -3325,10 +3426,16 @@ class UIRenderer {
   updateCoverArtDirectory(directoryPath) {
     if (directoryPath) {
       this.appState.data.coverArtSettings.audioFolderPath = directoryPath;
+      // Ensure we're using the correct artwork directory from config
+      this.appState.data.coverArtSettings.artworkDirectory = CONFIG.COVER_ART.DIRECTORY;
+
+      console.log('Cover art debug - updateCoverArtDirectory called with:', directoryPath);
+      console.log('Cover art debug - set artworkDirectory to:', this.appState.data.coverArtSettings.artworkDirectory);
+
       this.appState.saveToStorage();
 
       // Re-render tracks if cover art is currently shown
-      if (this.appState.data.coverArtSettings.showCoverArt) {
+      if (this.appState.data.coverArtSettings && this.appState.data.coverArtSettings.showCoverArt) {
         this.render();
       }
     }
@@ -4012,7 +4119,21 @@ class UIController {
   }
 
   toggleCoverArt() {
+    // Ensure coverArtSettings exists
+    if (!this.appState.data.coverArtSettings) {
+      this.appState.data.coverArtSettings = {
+        showCoverArt: CONFIG.COVER_ART.SHOW_BY_DEFAULT,
+        artworkDirectory: CONFIG.COVER_ART.DIRECTORY,
+        audioFolderPath: null
+      };
+    }
+
     this.appState.data.coverArtSettings.showCoverArt = !this.appState.data.coverArtSettings.showCoverArt;
+
+    console.log('Cover art toggle debug - showCoverArt:', this.appState.data.coverArtSettings.showCoverArt);
+    console.log('Cover art toggle debug - audioFolderPath:', this.appState.data.coverArtSettings.audioFolderPath);
+    console.log('Cover art toggle debug - artworkDirectory:', this.appState.data.coverArtSettings.artworkDirectory);
+
     const btn = document.getElementById('cover-art-toggle-btn');
     if (btn) {
       btn.classList.toggle('active', this.appState.data.coverArtSettings.showCoverArt);
@@ -5504,7 +5625,7 @@ ${trackObjects.map((track, index) => {
 
     // Update cover art toggle button state
     const coverArtBtn = document.getElementById('cover-art-toggle-btn');
-    if (coverArtBtn) {
+    if (coverArtBtn && this.appState.data.coverArtSettings) {
       coverArtBtn.classList.toggle('active', this.appState.data.coverArtSettings.showCoverArt);
     }
   }
@@ -5748,16 +5869,39 @@ ${trackObjects.map((track, index) => {
     }
 
     const loaded = this.audioManager.loadAudioFiles(validFiles);
-    
+
+    // Also load image files for cover art
+    const imageFiles = [];
+    for (const file of files) {
+      if (CONFIG.ALLOWED_IMAGE_EXTENSIONS.some(ext => file.name.toLowerCase().endsWith(ext))) {
+        imageFiles.push(file);
+      }
+    }
+
+    // Store image files in renderer for cover art access
+    // Don't reset if we already have image files - preserve them
+    if (!this.renderer.imageFileMap || Object.keys(this.renderer.imageFileMap).length === 0) {
+      this.renderer.imageFileMap = {};
+    }
+
+    for (const imageFile of imageFiles) {
+      if (imageFile.webkitRelativePath) {
+        this.renderer.imageFileMap[imageFile.webkitRelativePath] = imageFile;
+      }
+    }
+
+    console.log('Cover art debug - loaded image files:', Object.keys(this.renderer.imageFileMap));
+
     if (processingNotification) {
       this.notificationSystem.dismiss(processingNotification);
     }
-    
+
     if (loaded > 0) {
       const rejectedCount = files.length - loaded;
+      const imageMessage = imageFiles.length > 0 ? ` and ${imageFiles.length} image files` : '';
       const message = rejectedCount > 0
-        ? `Loaded ${loaded} audio files (${rejectedCount} rejected). You can now preview tracks.`
-        : `Loaded ${loaded} audio files. You can now preview tracks.`;
+        ? `Loaded ${loaded} audio files${imageMessage} (${rejectedCount} total files rejected). You can now preview tracks.`
+        : `Loaded ${loaded} audio files${imageMessage}. You can now preview tracks.`;
 
       this.notificationSystem.success(message);
 
@@ -7074,3 +7218,25 @@ window.addEventListener('orientationchange', () => {
 const style = document.createElement('style');
 style.textContent = '.az-jump-highlight { outline: 3px solid #2196f3; transition: outline 0.2s; }';
 document.head.appendChild(style);
+
+// Global debug helpers for cover art
+window.debugCoverArt = () => {
+  console.log('=== COVER ART DEBUG ===');
+  console.log('CONFIG.COVER_ART.DIRECTORY:', CONFIG.COVER_ART.DIRECTORY);
+  if (window.app) {
+    console.log('App state settings:', window.app.appState.data.coverArtSettings);
+    console.log('Available image files:', Object.keys(window.app.renderer.imageFileMap || {}));
+  }
+  console.log('LocalStorage coverArtSettings:', localStorage.getItem('coverArtSettings'));
+};
+
+// Global function to reset cover art settings
+window.resetCoverArtSettings = () => {
+  localStorage.removeItem('coverArtSettings');
+  if (window.app) {
+    window.app.appState.data.coverArtSettings.artworkDirectory = CONFIG.COVER_ART.DIRECTORY;
+    window.app.appState.saveToStorage();
+    console.log('Cover art settings reset to:', window.app.appState.data.coverArtSettings);
+    location.reload(); // Reload to apply changes
+  }
+};

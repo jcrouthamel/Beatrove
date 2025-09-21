@@ -1567,6 +1567,13 @@ body.light-mode .star-btn:focus {
   border: 1px solid #ff2222;
 }
 
+#cover-art-toggle-btn.active {
+  background: #2196f3;
+  color: #fff;
+  border: 1px solid #2196f3;
+  transition: background 0.2s, color 0.2s;
+}
+
 .top-controls-row {
   display: flex;
   flex-wrap: wrap;
