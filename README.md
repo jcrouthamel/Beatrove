@@ -188,15 +188,17 @@ Beatrove includes two Python utility scripts to help prepare your music collecti
 
 ### 📝 generate_music_list.py
 
-Automatically scans your music directory and generates a properly formatted `tracklist.csv` file.
+Automatically scans your music directory and generates a properly formatted `tracklist.csv` file with professional metadata extraction.
 
 **Features:**
 - Scans directories recursively for audio files (MP3, FLAC, WAV, AIFF, AAC)
 - Extracts metadata from ID3 tags and file names
 - Supports custom metadata fields (Energy Level, Record Label)
+- **🎨 Cover Art Extraction**: Extracts album artwork from MP3/FLAC files
 - Handles both standardized and non-standardized filenames
-- Outputs in CSV or text format
+- Outputs in professional CSV or legacy text format
 - Validates BPM and musical key formats
+- Progress reporting and detailed error handling
 
 **Requirements:**
 ```bash
@@ -205,15 +207,27 @@ pip install tinytag mutagen
 
 **Usage:**
 ```bash
+# Get comprehensive help and examples
+python generate_music_list.py --help
+
 # Basic usage - scan directory and create text file
 python generate_music_list.py /path/to/music/directory
 
-# Output as CSV format
-python generate_music_list.py /path/to/music/directory --csv -o tracklist.csv
+# Professional CSV output with cover art extraction
+python generate_music_list.py /path/to/music/directory --csv --extract-artwork -o tracklist.csv
+
+# Extract artwork to custom directory
+python generate_music_list.py /path/to/music/directory --csv --extract-artwork --artwork-dir ./covers
 
 # Custom output location
 python generate_music_list.py /path/to/music/directory -o my_tracklist.txt
 ```
+
+**Cover Art Extraction:**
+- Supports MP3 (ID3 tags) and FLAC (embedded pictures)
+- Automatically detects JPEG/PNG formats
+- Creates organized artwork directory with clean filenames
+- Adds artwork paths to CSV output for future integration
 
 **Expected Filename Format:**
 The script works best with files named: `Artist - Title - Key - BPM.extension`
@@ -238,6 +252,9 @@ pip install tinytag
 
 **Usage:**
 ```bash
+# Get comprehensive help and examples
+python music_file_fixer.py --help
+
 # Dry run - see what would be renamed (default)
 python music_file_fixer.py /path/to/music/directory
 
@@ -251,11 +268,13 @@ python music_file_fixer.py /path/to/music/directory --apply --auto-yes
 python music_file_fixer.py /path/to/music/directory --default-key 1A --default-bpm 128
 ```
 
-**Workflow Example:**
-1. Use `music_file_fixer.py` to standardize your audio filenames
-2. Run `generate_music_list.py` to create a comprehensive tracklist
-3. Copy the generated `tracklist.csv` to your Beatrove directory
-4. Open Beatrove and enjoy organized track management
+**Professional Workflow:**
+1. **Backup** your music collection (essential!)
+2. Use `music_file_fixer.py --help` to understand filename standardization
+3. Standardize filenames: `music_file_fixer.py /path/to/music --apply`
+4. Generate comprehensive tracklist: `generate_music_list.py /path/to/music --csv --extract-artwork`
+5. Copy generated `tracklist.csv` to your Beatrove directory
+6. Enjoy organized track management with cover art support
 
 ### 🔄 Recommended Workflow
 

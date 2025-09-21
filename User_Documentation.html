@@ -510,17 +510,22 @@
   </div>
 
   <h3>📝 generate_music_list.py</h3>
-  <p>Automatically scans your music directory and generates a properly formatted <code>tracklist.csv</code> file.</p>
+  <p>Automatically scans your music directory and generates a properly formatted <code>tracklist.csv</code> file with professional metadata extraction.</p>
 
   <h4>Requirements</h4>
   <p>Install required Python packages:</p>
   <code>pip install tinytag mutagen</code>
 
+  <h4>Get Help</h4>
+  <p>For comprehensive help and usage examples:</p>
+  <code>python generate_music_list.py --help</code>
+
   <h4>Usage Examples</h4>
   <ul>
     <li><strong>Basic usage:</strong> <code>python generate_music_list.py /path/to/music/directory</code></li>
-    <li><strong>CSV output:</strong> <code>python generate_music_list.py /path/to/music/directory --csv -o tracklist.csv</code></li>
-    <li><strong>Custom location:</strong> <code>python generate_music_list.py /path/to/music/directory -o my_tracklist.txt</code></li>
+    <li><strong>Professional CSV with cover art:</strong> <code>python generate_music_list.py /path/to/music/directory --csv --extract-artwork</code></li>
+    <li><strong>Custom artwork directory:</strong> <code>python generate_music_list.py /path/to/music/directory --csv --extract-artwork --artwork-dir ./covers</code></li>
+    <li><strong>Custom output location:</strong> <code>python generate_music_list.py /path/to/music/directory -o my_tracklist.txt</code></li>
   </ul>
 
   <h4>Features</h4>
@@ -528,8 +533,20 @@
     <li>Scans directories recursively for audio files (MP3, FLAC, WAV, AIFF, AAC)</li>
     <li>Extracts metadata from ID3 tags and file names</li>
     <li>Supports custom metadata fields (Energy Level, Record Label)</li>
+    <li><strong>🎨 Cover Art Extraction:</strong> Extracts album artwork from MP3/FLAC files</li>
     <li>Handles both standardized and non-standardized filenames</li>
+    <li>Outputs in professional CSV or legacy text format</li>
     <li>Validates BPM and musical key formats</li>
+    <li>Progress reporting and detailed error handling</li>
+  </ul>
+
+  <h4>🎨 Cover Art Extraction</h4>
+  <ul>
+    <li><strong>Supported Formats:</strong> MP3 (ID3 tags) and FLAC (embedded pictures)</li>
+    <li><strong>Auto-Detection:</strong> Automatically detects JPEG/PNG image formats</li>
+    <li><strong>Clean Naming:</strong> Creates organized artwork directory with clean filenames</li>
+    <li><strong>CSV Integration:</strong> Adds artwork paths to CSV output for future use</li>
+    <li><strong>Example:</strong> <code>--extract-artwork --artwork-dir ./album_covers</code></li>
   </ul>
 
   <div class="tip">
@@ -544,6 +561,10 @@
   <h4>Requirements</h4>
   <p>Install required Python package:</p>
   <code>pip install tinytag</code>
+
+  <h4>Getting Help</h4>
+  <p>For complete usage information and all available options:</p>
+  <code>python music_file_fixer.py --help</code>
 
   <h4>Usage Examples</h4>
   <ul>
