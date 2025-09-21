@@ -26,7 +26,7 @@ const CONFIG = {
   MAX_OPERATIONS_PER_WINDOW: 5,
   // Cover Art Configuration
   COVER_ART: {
-    DIRECTORY: 'artwork', // Default cover art directory relative to selected audio folder
+    DIRECTORY: 'covers', // Default cover art directory relative to selected audio folder
     SHOW_BY_DEFAULT: true, // Show cover art by default
     MAX_SIZE: '150px', // Maximum cover art display size
     FALLBACK_ENABLED: true, // Show placeholder when cover art not found
