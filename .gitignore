@@ -2,3 +2,11 @@ node_modules/
 .DS_Store
 *.log
 data/tracklist.txt
+
+# Development files to keep locally but not track in git
+beatrove-logo-old.png
+beatrove-logo-small.png
+beatrove-logo.psd
+tracklist-old.csv
+tracklist-old-*.csv
+CLAUDE.md
