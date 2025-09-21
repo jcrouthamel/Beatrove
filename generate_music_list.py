@@ -50,16 +50,16 @@ def format_duration(seconds):
     m, s = divmod(int(seconds), 60)
     return f"{m}:{s:02}"
 
-def extract_cover_art(filepath, output_dir=None):
+def extract_cover_art(filepath, output_dir=None, artist=None, title=None):
     """Extract cover art from audio file and save as image."""
     if not output_dir:
         return None
-        
+
     try:
         ext = os.path.splitext(filepath)[1].lower()
         artwork_data = None
         image_format = 'jpg'  # default
-        
+
         if ext == '.mp3':
             # Extract from MP3 using ID3 tags
             try:
@@ -75,7 +75,7 @@ def extract_cover_art(filepath, output_dir=None):
                         break
             except Exception:
                 pass
-                
+
         elif ext == '.flac':
             # Extract from FLAC
             try:
@@ -90,25 +90,31 @@ def extract_cover_art(filepath, output_dir=None):
                         image_format = 'png'
             except Exception:
                 pass
-                
+
         # Save the artwork if found
         if artwork_data:
-            filename = os.path.splitext(os.path.basename(filepath))[0]
+            # Use simplified naming: Artist - Title.extension
+            if artist and title:
+                filename = f"{artist} - {title}"
+            else:
+                # Fallback to original filename without extension
+                filename = os.path.splitext(os.path.basename(filepath))[0]
+
             # Clean filename for filesystem
             filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
             artwork_path = os.path.join(output_dir, f"{filename}.{image_format}")
-            
+
             # Create output directory if it doesn't exist
             os.makedirs(output_dir, exist_ok=True)
-            
+
             with open(artwork_path, 'wb') as f:
                 f.write(artwork_data)
-            
+
             return artwork_path
-            
+
     except Exception as e:
         print(f"Warning: Could not extract artwork from {os.path.basename(filepath)}: {str(e)}")
-    
+
     return None
     """Read custom fields like ENERGYLEVEL and RECORD LABEL using Mutagen."""
     ext = os.path.splitext(filepath)[1].lower()
@@ -334,7 +340,7 @@ def generate_list(directory, output_file, csv_format=False, extract_artwork=Fals
                 # Extract cover art if requested
                 artwork_path = None
                 if extract_artwork and artwork_dir:
-                    artwork_path = extract_cover_art(filepath, artwork_dir)
+                    artwork_path = extract_cover_art(filepath, artwork_dir, artist, title)
                 
                 # Warn about non-standard format files
                 if not parsed['valid_format']:

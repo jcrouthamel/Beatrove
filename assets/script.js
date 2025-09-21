@@ -3259,19 +3259,29 @@ class UIRenderer {
       return null;
     }
 
-    // Try to get filename without extension for cover art lookup
-    const trackFilename = track.filename || track.display;
-    const baseFilename = trackFilename.replace(/\.[^/.]+$/, ''); // Remove extension
-
-    // Generate possible cover art paths
     const artworkDir = this.appState.data.coverArtSettings.artworkDirectory;
     const basePath = this.appState.data.coverArtSettings.audioFolderPath;
 
+    // Try simplified format first: Artist - Title.extension (new format)
+    const simplifiedName = `${track.artist} - ${track.title}`;
+    const cleanSimplifiedName = simplifiedName.replace(/[<>:"/\\|?*]/g, '_');
+
+    // Try full filename format: Artist - Title - Key - BPM.extension (legacy format)
+    const trackFilename = track.filename || track.display;
+    const fullFilename = trackFilename.replace(/\.[^/.]+$/, ''); // Remove extension
+
+    // Generate possible cover art paths in priority order
     const possiblePaths = [
-      `${basePath}/${artworkDir}/${baseFilename}.jpg`,
-      `${basePath}/${artworkDir}/${baseFilename}.jpeg`,
-      `${basePath}/${artworkDir}/${baseFilename}.png`,
-      `${basePath}/${artworkDir}/${baseFilename}.webp`
+      // New simplified format (preferred)
+      `${basePath}/${artworkDir}/${cleanSimplifiedName}.jpg`,
+      `${basePath}/${artworkDir}/${cleanSimplifiedName}.jpeg`,
+      `${basePath}/${artworkDir}/${cleanSimplifiedName}.png`,
+      `${basePath}/${artworkDir}/${cleanSimplifiedName}.webp`,
+      // Legacy full filename format (backward compatibility)
+      `${basePath}/${artworkDir}/${fullFilename}.jpg`,
+      `${basePath}/${artworkDir}/${fullFilename}.jpeg`,
+      `${basePath}/${artworkDir}/${fullFilename}.png`,
+      `${basePath}/${artworkDir}/${fullFilename}.webp`
     ];
 
     // For now, return the first possible path (we'll check if it exists during loading)

@@ -3,6 +3,11 @@ node_modules/
 *.log
 data/tracklist.txt
 
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
 # Development files to keep locally but not track in git
 beatrove-logo-old.png
 beatrove-logo-small.png

@@ -436,10 +436,10 @@ Your-Music-Folder/
 ├── Artist - Title - Key - BPM.flac
 ├── Artist - Title - Key - BPM.mp3
 └── artwork/                    ← Cover art directory
-    ├── Artist - Title - Key - BPM.jpg
-    ├── Artist - Title - Key - BPM.jpeg
-    ├── Artist - Title - Key - BPM.png
-    └── Artist - Title - Key - BPM.webp
+    ├── Artist - Title.jpg      ← Simplified naming (new)
+    ├── Artist - Title.jpeg
+    ├── Artist - Title.png
+    └── Artist - Title.webp
 ```
 
 #### **Supported Image Formats**
@@ -449,10 +449,12 @@ Your-Music-Folder/
 - **.webp** (WebP)
 
 #### **File Naming Convention**
-Cover art files must **exactly match** the audio filename (without extension):
+Cover art files use a simplified **Artist - Title** format:
 
 **Audio File:** `Deadmau5 - Strobe - 8A - 126.flac`
-**Cover Art:** `artwork/Deadmau5 - Strobe - 8A - 126.jpg`
+**Cover Art:** `artwork/Deadmau5 - Strobe.jpg`
+
+*Note: Legacy full filename format (`Artist - Title - Key - BPM.jpg`) is still supported for backward compatibility.*
 
 #### **How It Works**
 1. **Automatic Detection**: When you select an audio folder, Beatrove looks for an `artwork` subdirectory
