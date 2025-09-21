@@ -35,6 +35,15 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Folder Integration**: Select your audio files folder for seamless previews
 - **Audio Controls**: Standard playback controls with track information
 
+### 🎨 Cover Art Display
+- **Visual Track Display**: Show album artwork alongside track information
+- **Multiple Format Support**: JPG, JPEG, PNG, and WebP image formats
+- **Automatic Detection**: Finds cover art in the `artwork` subdirectory
+- **Smart Fallback**: Clean SVG placeholder when artwork is missing
+- **Responsive Design**: Scales from 64px (desktop) to 48px (mobile)
+- **Toggle Control**: Show/hide cover art with persistent preference
+- **Performance Optimized**: Image caching and lazy loading
+
 ### 🌊 Waveform Visualization
 - **Multiple Waveform Styles**: Choose from 6 different visualization styles
 - **Real-time Audio Analysis**: Live waveform generation from audio data
@@ -414,10 +423,59 @@ Artist - Title - Key - BPM.extension - Duration - Year - Path - Genre - Energy #
 **Automatic Detection**: Beatrove automatically detects which format your file uses and parses accordingly.
 
 ### Audio Preview Setup
-1. Click any preview button (▶️) 
+1. Click any preview button (▶️)
 2. Select your audio files folder when prompted
 3. Audio files will be matched by filename
 4. Enjoy previewing your tracks with the visualizer
+
+### 🎨 Cover Art Setup
+
+#### **Directory Structure**
+```
+Your-Music-Folder/
+├── Artist - Title - Key - BPM.flac
+├── Artist - Title - Key - BPM.mp3
+└── artwork/                    ← Cover art directory
+    ├── Artist - Title - Key - BPM.jpg
+    ├── Artist - Title - Key - BPM.jpeg
+    ├── Artist - Title - Key - BPM.png
+    └── Artist - Title - Key - BPM.webp
+```
+
+#### **Supported Image Formats**
+- **.jpg** (JPEG) - Recommended for smaller file sizes
+- **.jpeg** (JPEG)
+- **.png** (Portable Network Graphics)
+- **.webp** (WebP)
+
+#### **File Naming Convention**
+Cover art files must **exactly match** the audio filename (without extension):
+
+**Audio File:** `Deadmau5 - Strobe - 8A - 126.flac`
+**Cover Art:** `artwork/Deadmau5 - Strobe - 8A - 126.jpg`
+
+#### **How It Works**
+1. **Automatic Detection**: When you select an audio folder, Beatrove looks for an `artwork` subdirectory
+2. **Smart Matching**: For each track, searches for cover art in priority order (jpg → jpeg → png → webp)
+3. **Fallback**: Shows clean SVG placeholder when no cover art is found
+4. **Toggle Control**: Use the 🎨 Cover Art button to show/hide artwork
+
+#### **Using the Python Script**
+Extract cover art automatically from your audio files:
+
+```bash
+# Extract cover art to default 'artwork' directory
+python generate_music_list.py /path/to/music --extract-artwork
+
+# Extract to custom directory
+python generate_music_list.py /path/to/music --extract-artwork --artwork-dir ./album_covers
+```
+
+**Extraction Features:**
+- Supports MP3 (ID3 tags) and FLAC (embedded pictures)
+- Automatically detects JPEG/PNG formats
+- Creates organized artwork directory with clean filenames
+- Adds artwork paths to CSV output
 
 ## 🧪 Testing
 

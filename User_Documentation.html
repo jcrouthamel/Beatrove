@@ -33,17 +33,18 @@
       <li><a href="#copy-path-to-clipboard">7. Copy Path to Clipboard</a></li>
       <li><a href="#audio-preview">8. Audio Preview</a></li>
       <li><a href="#waveform-visualization">9. Waveform Visualization</a></li>
-      <li><a href="#playlists">10. Playlists</a></li>
-      <li><a href="#smart-playlists">11. Smart Playlists</a></li>
-      <li><a href="#playlist-export">12. Playlist Export Formats</a></li>
-      <li><a href="#tags">13. Tags</a></li>
-      <li><a href="#mood-vibe-tags">14. Mood & Vibe Tags</a></li>
-      <li><a href="#energy-levels">15. Energy Levels</a></li>
-      <li><a href="#record-labels">16. Record Labels</a></li>
-      <li><a href="#library-statistics">17. Library Statistics & Charts</a></li>
-      <li><a href="#python-scripts">18. Python Helper Scripts</a></li>
-      <li><a href="#visualizer">19. Visualizer</a></li>
-      <li><a href="#troubleshooting">20. Troubleshooting</a></li>
+      <li><a href="#cover-art-display">10. Cover Art Display</a></li>
+      <li><a href="#playlists">11. Playlists</a></li>
+      <li><a href="#smart-playlists">12. Smart Playlists</a></li>
+      <li><a href="#playlist-export">13. Playlist Export Formats</a></li>
+      <li><a href="#tags">14. Tags</a></li>
+      <li><a href="#mood-vibe-tags">15. Mood & Vibe Tags</a></li>
+      <li><a href="#energy-levels">16. Energy Levels</a></li>
+      <li><a href="#record-labels">17. Record Labels</a></li>
+      <li><a href="#library-statistics">18. Library Statistics & Charts</a></li>
+      <li><a href="#python-scripts">19. Python Helper Scripts</a></li>
+      <li><a href="#visualizer">20. Visualizer</a></li>
+      <li><a href="#troubleshooting">21. Troubleshooting</a></li>
     </ul>
   </div>
 
@@ -211,14 +212,75 @@
     Complete song visualization showing the entire track. Includes real-time playback cursor and time markers.
   </div>
 
-  <h2 id="playlists">10. Playlists</h2>
+  <h2 id="cover-art-display">10. Cover Art Display</h2>
+  <p>Display album artwork alongside your tracks for a visual music library experience. Cover art helps with quick track identification and adds professional polish to your DJ setup.</p>
+
+  <h3>🎨 Toggle Cover Art</h3>
+  <ul>
+    <li>Click the <strong>🎨 Cover Art</strong> button in the top controls to show/hide artwork</li>
+    <li>Your preference is automatically saved and restored when you reload the app</li>
+    <li>Cover art appears as 64px thumbnails next to track information</li>
+  </ul>
+
+  <h3>📁 Setting Up Cover Art</h3>
+
+  <h4>Directory Structure</h4>
+  <p>Organize your files with this structure:</p>
+  <div class="code-block">
+    <pre>Your-Music-Folder/
+├── Artist - Title - Key - BPM.flac
+├── Artist - Title - Key - BPM.mp3
+└── artwork/                    ← Cover art directory
+    ├── Artist - Title - Key - BPM.jpg
+    ├── Artist - Title - Key - BPM.jpeg
+    ├── Artist - Title - Key - BPM.png
+    └── Artist - Title - Key - BPM.webp</pre>
+  </div>
+
+  <h4>Supported Image Formats</h4>
+  <ul>
+    <li><strong>.jpg</strong> (JPEG) - Recommended for smaller file sizes</li>
+    <li><strong>.jpeg</strong> (JPEG)</li>
+    <li><strong>.png</strong> (Portable Network Graphics)</li>
+    <li><strong>.webp</strong> (WebP)</li>
+  </ul>
+
+  <h4>File Naming Convention</h4>
+  <p>Cover art files must <strong>exactly match</strong> the audio filename (without extension):</p>
+  <ul>
+    <li><strong>Audio File:</strong> <code>Deadmau5 - Strobe - 8A - 126.flac</code></li>
+    <li><strong>Cover Art:</strong> <code>artwork/Deadmau5 - Strobe - 8A - 126.jpg</code></li>
+  </ul>
+
+  <h3>🔄 How It Works</h3>
+  <ol>
+    <li><strong>Automatic Detection:</strong> When you select an audio folder, Beatrove looks for an <code>artwork</code> subdirectory</li>
+    <li><strong>Smart Matching:</strong> For each track, searches for cover art in priority order (jpg → jpeg → png → webp)</li>
+    <li><strong>Graceful Fallback:</strong> Shows clean SVG placeholder when no cover art is found</li>
+    <li><strong>Performance:</strong> Images are cached for faster loading</li>
+  </ol>
+
+  <h3>📱 Responsive Design</h3>
+  <ul>
+    <li><strong>Desktop:</strong> 64px × 64px cover art</li>
+    <li><strong>Tablet:</strong> 56px × 56px cover art</li>
+    <li><strong>Mobile:</strong> 48px × 48px cover art</li>
+    <li>Hover effects and smooth animations enhance the user experience</li>
+  </ul>
+
+  <div class="tip">
+    <strong>Pro Tip:</strong><br>
+    Use the Python script <code>generate_music_list.py --extract-artwork</code> to automatically extract cover art from your MP3/FLAC files. This saves time and ensures consistent naming.
+  </div>
+
+  <h2 id="playlists">11. Playlists</h2>
   <ul>
     <li>Create new playlists, add or remove tracks, and rename or delete playlists.</li>
     <li>Use the playlist dropdown to switch between playlists.</li>
     <li>Export playlists to save them, or import previously saved playlists.</li>
   </ul>
 
-  <h2 id="smart-playlists">11. Smart Playlists</h2>
+  <h2 id="smart-playlists">12. Smart Playlists</h2>
   <p>Smart playlists automatically populate with tracks that match specific criteria. They update dynamically as your library changes, making them perfect for DJ set preparation and music organization.</p>
 
   <h3>Creating Smart Playlists</h3>
@@ -271,7 +333,7 @@
     Use energy levels + BPM + genre combinations for precise curation
   </div>
 
-  <h2 id="playlist-export">12. Playlist Export Formats</h2>
+  <h2 id="playlist-export">13. Playlist Export Formats</h2>
   <p>Export your playlists in multiple professional formats for sharing, backup, or use with other DJ software and media players.</p>
 
   <h3>🎯 Accessing Playlist Export</h3>
@@ -330,13 +392,13 @@
     <li><strong>Energy Levels</strong>: HTML exports display energy ratings as gold stars (★★★★★☆☆☆☆☆)</li>
   </ul>
 
-  <h2 id="tags">13. Tags</h2>
+  <h2 id="tags">14. Tags</h2>
   <ul>
     <li>Click the <strong>tag icon (🏷️)</strong> to add or edit tags for a track.</li>
     <li>Filter tracks by tag using the tag dropdown.</li>
   </ul>
 
-  <h2 id="mood-vibe-tags">14. Mood & Vibe Tags</h2>
+  <h2 id="mood-vibe-tags">15. Mood & Vibe Tags</h2>
   <ul>
     <li>Click the <strong>mood & vibe icon (😎)</strong> to add emotional and atmospheric tags to tracks.</li>
     <li>Add tags that describe the mood and vibe of your tracks for better set planning.</li>
@@ -377,7 +439,7 @@
     • <strong>Closing</strong>: Melancholic, Reflective, Underground
   </div>
 
-  <h2 id="energy-levels">15. Energy Levels</h2>
+  <h2 id="energy-levels">16. Energy Levels</h2>
   <ul>
     <li>Rate tracks on a <strong>1-10 star energy scale</strong> to organize by intensity level.</li>
     <li>Click the <strong>energy icon (⚡)</strong> next to any track to set its energy level.</li>
@@ -440,7 +502,7 @@
     Maximum speed and intensity. Hardstyle climaxes, gabber, riddim, deathstep. Pure adrenaline, overwhelming walls of sound.
   </div>
 
-  <h2 id="record-labels">16. Record Labels</h2>
+  <h2 id="record-labels">17. Record Labels</h2>
   <ul>
     <li>Track record label information is automatically imported from CSV files.</li>
     <li>Record labels appear in track details between the year and energy level.</li>
@@ -450,7 +512,7 @@
     <li>Use the CSV format: <code>...year - path - genre - Energy # - Record Label</code> to import label data.</li>
   </ul>
 
-  <h2 id="library-statistics">17. Library Statistics & Charts</h2>
+  <h2 id="library-statistics">18. Library Statistics & Charts</h2>
   <p>The Library Statistics feature provides comprehensive visual analytics of your music collection through interactive charts and detailed breakdowns.</p>
 
   <h3>🎯 Accessing Library Statistics</h3>
@@ -501,7 +563,7 @@
     <strong>💡 Pro Tip:</strong> The Library Statistics feature is perfect for understanding your music collection's composition, identifying gaps in your collection, and planning future acquisitions. Use the energy levels chart to see the complete 1-10 spectrum and identify which energy ranges you might want to expand!
   </div>
 
-  <h2 id="python-scripts">18. Python Helper Scripts</h2>
+  <h2 id="python-scripts">19. Python Helper Scripts</h2>
   <p>Beatrove includes two Python utility scripts to help prepare your music collection for optimal use with the application.</p>
 
   <div class="tip">
@@ -597,13 +659,13 @@
     Use <code>music_file_fixer.py</code> first to standardize your filenames, then run <code>generate_music_list.py</code> to create a comprehensive tracklist. This ensures the best data quality for your Beatrove experience.
   </div>
 
-  <h2 id="visualizer">19. Visualizer</h2>
+  <h2 id="visualizer">20. Visualizer</h2>
   <ul>
     <li>When previewing audio, visualizer bars animate in sync with the music.</li>
     <li>Both the top and bottom visualizers show the audio spectrum.</li>
   </ul>
 
-  <h2 id="troubleshooting">20. Troubleshooting</h2>
+  <h2 id="troubleshooting">21. Troubleshooting</h2>
   <ul>
     <li><b>Search not finding tracks?</b> Try enabling Fuzzy Search for typo-tolerant matching, or check your spelling.</li>
     <li><b>Multi-criteria search too restrictive?</b> Remove some filters to broaden results, or check if data exists for your criteria.</li>
