@@ -184,7 +184,6 @@ beatrove/
 ├── generate_music_list.py  # Python script to build tracklist.csv from audio files
 ├── music_file_fixer.py     # Python script to standardize audio filenames
 ├── User_Documentation.md   # Detailed user guide
-├── CLAUDE.md              # Development documentation
 └── README.md              # This file
 ```
 
