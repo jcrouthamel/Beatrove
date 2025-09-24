@@ -2004,6 +2004,41 @@ class AudioManager {
       waveformCanvas._previewId = previewId;
       container.appendChild(waveformCanvas);
 
+      // Add zoom controls to the audio player popup
+      const zoomControlsContainer = document.createElement('div');
+      zoomControlsContainer.className = 'audio-player-zoom-controls';
+      zoomControlsContainer.id = `zoom-controls-${previewId}`;
+      // Initially hide zoom controls - they will be shown when overview style is selected
+      if (this.visualizer?.waveformStyle !== 'overview') {
+        zoomControlsContainer.style.display = 'none';
+      }
+
+      const zoomOutBtn = document.createElement('button');
+      zoomOutBtn.className = 'audio-zoom-btn';
+      zoomOutBtn.innerHTML = '🔍-';
+      zoomOutBtn.title = 'Zoom Out';
+
+      const zoomLevel = document.createElement('span');
+      zoomLevel.className = 'audio-zoom-level';
+      zoomLevel.id = `zoom-level-${previewId}`;
+      zoomLevel.textContent = '1x';
+
+      const zoomInBtn = document.createElement('button');
+      zoomInBtn.className = 'audio-zoom-btn';
+      zoomInBtn.innerHTML = '🔍+';
+      zoomInBtn.title = 'Zoom In';
+
+      const zoomResetBtn = document.createElement('button');
+      zoomResetBtn.className = 'audio-zoom-btn';
+      zoomResetBtn.innerHTML = '↻';
+      zoomResetBtn.title = 'Reset Zoom';
+
+      zoomControlsContainer.appendChild(zoomOutBtn);
+      zoomControlsContainer.appendChild(zoomLevel);
+      zoomControlsContainer.appendChild(zoomInBtn);
+      zoomControlsContainer.appendChild(zoomResetBtn);
+      container.appendChild(zoomControlsContainer);
+
       // Check again if superseded before adding to DOM
       if (this.currentPreviewId !== previewId) {
         console.log(`Preview ${previewId} was superseded before DOM insertion`);
@@ -2085,6 +2120,37 @@ class AudioManager {
 
       // Store cleanup handler
       audio._cleanupHandler = cleanupHandler;
+
+      // Add zoom control event listeners
+      zoomInBtn.addEventListener('click', () => {
+        if (this.visualizer && this.currentPreviewId === previewId) {
+          this.visualizer.zoomIn();
+          const zoomLevelElement = document.getElementById(`zoom-level-${previewId}`);
+          if (zoomLevelElement) {
+            zoomLevelElement.textContent = `${this.visualizer.zoomLevel}x`;
+          }
+        }
+      });
+
+      zoomOutBtn.addEventListener('click', () => {
+        if (this.visualizer && this.currentPreviewId === previewId) {
+          this.visualizer.zoomOut();
+          const zoomLevelElement = document.getElementById(`zoom-level-${previewId}`);
+          if (zoomLevelElement) {
+            zoomLevelElement.textContent = `${this.visualizer.zoomLevel}x`;
+          }
+        }
+      });
+
+      zoomResetBtn.addEventListener('click', () => {
+        if (this.visualizer && this.currentPreviewId === previewId) {
+          this.visualizer.resetZoom();
+          const zoomLevelElement = document.getElementById(`zoom-level-${previewId}`);
+          if (zoomLevelElement) {
+            zoomLevelElement.textContent = `${this.visualizer.zoomLevel}x`;
+          }
+        }
+      });
 
       // Connect visualizer only if still current
       if (this.currentPreviewId === previewId) {
@@ -3901,6 +3967,7 @@ class UIController {
         }
       });
     }
+
 
     // AZ bar
     const azBar = document.getElementById('az-bar');
@@ -6421,6 +6488,15 @@ class AudioVisualizer {
     this.playbackProgress = 0; // For progress-based styles
     this.fullTrackWaveforms = new Map(); // Cache for full track waveform data
     this.currentAudioElement = null; // Reference to current audio element for full track analysis
+
+    // Zoom functionality
+    this.zoomLevel = parseFloat(localStorage.getItem('beatrove-zoom-level')) || 1;
+    this.zoomOffset = parseFloat(localStorage.getItem('beatrove-zoom-offset')) || 0;
+    this.minZoom = 0.5;
+    this.maxZoom = 10;
+    this.zoomStep = 0.5;
+    this.autoScrollEnabled = true; // Auto-scroll follows playback by default
+    this.lastManualPanTime = 0; // Track when user manually panned
   }
 
   start() {
@@ -6469,6 +6545,21 @@ class AudioVisualizer {
 
   setWaveformStyle(style) {
     this.waveformStyle = style;
+
+    // Show/hide zoom controls in audio player based on waveform style
+    const currentPreviewId = this.audioManager?.currentPreviewId;
+    if (currentPreviewId) {
+      const zoomControls = document.getElementById(`zoom-controls-${currentPreviewId}`);
+      if (zoomControls) {
+        if (style === 'overview') {
+          zoomControls.style.display = 'flex';
+          this.updateZoomDisplay();
+        } else {
+          zoomControls.style.display = 'none';
+        }
+      }
+    }
+
     console.log('Waveform style changed to:', style);
   }
 
@@ -6819,7 +6910,7 @@ class AudioVisualizer {
 
   analyzeFullTrack(audioElement) {
     const trackId = audioElement.src;
-    
+
     // Check if we already have the waveform data cached
     if (this.fullTrackWaveforms.has(trackId)) {
       console.log('Full track waveform already cached for:', trackId);
@@ -6827,10 +6918,25 @@ class AudioVisualizer {
     }
 
     console.log('Starting full track analysis for:', trackId);
-    
+
     // Use real-time analysis approach instead of decoding the full file
     // This avoids CORS issues and works with existing audio elements
     this.generateFullTrackFromRealTime(audioElement, trackId);
+  }
+
+  generateTrackSeed(trackId, duration) {
+    // Create a unique seed based on track characteristics
+    let seed = 0;
+
+    // Use track URL/path for uniqueness
+    for (let i = 0; i < trackId.length; i++) {
+      seed += trackId.charCodeAt(i) * (i + 1);
+    }
+
+    // Add duration for additional uniqueness
+    seed += Math.floor(duration * 100);
+
+    return Math.abs(seed) % 100000;
   }
 
   generateFullTrackFromRealTime(audioElement, trackId) {
@@ -6839,36 +6945,68 @@ class AudioVisualizer {
     const duration = audioElement.duration || 180; // fallback to 3 minutes
     const dataPoints = 1000;
     const waveformData = [];
-    
-    // Generate realistic waveform pattern
+
+    // Generate unique seed based on track characteristics for consistent uniqueness
+    const trackSeed = this.generateTrackSeed(trackId, duration);
+    let randomSeed = trackSeed;
+
+    // Seeded random function for consistent results per track
+    const seededRandom = () => {
+      randomSeed = (randomSeed * 9301 + 49297) % 233280;
+      return randomSeed / 233280;
+    };
+
+    // Generate track-specific characteristics
+    const trackCharacteristics = {
+      bassFreq: 4 + (seededRandom() * 8), // 4-12 Hz base frequency
+      midFreq: 20 + (seededRandom() * 40), // 20-60 Hz mid frequency
+      highFreq: 80 + (seededRandom() * 120), // 80-200 Hz high frequency
+      bassIntensity: 0.2 + (seededRandom() * 0.4), // 0.2-0.6
+      midIntensity: 0.1 + (seededRandom() * 0.3), // 0.1-0.4
+      highIntensity: 0.05 + (seededRandom() * 0.15), // 0.05-0.2
+      dropPosition: 0.2 + (seededRandom() * 0.4), // Drop at 20-60%
+      buildupIntensity: 0.5 + (seededRandom() * 0.5), // 0.5-1.0
+      noiseLevel: 0.1 + (seededRandom() * 0.3) // 0.1-0.4
+    };
+
+    // Generate realistic waveform pattern unique to each track
     for (let i = 0; i < dataPoints; i++) {
       const position = i / dataPoints; // 0 to 1
       const time = position * duration;
-      
-      // Create a realistic audio amplitude pattern
+
+      // Create a realistic audio amplitude pattern with track-specific characteristics
       let amplitude = 0;
-      
-      // Add multiple frequency components for realistic look
-      amplitude += Math.sin(position * Math.PI * 8) * 0.3; // Main wave
-      amplitude += Math.sin(position * Math.PI * 32) * 0.2; // Higher frequency
-      amplitude += Math.sin(position * Math.PI * 128) * 0.1; // Detail
-      
-      // Add some randomness for natural variation
-      amplitude += (Math.random() - 0.5) * 0.4;
-      
-      // Add envelope (tracks often have quiet intro/outro, loud middle)
+
+      // Add multiple frequency components with unique characteristics per track
+      amplitude += Math.sin(position * Math.PI * trackCharacteristics.bassFreq) * trackCharacteristics.bassIntensity;
+      amplitude += Math.sin(position * Math.PI * trackCharacteristics.midFreq) * trackCharacteristics.midIntensity;
+      amplitude += Math.sin(position * Math.PI * trackCharacteristics.highFreq) * trackCharacteristics.highIntensity;
+
+      // Add track-specific noise and variation
+      amplitude += (seededRandom() - 0.5) * trackCharacteristics.noiseLevel;
+
+      // Create EDM-style build/drop sections
       let envelope = 1;
+      const dropStart = trackCharacteristics.dropPosition;
+      const dropEnd = dropStart + 0.3; // Drop lasts 30% of track
+
       if (position < 0.1) {
-        envelope = position / 0.1; // Fade in
+        envelope = position / 0.1; // Intro fade in
       } else if (position > 0.9) {
-        envelope = (1 - position) / 0.1; // Fade out
+        envelope = (1 - position) / 0.1; // Outro fade out
+      } else if (position >= dropStart - 0.1 && position < dropStart) {
+        // Build-up before drop
+        envelope = 1 + ((position - (dropStart - 0.1)) / 0.1) * trackCharacteristics.buildupIntensity;
+      } else if (position >= dropStart && position < dropEnd) {
+        // Drop section - high energy
+        envelope = 1.5 + Math.sin((position - dropStart) / (dropEnd - dropStart) * Math.PI * 4) * 0.5;
       }
-      
-      // Apply envelope and normalize
+
+      // Apply envelope and normalize with more dramatic range
       amplitude *= envelope;
       amplitude = Math.abs(amplitude);
-      amplitude = Math.max(0, Math.min(1, amplitude * 0.8 + 0.1)); // Keep between 0.1 and 0.9
-      
+      amplitude = Math.max(0.05, Math.min(1, amplitude * 0.9 + 0.05)); // Keep between 0.05 and 1.0 for more contrast
+
       waveformData.push(amplitude);
     }
     
@@ -6908,37 +7046,54 @@ class AudioVisualizer {
     const currentTime = this.currentAudioElement?.currentTime || 0;
     const progressX = (currentTime / duration) * w;
     
-    // Draw the overview waveform
+    // Draw the overview waveform with zoom support
     ctx.fillStyle = '#00ffff';
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = 1;
-    
-    const barWidth = Math.max(1, w / data.length);
-    
-    for (let i = 0; i < data.length; i++) {
-      const amplitude = data[i];
-      const barHeight = amplitude * h * 0.8;
+
+    // Auto-scroll to follow playback position when zoomed
+    if (this.zoomLevel > 1) {
+      this.autoScrollToPlaybackPosition(currentTime, duration);
+    }
+
+    // Apply zoom calculations
+    const zoomedDataLength = Math.floor(data.length / this.zoomLevel);
+    const startIndex = Math.floor(this.zoomOffset * (data.length - zoomedDataLength));
+    const endIndex = Math.min(data.length, startIndex + zoomedDataLength);
+    const visibleData = data.slice(startIndex, endIndex);
+
+    const barWidth = Math.max(1, w / visibleData.length);
+
+    // Calculate zoomed progress position
+    const zoomedProgressX = ((currentTime / duration) - this.zoomOffset) * this.zoomLevel * w;
+
+    for (let i = 0; i < visibleData.length; i++) {
+      const amplitude = visibleData[i];
+      const barHeight = amplitude * h * 0.95; // Increased from 0.8 to 0.95 for better visibility
       const x = i * barWidth;
       const centerY = h / 2;
-      
-      // Color coding: played vs unplayed
-      if (x < progressX) {
+
+      // Color coding: played vs unplayed (adjusted for zoom)
+      if (x < zoomedProgressX && zoomedProgressX >= 0 && zoomedProgressX <= w) {
         ctx.fillStyle = '#ff6b35'; // Orange for played portion
       } else {
         ctx.fillStyle = '#00ffff'; // Cyan for unplayed
       }
-      
-      // Draw symmetrical bars
-      ctx.fillRect(x, centerY - barHeight / 2, barWidth - 0.5, barHeight);
+
+      // Draw symmetrical bars with minimum height for visibility
+      const minBarHeight = Math.max(barHeight, 2); // Ensure minimum 2px height
+      ctx.fillRect(x, centerY - minBarHeight / 2, barWidth - 0.5, minBarHeight);
     }
     
-    // Draw playback cursor
-    ctx.strokeStyle = '#ff0040';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(progressX, 0);
-    ctx.lineTo(progressX, h);
-    ctx.stroke();
+    // Draw playback cursor (adjusted for zoom)
+    if (zoomedProgressX >= 0 && zoomedProgressX <= w) {
+      ctx.strokeStyle = '#ff0040';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(zoomedProgressX, 0);
+      ctx.lineTo(zoomedProgressX, h);
+      ctx.stroke();
+    }
     
     // Draw time markers
     ctx.fillStyle = '#999';
@@ -6963,6 +7118,142 @@ class AudioVisualizer {
       ctx.textAlign = 'left';
       ctx.fillText('Overview waveform', 5, 15);
     }
+
+    // Add zoom level info if zoomed
+    if (this.zoomLevel !== 1) {
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'right';
+      ctx.fillText(`Zoom: ${this.zoomLevel}x`, w - 5, 15);
+    }
+  }
+
+  // Zoom control methods
+  zoomIn() {
+    if (this.zoomLevel < this.maxZoom) {
+      // Calculate current playback position before changing zoom
+      const currentPlaybackPosition = this.getCurrentPlaybackPosition();
+
+      this.zoomLevel = Math.min(this.maxZoom, this.zoomLevel + this.zoomStep);
+
+      // Adjust offset to keep current playback position in view
+      if (currentPlaybackPosition !== null) {
+        this.adjustOffsetToShowPlaybackPosition(currentPlaybackPosition);
+      }
+
+      this.autoScrollEnabled = true; // Re-enable auto-scroll when changing zoom
+      this.updateZoomDisplay();
+      return true;
+    }
+    return false;
+  }
+
+  zoomOut() {
+    if (this.zoomLevel > this.minZoom) {
+      // Calculate current playback position before changing zoom
+      const currentPlaybackPosition = this.getCurrentPlaybackPosition();
+
+      this.zoomLevel = Math.max(this.minZoom, this.zoomLevel - this.zoomStep);
+
+      // Reset offset if we're back to 1x zoom, otherwise adjust to show playback position
+      if (this.zoomLevel === 1) {
+        this.zoomOffset = 0;
+      } else if (currentPlaybackPosition !== null) {
+        this.adjustOffsetToShowPlaybackPosition(currentPlaybackPosition);
+      }
+
+      this.autoScrollEnabled = true; // Re-enable auto-scroll when changing zoom
+      this.updateZoomDisplay();
+      return true;
+    }
+    return false;
+  }
+
+  resetZoom() {
+    this.zoomLevel = 1;
+    this.zoomOffset = 0; // At 1x zoom, offset should always be 0
+    this.autoScrollEnabled = true; // Re-enable auto-scroll when resetting zoom
+    this.updateZoomDisplay();
+  }
+
+  updateZoomDisplay() {
+    // Update zoom level display in audio player
+    const currentPreviewId = this.audioManager?.currentPreviewId;
+    if (currentPreviewId) {
+      const zoomLevelElement = document.getElementById(`zoom-level-${currentPreviewId}`);
+      if (zoomLevelElement) {
+        zoomLevelElement.textContent = `${this.zoomLevel}x`;
+      }
+    }
+
+    // Save zoom level to localStorage
+    localStorage.setItem('beatrove-zoom-level', this.zoomLevel.toString());
+    localStorage.setItem('beatrove-zoom-offset', this.zoomOffset.toString());
+  }
+
+  // Pan the waveform when zoomed (called by mouse/touch events)
+  panWaveform(deltaX) {
+    if (this.zoomLevel > 1) {
+      const maxOffset = 1 - (1 / this.zoomLevel);
+      this.zoomOffset = Math.max(0, Math.min(maxOffset, this.zoomOffset + deltaX));
+
+      // Temporarily disable auto-scroll when user manually pans
+      this.autoScrollEnabled = false;
+      this.lastManualPanTime = Date.now();
+
+      // Save updated offset to localStorage
+      localStorage.setItem('beatrove-zoom-offset', this.zoomOffset.toString());
+    }
+  }
+
+  // Get current playback position as a ratio (0 to 1)
+  getCurrentPlaybackPosition() {
+    if (!this.currentAudioElement) return null;
+
+    const currentTime = this.currentAudioElement.currentTime || 0;
+    const duration = this.currentAudioElement.duration || 0;
+
+    if (duration === 0) return null;
+
+    return currentTime / duration;
+  }
+
+  // Adjust zoom offset to keep the specified playback position in view
+  adjustOffsetToShowPlaybackPosition(playbackPosition) {
+    if (this.zoomLevel <= 1) {
+      this.zoomOffset = 0;
+      return;
+    }
+
+    const visibleWidth = 1 / this.zoomLevel; // Portion of track visible (0 to 1)
+    const maxOffset = 1 - visibleWidth;
+
+    // Calculate desired offset to center playback position in view
+    // Keep playback cursor at 30% from left edge for better lookahead
+    const targetOffset = playbackPosition - (visibleWidth * 0.3);
+
+    // Clamp to valid range
+    this.zoomOffset = Math.max(0, Math.min(maxOffset, targetOffset));
+
+    // Save updated offset to localStorage
+    localStorage.setItem('beatrove-zoom-offset', this.zoomOffset.toString());
+  }
+
+  // Auto-scroll to follow playback position when zoomed
+  autoScrollToPlaybackPosition(currentTime, duration) {
+    if (this.zoomLevel <= 1) return; // No auto-scroll needed at 1x zoom
+
+    // Re-enable auto-scroll after 3 seconds of no manual panning
+    const timeSinceManualPan = Date.now() - this.lastManualPanTime;
+    if (!this.autoScrollEnabled && timeSinceManualPan > 3000) {
+      this.autoScrollEnabled = true;
+    }
+
+    // Only auto-scroll if enabled
+    if (!this.autoScrollEnabled) return;
+
+    const playbackPosition = currentTime / duration; // 0 to 1
+    this.adjustOffsetToShowPlaybackPosition(playbackPosition);
   }
 }
 
