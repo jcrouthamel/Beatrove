@@ -6496,7 +6496,7 @@ class AudioVisualizer {
     this.maxZoom = 10;
     this.zoomStep = 0.5;
     this.autoScrollEnabled = true; // Auto-scroll follows playback by default
-    this.lastManualPanTime = 0; // Track when user manually panned
+    this.lastManualPanTime = Date.now() - 10000; // Initialize to 10 seconds ago to allow immediate auto-scroll
   }
 
   start() {
@@ -7042,18 +7042,31 @@ class AudioVisualizer {
     const waveformData = this.fullTrackWaveforms.get(trackId);
     const { data, duration, synthetic, fallback } = waveformData;
     
-    // Calculate playback position
+    // Calculate playback position with safety checks
     const currentTime = this.currentAudioElement?.currentTime || 0;
     const progressX = (currentTime / duration) * w;
+
+    // Safety check for invalid duration/time values
+    if (duration <= 0 || isNaN(duration) || isNaN(currentTime)) {
+      console.warn('Invalid audio timing values:', { currentTime, duration });
+      return;
+    }
     
     // Draw the overview waveform with zoom support
     ctx.fillStyle = '#00ffff';
     ctx.strokeStyle = '#00ffff';
     ctx.lineWidth = 1;
 
-    // Auto-scroll to follow playback position when zoomed
-    if (this.zoomLevel > 1) {
-      this.autoScrollToPlaybackPosition(currentTime, duration);
+    // Auto-scroll to follow playback position when zoomed - simplified approach
+    // Only apply auto-scroll when actually zoomed in (> 1x)
+    if (this.zoomLevel > 1.0) {
+      this.ensurePlaybackPositionVisible(currentTime, duration);
+    } else {
+      // At 1x zoom or less, ensure offset is 0 to show full track
+      if (this.zoomOffset !== 0) {
+        this.zoomOffset = 0;
+        localStorage.setItem('beatrove-zoom-offset', '0');
+      }
     }
 
     // Apply zoom calculations
@@ -7065,7 +7078,27 @@ class AudioVisualizer {
     const barWidth = Math.max(1, w / visibleData.length);
 
     // Calculate zoomed progress position
-    const zoomedProgressX = ((currentTime / duration) - this.zoomOffset) * this.zoomLevel * w;
+    const playbackPosition = currentTime / duration; // 0 to 1
+    const visibleStart = this.zoomOffset; // Start of visible area (0 to 1)
+    const visibleWidth = 1 / this.zoomLevel; // Width of visible area (0 to 1)
+    const visibleEnd = visibleStart + visibleWidth; // End of visible area
+
+    // Calculate progress position within the visible area
+    let zoomedProgressX = -1; // Default to invisible
+
+    // Use tolerance for floating-point comparison to handle end-of-track precision issues
+    const tolerance = 0.001; // 0.1% tolerance
+    const isInVisibleRange = playbackPosition >= (visibleStart - tolerance) && playbackPosition <= (visibleEnd + tolerance);
+
+    if (isInVisibleRange) {
+      // Clamp playback position to visible range to handle slight overruns
+      const clampedPosition = Math.max(visibleStart, Math.min(visibleEnd, playbackPosition));
+      const relativePosition = (clampedPosition - visibleStart) / visibleWidth; // 0 to 1 within visible area
+      zoomedProgressX = relativePosition * w; // Convert to pixel position
+
+      // Ensure cursor stays within canvas bounds
+      zoomedProgressX = Math.max(0, Math.min(w, zoomedProgressX));
+    }
 
     for (let i = 0; i < visibleData.length; i++) {
       const amplitude = visibleData[i];
@@ -7074,7 +7107,8 @@ class AudioVisualizer {
       const centerY = h / 2;
 
       // Color coding: played vs unplayed (adjusted for zoom)
-      if (x < zoomedProgressX && zoomedProgressX >= 0 && zoomedProgressX <= w) {
+      const absoluteBarPosition = visibleStart + (i / visibleData.length) * visibleWidth; // Position of this bar in track (0 to 1)
+      if (absoluteBarPosition < playbackPosition) {
         ctx.fillStyle = '#ff6b35'; // Orange for played portion
       } else {
         ctx.fillStyle = '#00ffff'; // Cyan for unplayed
@@ -7093,6 +7127,18 @@ class AudioVisualizer {
       ctx.moveTo(zoomedProgressX, 0);
       ctx.lineTo(zoomedProgressX, h);
       ctx.stroke();
+    } else {
+      // Show indicator when cursor is outside visible area
+      ctx.fillStyle = '#ff0040';
+      ctx.font = '10px Arial';
+      ctx.textAlign = 'center';
+      if (playbackPosition < visibleStart) {
+        // Cursor is to the left of visible area
+        ctx.fillText('◀', 10, h / 2);
+      } else if (playbackPosition > visibleEnd) {
+        // Cursor is to the right of visible area
+        ctx.fillText('▶', w - 10, h / 2);
+      }
     }
     
     // Draw time markers
@@ -7239,21 +7285,40 @@ class AudioVisualizer {
     localStorage.setItem('beatrove-zoom-offset', this.zoomOffset.toString());
   }
 
-  // Auto-scroll to follow playback position when zoomed
-  autoScrollToPlaybackPosition(currentTime, duration) {
+  // Simple method to ensure playback position is always visible when zoomed
+  ensurePlaybackPositionVisible(currentTime, duration) {
     if (this.zoomLevel <= 1) return; // No auto-scroll needed at 1x zoom
 
-    // Re-enable auto-scroll after 3 seconds of no manual panning
-    const timeSinceManualPan = Date.now() - this.lastManualPanTime;
-    if (!this.autoScrollEnabled && timeSinceManualPan > 3000) {
-      this.autoScrollEnabled = true;
-    }
-
-    // Only auto-scroll if enabled
-    if (!this.autoScrollEnabled) return;
-
     const playbackPosition = currentTime / duration; // 0 to 1
-    this.adjustOffsetToShowPlaybackPosition(playbackPosition);
+    const visibleWidth = 1 / this.zoomLevel;
+
+    // Check if we need to update position (very simple check)
+    const timeSinceManualPan = Date.now() - this.lastManualPanTime;
+    const canAutoScroll = this.autoScrollEnabled || timeSinceManualPan > 3000;
+
+    if (!canAutoScroll) return; // Don't update if user recently panned
+
+    // Calculate ideal center position with 30% lookahead
+    const idealCenter = playbackPosition + (visibleWidth * 0.2); // 20% lookahead instead of 30%
+    let targetOffset = idealCenter - (visibleWidth / 2);
+
+    // Clamp to valid bounds - this handles both start and end of track automatically
+    const maxOffset = 1 - visibleWidth;
+    targetOffset = Math.max(0, Math.min(maxOffset, targetOffset));
+
+    // Only update if the change is significant (reduces jitter)
+    const offsetDifference = Math.abs(targetOffset - this.zoomOffset);
+    if (offsetDifference > 0.005) { // Update if more than 0.5% change
+      this.zoomOffset = targetOffset;
+      this.autoScrollEnabled = true; // Ensure it stays enabled
+      localStorage.setItem('beatrove-zoom-offset', this.zoomOffset.toString());
+
+    }
+  }
+
+  // Keep the old method for reference but simplified
+  autoScrollToPlaybackPosition(currentTime, duration) {
+    return this.ensurePlaybackPositionVisible(currentTime, duration);
   }
 }
 
