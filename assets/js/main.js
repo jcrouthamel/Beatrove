@@ -8,6 +8,7 @@
 // Import core utilities
 import { CONFIG, SecurityUtils, RateLimiter } from './core/security-utils.js';
 import { FuzzySearchUtils } from './core/fuzzy-search.js';
+import { ErrorHandler } from './core/error-handler.js';
 
 // Import audio modules
 import { AudioManager } from './audio/audio-manager.js';
@@ -98,8 +99,9 @@ class NotificationSystem {
 
 // ============= APPLICATION STATE =============
 class ApplicationState {
-  constructor(notificationSystem) {
+  constructor(notificationSystem, errorHandler = null) {
     this.notificationSystem = notificationSystem;
+    this.errorHandler = errorHandler || new ErrorHandler(notificationSystem);
     this.data = {
       grouped: {},
       totalTracks: 0,
@@ -136,21 +138,29 @@ class ApplicationState {
   }
 
   async safeLocalStorageGet(key, defaultValue = null) {
-    try {
+    return this.errorHandler.safe(() => {
       const value = localStorage.getItem(key);
       return value !== null ? JSON.parse(value) : defaultValue;
-    } catch (error) {
-      return defaultValue;
-    }
+    }, {
+      component: 'ApplicationState',
+      method: 'safeLocalStorageGet',
+      fallbackValue: defaultValue,
+      showUser: false,
+      logToConsole: false
+    });
   }
 
   async safeLocalStorageSet(key, value) {
-    try {
+    return this.errorHandler.safe(() => {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
-    } catch (error) {
-      return false;
-    }
+    }, {
+      component: 'ApplicationState',
+      method: 'safeLocalStorageSet',
+      fallbackValue: false,
+      operation: 'local storage save',
+      showUser: false
+    });
   }
 
   loadFromStorage() {
@@ -467,7 +477,8 @@ function debounce(func, wait) {
 class BeatroveApp {
   constructor() {
     this.notificationSystem = new NotificationSystem();
-    this.appState = new ApplicationState(this.notificationSystem);
+    this.errorHandler = new ErrorHandler(this.notificationSystem);
+    this.appState = new ApplicationState(this.notificationSystem, this.errorHandler);
     this.rateLimiter = new RateLimiter();
     this.audioManager = new AudioManager(this.notificationSystem);
     this.renderer = new UIRenderer(this.appState);
@@ -594,7 +605,7 @@ class BeatroveApp {
   }
 
   async loadDefaultTracklist() {
-    try {
+    return this.errorHandler.safeAsync(async () => {
       const response = await fetch('tracklist.csv');
       if (!response.ok) throw new Error('No default tracklist');
 
@@ -612,10 +623,14 @@ class BeatroveApp {
       if (result.energyLevels && Object.keys(result.energyLevels).length > 0) {
         Object.assign(this.appState.data.energyLevels, result.energyLevels);
       }
-
-    } catch (error) {
-      // No default tracklist found - this is fine
-    }
+    }, {
+      component: 'BeatroveApp',
+      method: 'loadDefaultTracklist',
+      operation: 'default tracklist loading',
+      showUser: false,
+      logToConsole: false,
+      fallbackValue: null
+    });
   }
 
   cleanup() {

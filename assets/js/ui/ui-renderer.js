@@ -7,6 +7,9 @@
 
 import { CONFIG, SecurityUtils } from '../core/security-utils.js';
 import { FuzzySearchUtils } from '../core/fuzzy-search.js';
+import { FilterManager } from '../core/filter-manager.js';
+import { BlobManager } from '../core/blob-manager.js';
+import { ErrorHandler } from '../core/error-handler.js';
 
 // ============= UI RENDERER =============
 export class UIRenderer {
@@ -23,6 +26,21 @@ export class UIRenderer {
 
     // Image file map for cover art
     this.imageFileMap = {};
+
+    // Initialize centralized filter manager
+    this.filterManager = new FilterManager(this);
+
+    // Initialize error handler
+    this.errorHandler = new ErrorHandler();
+
+    // Initialize blob manager for image URLs
+    this.blobManager = new BlobManager();
+
+    // Cache for A-Z bar optimization
+    this.azBarCache = {
+      lastAvailableInitials: new Set(),
+      elementsMap: new Map() // Maps letter -> DOM element
+    };
   }
 
   render() {
@@ -175,11 +193,8 @@ export class UIRenderer {
   }
 
   setTracksPerPage(tracksPerPage) {
-    // If this is a user-initiated change while A-Z filter is active,
-    // update the stored original settings so they reflect the user's preference
-    if (this.azBarActive && this.originalPaginationSettings && tracksPerPage !== 'all') {
-      this.originalPaginationSettings.tracksPerPage = parseInt(tracksPerPage);
-    }
+    // Update filter manager if A-Z filter is active and pagination changes
+    this.filterManager.updatePaginationDuringAZFilter(tracksPerPage);
 
     if (tracksPerPage === 'all') {
       this.tracksPerPage = Infinity; // Show all tracks
@@ -207,7 +222,7 @@ export class UIRenderer {
       sortValue: (this.appState.elements?.sortSelect?.value) || document.getElementById('sort-select')?.value || 'name-asc',
       yearSearch: document.getElementById('year-search')?.value.trim() || '',
       showFavoritesOnly: this.appState.data.showFavoritesOnly || false,
-      azFilter: this.azBarActive || ''
+      azFilter: this.filterManager.getAZFilterState()
     };
 
     return filters;
@@ -440,6 +455,12 @@ export class UIRenderer {
     // Remove all existing content and trigger garbage collection
     const existingTracks = container.querySelectorAll('.track');
     existingTracks.forEach(track => {
+      // Clean up blob URLs for cover art images
+      const coverArtImg = track.querySelector('.cover-art-img');
+      if (coverArtImg && coverArtImg.dataset.blobUrl) {
+        this.blobManager.removeReference(coverArtImg.dataset.blobUrl);
+      }
+
       // Remove any event listeners that might be attached
       const buttons = track.querySelectorAll('button');
       buttons.forEach(button => {
@@ -724,28 +745,44 @@ export class UIRenderer {
   }
 
   async loadCoverArt(coverArtPath, imgElement) {
-    try {
+    return this.errorHandler.safeAsync(async () => {
       // Check if we have the cover art file in our audio manager's file map
       const coverArtFile = this.findCoverArtFile(coverArtPath);
 
       if (coverArtFile) {
-        // Create blob URL for the file
-        const blobUrl = URL.createObjectURL(coverArtFile);
+        // Create blob URL for the file using BlobManager
+        const blobUrl = this.blobManager.createImageBlobUrl(coverArtFile);
         imgElement.src = blobUrl;
 
-        // Note: Not caching blob URLs since they can be revoked
-
-        // Don't immediately revoke blob URLs since they might be reused
-        // Store cleanup function for later use if needed
+        // Add reference to prevent cleanup while image is loading/displayed
+        this.blobManager.addReference(blobUrl);
         imgElement.dataset.blobUrl = blobUrl;
+
+        // Set up cleanup when image is no longer needed
+        imgElement.addEventListener('load', () => {
+          // Remove reference after successful load
+          this.blobManager.removeReference(blobUrl);
+        }, { once: true });
+
+        imgElement.addEventListener('error', () => {
+          // Clean up on error
+          this.blobManager.removeReference(blobUrl);
+          this.blobManager.revokeBlobUrl(blobUrl);
+        }, { once: true });
       } else {
         imgElement.src = this.createPlaceholderDataUrl();
         imgElement.classList.add('placeholder');
       }
-    } catch (error) {
-      imgElement.src = this.createPlaceholderDataUrl();
-      imgElement.classList.add('placeholder');
-    }
+    }, {
+      component: 'UIRenderer',
+      method: 'loadCoverArt',
+      fallbackValue: (() => {
+        imgElement.src = this.createPlaceholderDataUrl();
+        imgElement.classList.add('placeholder');
+      })(),
+      operation: 'cover art loading',
+      showUser: false
+    });
   }
 
   findCoverArtFile(coverArtPath) {
@@ -854,46 +891,54 @@ export class UIRenderer {
     const azBar = document.getElementById('az-bar');
     if (!azBar) return;
 
-    // Clear AZ bar efficiently by removing children
+    // Get current available initials
+    const currentInitials = this.getAvailableArtistInitials();
+
+    // Check if we need to rebuild (first time or initials changed)
+    if (!this.azBarCache.lastAvailableInitials ||
+        !this.setsEqual(this.azBarCache.lastAvailableInitials, currentInitials)) {
+
+      this.rebuildAZBar(azBar, currentInitials);
+      this.azBarCache.lastAvailableInitials = new Set(currentInitials);
+    } else {
+      // Just update visual state if content hasn't changed
+      this.filterManager.updateAZBarVisualState();
+    }
+  }
+
+  /**
+   * Efficiently rebuild the A-Z bar when content changes
+   */
+  rebuildAZBar(azBar, availableInitials) {
+    // Clear cache and DOM
+    this.azBarCache.elementsMap.clear();
     while (azBar.firstChild) {
       azBar.removeChild(azBar.firstChild);
     }
 
-    // Get available artist initials from current data
-    const availableInitials = this.getAvailableArtistInitials();
-
-    // Add "ALL" button to clear A-Z filter
-    const allBtn = document.createElement('button');
-    allBtn.textContent = 'ALL';
-    allBtn.className = 'az-letter az-all';
-    allBtn.dataset.letter = 'all';
-    allBtn.dataset.type = 'all';
-    if (!this.azBarActive) {
-      allBtn.classList.add('active');
-    }
+    // Create and cache "ALL" button
+    const allBtn = this.createAZButton('ALL', 'all', 'all', 'az-letter az-all');
     azBar.appendChild(allBtn);
+    this.azBarCache.elementsMap.set('all', allBtn);
 
     // Build categories: Numbers, Letters, Symbols
     const categories = [
       { label: '#', type: 'numbers', chars: '0123456789' },
       { label: 'A-Z', type: 'letters', chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' },
-      { label: '★', type: 'symbols', chars: '' } // Catch-all for symbols
+      { label: '★', type: 'symbols', chars: '' }
     ];
+
+    // Use document fragment for efficient DOM operations
+    const fragment = document.createDocumentFragment();
 
     categories.forEach(category => {
       if (category.type === 'letters') {
         // Individual letter buttons
         for (const char of category.chars) {
           if (availableInitials.has(char)) {
-            const btn = document.createElement('button');
-            btn.textContent = char;
-            btn.className = 'az-letter';
-            btn.dataset.letter = char;
-            btn.dataset.type = 'letter';
-            if (this.azBarActive === char) {
-              btn.classList.add('active');
-            }
-            azBar.appendChild(btn);
+            const btn = this.createAZButton(char, char, 'letter', 'az-letter');
+            fragment.appendChild(btn);
+            this.azBarCache.elementsMap.set(char, btn);
           }
         }
       } else {
@@ -903,18 +948,49 @@ export class UIRenderer {
           : availableInitials.has('symbols');
 
         if (hasContent) {
-          const btn = document.createElement('button');
-          btn.textContent = category.label;
-          btn.className = 'az-letter az-category';
-          btn.dataset.letter = category.type;
-          btn.dataset.type = category.type;
-          if (this.azBarActive === category.type) {
-            btn.classList.add('active');
-          }
-          azBar.appendChild(btn);
+          const btn = this.createAZButton(category.label, category.type, category.type, 'az-letter az-category');
+          fragment.appendChild(btn);
+          this.azBarCache.elementsMap.set(category.type, btn);
         }
       }
     });
+
+    // Single DOM append for all elements
+    azBar.appendChild(fragment);
+
+    // Update visual state
+    this.filterManager.updateAZBarVisualState();
+  }
+
+  /**
+   * Create a standardized A-Z button element
+   */
+  createAZButton(text, letter, type, className) {
+    const btn = document.createElement('button');
+    btn.textContent = text;
+    btn.className = className;
+    btn.dataset.letter = letter;
+    btn.dataset.type = type;
+    return btn;
+  }
+
+  /**
+   * Efficiently compare two sets for equality
+   */
+  setsEqual(set1, set2) {
+    if (set1.size !== set2.size) return false;
+    for (const item of set1) {
+      if (!set2.has(item)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Clear A-Z bar cache (useful when data changes significantly)
+   */
+  clearAZBarCache() {
+    this.azBarCache.lastAvailableInitials.clear();
+    this.azBarCache.elementsMap.clear();
   }
 
   getAvailableArtistInitials() {
@@ -964,42 +1040,15 @@ export class UIRenderer {
   }
 
   jumpToArtist(letter) {
-    // Store original pagination settings if not already stored
-    if (!this.originalPaginationSettings) {
-      this.originalPaginationSettings = {
-        tracksPerPage: this.tracksPerPage,
-        currentPage: this.currentPage
-      };
-    }
-
-    // Set the A-Z filter and re-render
-    this.azBarActive = letter;
-    this.setTracksPerPage('all');
-    this.currentPage = 1;
-    this.render();
+    this.filterManager.setAZFilter(letter);
   }
 
   clearAZFilter() {
-    this.azBarActive = null;
-
-    // Restore original pagination settings if they were stored
-    if (this.originalPaginationSettings) {
-      this.setTracksPerPage(this.originalPaginationSettings.tracksPerPage);
-      this.currentPage = this.originalPaginationSettings.currentPage;
-      this.originalPaginationSettings = null; // Clear the stored settings
-    }
-
-    // Remove active class from all A-Z letters
-    document.querySelectorAll('.az-letter').forEach(btn => btn.classList.remove('active'));
-    this.render();
+    this.filterManager.clearAZFilter();
   }
 
   clearAZFilterOnly() {
-    // Clear A-Z filter without restoring pagination (for automatic clearing by other filters)
-    this.azBarActive = null;
-    this.originalPaginationSettings = null; // Clear stored settings but don't restore
-    document.querySelectorAll('.az-letter').forEach(btn => btn.classList.remove('active'));
-    // Don't call render() - let the calling method handle it
+    this.filterManager.clearAZFilterOnOtherFilterUse();
   }
 
   renderDuplicateList() {

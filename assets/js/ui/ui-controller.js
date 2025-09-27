@@ -5,6 +5,8 @@
 
 'use strict';
 
+import { ErrorHandler } from '../core/error-handler.js';
+
 // ============= UI CONTROLLER =============
 export class UIController {
   constructor(appState, renderer, audioManager, notificationSystem, rateLimiter, trackProcessor, securityUtils) {
@@ -27,6 +29,9 @@ export class UIController {
     this.keyChart = null;
     this.energyChart = null;
     this.labelsChart = null;
+
+    // Initialize error handler
+    this.errorHandler = new ErrorHandler(notificationSystem);
   }
 
   attachEventListeners() {
@@ -483,16 +488,17 @@ export class UIController {
   }
 
   async copyToClipboard(text, successMessage = 'Copied to clipboard!') {
-    try {
+    return this.errorHandler.safeAsync(async () => {
       await navigator.clipboard.writeText(text);
       if (this.notificationSystem) {
         this.notificationSystem.success(successMessage);
       }
-    } catch (error) {
-      if (this.notificationSystem) {
-        this.notificationSystem.error('Failed to copy to clipboard');
-      }
-    }
+    }, {
+      component: 'UIController',
+      method: 'copyToClipboard',
+      operation: 'clipboard copying',
+      fallbackValue: null
+    });
   }
 
   copyTrackInfo(trackDisplay) {
@@ -697,7 +703,7 @@ export class UIController {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        try {
+        this.errorHandler.safe(() => {
           const result = this.TrackProcessor.processTracklist(e.target.result, file.name);
           Object.assign(this.appState.data, {
             grouped: result.grouped,
@@ -713,11 +719,12 @@ export class UIController {
           if (this.notificationSystem) {
             this.notificationSystem.success(`Loaded ${result.totalTracks} tracks`);
           }
-        } catch (error) {
-          if (this.notificationSystem) {
-            this.notificationSystem.error('Error processing file');
-          }
-        }
+        }, {
+          component: 'UIController',
+          method: 'handleFileUpload',
+          operation: 'file processing',
+          fallbackValue: null
+        });
       };
       reader.readAsText(file);
     }
@@ -1994,9 +2001,16 @@ export class UIController {
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
 
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
+    const url = URL.createObjectURL(dataBlob);
+    link.href = url;
     link.download = `beatrove-tags-${new Date().toISOString().split('T')[0]}.json`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+
+    // Clean up blob URL immediately after download
+    setTimeout(() => URL.revokeObjectURL(url), 100);
 
     if (this.notificationSystem) {
       this.notificationSystem.success('Tags exported successfully');
@@ -2067,9 +2081,16 @@ export class UIController {
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
 
     const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
+    const url = URL.createObjectURL(dataBlob);
+    link.href = url;
     link.download = `beatrove-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
+
+    // Clean up blob URL immediately after download
+    setTimeout(() => URL.revokeObjectURL(url), 100);
 
     if (this.notificationSystem) {
       this.notificationSystem.success('Full backup exported successfully');

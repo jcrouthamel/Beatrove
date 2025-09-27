@@ -6,11 +6,13 @@
 'use strict';
 
 import { Logger } from '../core/logger.js';
+import { ErrorHandler } from '../core/error-handler.js';
 
 // ============= AUDIO VISUALIZER =============
 export class AudioVisualizer {
   constructor(audioManager) {
     this.audioManager = audioManager;
+    this.errorHandler = new ErrorHandler();
     this.animationId = null;
     this.waveformData = [];
     this.waveformBuffer = new Array(400).fill(0.5); // Buffer for waveform history (smaller for popup)

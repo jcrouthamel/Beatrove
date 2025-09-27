@@ -7,6 +7,8 @@
 
 import { CONFIG, SecurityUtils } from '../core/security-utils.js';
 import { Logger } from '../core/logger.js';
+import { BlobManager } from '../core/blob-manager.js';
+import { ErrorHandler } from '../core/error-handler.js';
 
 // ============= AUDIO MANAGER =============
 export class AudioManager {
@@ -18,13 +20,12 @@ export class AudioManager {
     this.sourceNode = null;
     this.audioDataArray = null;
     this.reactToAudio = false;
-    this.blobUrls = new Set();
-    this.blobMeta = new Map(); // Store blob URL metadata: url -> { createdAt }
+    this.blobManager = new BlobManager();
     this.currentBlobUrl = null; // Track current active blob URL
     this.pendingPreviewTrack = null;
     this.notificationSystem = notificationSystem;
-    this.cleanupIntervalId = null;
     this.visualizer = null; // Direct reference to visualizer
+    this.errorHandler = new ErrorHandler(notificationSystem);
 
     // Race condition prevention
     this.isPlayingPreview = false;
@@ -33,68 +34,14 @@ export class AudioManager {
     this.previewQueue = [];
     this.isProcessingQueue = false;
 
-    this.startPeriodicCleanup();
-  }
-
-  createBlobUrl(file) {
-    const url = URL.createObjectURL(file);
-    this.blobUrls.add(url);
-    this.blobMeta.set(url, { createdAt: Date.now() });
-    return url;
-  }
-
-  revokeBlobUrl(url) {
-    if (url && this.blobUrls.has(url)) {
-      URL.revokeObjectURL(url);
-      this.blobUrls.delete(url);
-      this.blobMeta.delete(url);
-    }
   }
 
   setVisualizer(visualizer) {
     this.visualizer = visualizer;
   }
 
-  startPeriodicCleanup() {
-    // Clean up unused blob URLs every 30 seconds
-    this.cleanupIntervalId = setInterval(() => {
-      this.cleanupUnusedBlobUrls();
-      this.cleanupStaleAudioElements();
-    }, 30000);
-  }
-
-  cleanupUnusedBlobUrls() {
-    const now = Date.now();
-    const maxAge = 5 * 60 * 1000; // 5 minutes
-    let cleanedCount = 0;
-
-    for (const url of this.blobUrls) {
-      // Clean up old URLs or URLs not currently in use
-      const meta = this.blobMeta.get(url);
-      if (meta && (now - meta.createdAt > maxAge) && url !== this.currentBlobUrl) {
-        this.revokeBlobUrl(url);
-        cleanedCount++;
-      }
-    }
-
-    // Log cleanup stats for monitoring
-    if (cleanedCount > 0) {
-      Logger.log(`Cleaned up ${cleanedCount} unused blob URLs. Active URLs: ${this.blobUrls.size}`);
-    }
-
-    // Force garbage collection if available and many URLs were cleaned
-    if (cleanedCount > 5 && window.gc) {
-      window.gc();
-    }
-  }
 
   cleanup() {
-    // Stop periodic cleanup
-    if (this.cleanupIntervalId) {
-      clearInterval(this.cleanupIntervalId);
-      this.cleanupIntervalId = null;
-    }
-
     // Clear race condition state
     this.isPlayingPreview = false;
     this.isConnectingVisualizer = false;
@@ -107,10 +54,8 @@ export class AudioManager {
       request.reject(new Error('AudioManager cleanup - operation cancelled'));
     }
 
-    // Clean up all blob URLs
-    this.blobUrls.forEach(url => URL.revokeObjectURL(url));
-    this.blobUrls.clear();
-    this.blobMeta.clear();
+    // Clean up all blob URLs via BlobManager
+    this.blobManager.cleanup();
     this.currentBlobUrl = null;
 
     if (this.currentAudio) {
@@ -140,7 +85,7 @@ export class AudioManager {
       // Remove audio elements that are ended, have no src, or are orphaned
       if (audio.ended || !audio.src || !audio.parentElement) {
         if (audio.src && audio.src.startsWith('blob:')) {
-          this.revokeBlobUrl(audio.src);
+          this.blobManager.revokeBlobUrl(audio.src);
         }
         if (audio.parentElement) {
           audio.parentElement.remove();
@@ -156,11 +101,14 @@ export class AudioManager {
 
   disconnectVisualizer() {
     if (this.sourceNode) {
-      try {
+      this.errorHandler.safe(() => {
         this.sourceNode.disconnect();
-      } catch (e) {
-        // Already disconnected
-      }
+      }, {
+        component: 'AudioManager',
+        method: 'disconnectVisualizer',
+        showUser: false,
+        logToConsole: false
+      });
     }
     this.reactToAudio = false;
     this.sourceNode = null;
@@ -186,7 +134,7 @@ export class AudioManager {
 
     this.isConnectingVisualizer = true;
 
-    try {
+    return this.errorHandler.safeAsync(async () => {
       // Clean up any existing visualizer first
       this.disconnectVisualizer();
 
@@ -203,11 +151,16 @@ export class AudioManager {
       if (this.audioCtx.state === 'suspended') {
         await this.audioCtx.resume();
       }
-    } catch (error) {
-      this.disconnectVisualizer();
-    } finally {
+
       this.isConnectingVisualizer = false;
-    }
+    }, {
+      component: 'AudioManager',
+      method: 'connectVisualizer',
+      fallbackValue: null,
+      operation: 'audio visualization setup'
+    }).finally(() => {
+      this.isConnectingVisualizer = false;
+    });
   }
 
   async playPreview(track) {
@@ -323,7 +276,7 @@ export class AudioManager {
         return;
       }
 
-      const url = this.createBlobUrl(file);
+      const url = this.blobManager.createAudioBlobUrl(file);
       this.currentBlobUrl = url;
 
       // Create container
@@ -355,7 +308,7 @@ export class AudioManager {
         }
 
         // Revoke blob URL to free memory
-        this.revokeBlobUrl(url);
+        this.blobManager.revokeBlobUrl(url);
 
         // Clear current preview ID
         this.currentPreviewId = null;
@@ -423,7 +376,7 @@ export class AudioManager {
       // Check again if superseded before adding to DOM
       if (this.currentPreviewId !== previewId) {
         container.remove();
-        this.revokeBlobUrl(url);
+        this.blobManager.revokeBlobUrl(url);
         return;
       }
 
@@ -446,7 +399,7 @@ export class AudioManager {
           this.currentAudio = null;
         }
 
-        this.revokeBlobUrl(url);
+        this.blobManager.revokeBlobUrl(url);
 
         // Clear current blob URL if this was it
         if (this.currentBlobUrl === url) {
