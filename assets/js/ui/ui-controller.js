@@ -18,6 +18,8 @@ export class UIController {
     this.visualizer = null; // Will be set after construction
     this.tagPopup = null;
     this.tagPopupClickHandler = null;
+    this.moodVibePopup = null;
+    this.moodVibePopupClickHandler = null;
 
     // Chart instances
     this.genreChart = null;
@@ -142,6 +144,11 @@ export class UIController {
         // Energy button
         else if (target.classList.contains('energy-btn')) {
           this.showEnergyDialog(target.dataset.trackDisplay);
+        }
+
+        // Mood & Vibe button
+        else if (target.classList.contains('mood-vibe-btn')) {
+          this.showMoodVibeInput(target.dataset.trackDisplay, target);
         }
       });
     }
@@ -505,6 +512,144 @@ export class UIController {
           this.notificationSystem.success(`Energy level set: ${energyLevel}/10`);
         }
       }
+    }
+  }
+
+  showMoodVibeInput(trackDisplay, anchorElement) {
+    // Remove existing popup and clean up event listeners
+    this.cleanupMoodVibePopup();
+
+    let popup = null;
+    let cleanupPopup = null;
+
+    try {
+      popup = document.createElement('div');
+      popup.className = 'mood-vibe-popup';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Add mood/vibe tags (e.g., Euphoric, Dark, Uplifting)';
+      input.className = 'mood-vibe-input-width';
+
+      const existingTags = (this.appState.data.moodVibeTags[trackDisplay] || []).join(', ');
+      input.value = existingTags;
+
+      const saveBtn = this.SecurityUtils.createSafeElement('button', 'Save');
+      const cancelBtn = this.SecurityUtils.createSafeElement('button', 'Cancel');
+
+      popup.appendChild(input);
+      popup.appendChild(saveBtn);
+      popup.appendChild(cancelBtn);
+
+      // Position popup
+      const rect = anchorElement.getBoundingClientRect();
+      popup.style.left = rect.left + window.scrollX + 'px';
+      popup.style.top = rect.bottom + window.scrollY + 'px';
+
+      document.body.appendChild(popup);
+      this.moodVibePopup = popup;
+      input.focus();
+
+      // Create a comprehensive cleanup function
+      cleanupPopup = () => {
+        if (popup._timeoutId) {
+          clearTimeout(popup._timeoutId);
+          popup._timeoutId = null;
+        }
+
+        if (popup && popup.parentElement) {
+          popup.remove();
+        }
+        this.moodVibePopup = null;
+
+        if (this.moodVibePopupClickHandler) {
+          document.removeEventListener('mousedown', this.moodVibePopupClickHandler);
+          this.moodVibePopupClickHandler = null;
+        }
+      };
+
+      // Event handlers with proper cleanup
+      const saveHandler = () => {
+        try {
+          const tags = input.value.split(',')
+            .map(t => t.trim())
+            .filter(t => this.SecurityUtils.validateTag(t));
+
+          this.appState.data.moodVibeTags[trackDisplay] = tags;
+          this.appState.saveToStorage();
+          cleanupPopup();
+          this.renderer.render();
+        } catch (error) {
+          console.error('Error saving mood/vibe tags:', error);
+          cleanupPopup();
+        }
+      };
+
+      const cancelHandler = () => {
+        cleanupPopup();
+      };
+
+      // Add event listeners
+      saveBtn.addEventListener('click', saveHandler);
+      cancelBtn.addEventListener('click', cancelHandler);
+
+      // Handle Enter/Escape keys
+      const keyHandler = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          saveHandler();
+        } else if (e.key === 'Escape') {
+          e.preventDefault();
+          cancelHandler();
+        }
+      };
+      input.addEventListener('keydown', keyHandler);
+
+      // Close on outside click with proper cleanup
+      this.moodVibePopupClickHandler = (e) => {
+        if (!popup.contains(e.target)) {
+          cleanupPopup();
+        }
+      };
+
+      // Add document listener after a short delay
+      const timeoutId = setTimeout(() => {
+        if (this.moodVibePopup === popup) {
+          document.addEventListener('mousedown', this.moodVibePopupClickHandler);
+        }
+      }, 10);
+
+      popup._timeoutId = timeoutId;
+      popup._cleanup = cleanupPopup;
+
+    } catch (error) {
+      console.error('Error showing mood/vibe input:', error);
+      if (cleanupPopup) {
+        cleanupPopup();
+      } else {
+        this.cleanupMoodVibePopup();
+      }
+    }
+  }
+
+  cleanupMoodVibePopup() {
+    if (this.moodVibePopup) {
+      if (this.moodVibePopup._timeoutId) {
+        clearTimeout(this.moodVibePopup._timeoutId);
+        this.moodVibePopup._timeoutId = null;
+      }
+
+      if (this.moodVibePopup._cleanup) {
+        this.moodVibePopup._cleanup();
+      } else if (this.moodVibePopup.parentElement) {
+        this.moodVibePopup.remove();
+        this.moodVibePopup = null;
+      }
+    }
+
+    if (this.moodVibePopupClickHandler) {
+      document.removeEventListener('mousedown', this.moodVibePopupClickHandler);
+      this.moodVibePopupClickHandler = null;
     }
   }
 
