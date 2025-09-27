@@ -391,6 +391,88 @@
     </div>
   </div>
 
+  <!-- Stats Section -->
+  <div id="stats-section" class="overlay-section" style="display: none;">
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <h2>📊 Library Statistics</h2>
+        <button id="close-stats" class="close-btn">✕</button>
+      </div>
+      <div class="stats-grid">
+        <div id="total-stats" class="stats-category">
+          <h3>Overview</h3>
+          <div class="stats-overview">
+            <div class="overview-item">
+              <span class="overview-label">Total Tracks</span>
+              <span class="overview-value" id="total-tracks-count">0</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Total Artists</span>
+              <span class="overview-value" id="total-artists-count">0</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Average BPM</span>
+              <span class="overview-value" id="average-bpm">0</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Total Duration</span>
+              <span class="overview-value" id="total-duration">0:00</span>
+            </div>
+          </div>
+        </div>
+        <div id="genre-stats" class="stats-category">
+          <h3>Genre Distribution</h3>
+          <div class="chart-container">
+            <canvas id="genre-chart"></canvas>
+          </div>
+        </div>
+        <div id="bpm-stats" class="stats-category">
+          <h3>BPM Ranges</h3>
+          <div class="chart-container">
+            <canvas id="bpm-chart"></canvas>
+          </div>
+        </div>
+        <div id="key-stats" class="stats-category">
+          <h3>Key Distribution</h3>
+          <div class="chart-container">
+            <canvas id="key-chart"></canvas>
+          </div>
+        </div>
+        <div id="energy-stats" class="stats-category">
+          <h3>Energy Levels</h3>
+          <div class="chart-container">
+            <canvas id="energy-chart"></canvas>
+          </div>
+        </div>
+        <div id="year-stats" class="stats-category">
+          <h3>Years</h3>
+          <div class="chart-container">
+            <canvas id="year-chart"></canvas>
+          </div>
+        </div>
+        <div id="label-stats" class="stats-category">
+          <h3>Top Record Labels</h3>
+          <div class="chart-container">
+            <canvas id="labels-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicates Section -->
+  <div id="duplicates-section" class="overlay-section" style="display: none;">
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <h2>🔍 Duplicate Tracks</h2>
+        <button id="close-duplicates" class="close-btn">✕</button>
+      </div>
+      <div id="duplicates-list" class="duplicates-container">
+        <!-- Duplicate tracks will be rendered here -->
+      </div>
+    </div>
+  </div>
+
   <footer>
     <div class="footer-content">
       <span id="footer-updated">Updated: never</span>
@@ -402,6 +484,6 @@
   </footer>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-  <script src="assets/script.js" defer></script>
+  <script type="module" src="assets/js/main.js" defer></script>
 </body>
 </html>

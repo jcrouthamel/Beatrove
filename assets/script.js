@@ -4315,12 +4315,13 @@ class UIController {
     if (totalArtistsEl) totalArtistsEl.textContent = totalArtists.toLocaleString();
     
     // Calculate and display detailed stats
-    this.displayGenreStats(tracks);
-    this.displayKeyStats(tracks);
-    this.displayBPMStats(tracks);
-    this.displayEnergyStats(tracks);
-    this.displayYearStats(tracks);
-    this.displayLabelStats(tracks);
+    // NOTE: These old chart functions are disabled in favor of new UI controller charts
+    // this.displayGenreStats(tracks);
+    // this.displayKeyStats(tracks);
+    // this.displayBPMStats(tracks);
+    // this.displayEnergyStats(tracks);
+    // this.displayYearStats(tracks);
+    // this.displayLabelStats(tracks);
   }
 
   displayGenreStats(tracks) {
