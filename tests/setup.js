@@ -130,3 +130,9 @@ global.navigator.clipboard = {
   writeText: vi.fn(() => Promise.resolve()),
   readText: vi.fn(() => Promise.resolve(''))
 }
+
+// Mock URL API
+global.URL = {
+  createObjectURL: vi.fn(() => 'blob:mock-url'),
+  revokeObjectURL: vi.fn()
+}

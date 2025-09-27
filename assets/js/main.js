@@ -50,6 +50,11 @@ class NotificationSystem {
       this.remove(notification);
     });
 
+    // Add close method to notification object
+    notification.close = () => {
+      this.remove(notification);
+    };
+
     return notification;
   }
 
@@ -73,6 +78,10 @@ class NotificationSystem {
 
   warning(message) {
     return this.show(message, 'warning', 6000);
+  }
+
+  info(message, duration = 5000) {
+    return this.show(message, 'info', duration);
   }
 
   clear() {
@@ -457,7 +466,7 @@ class BeatroveApp {
     this.rateLimiter = new RateLimiter();
     this.audioManager = new AudioManager(this.notificationSystem);
     this.renderer = new UIRenderer(this.appState);
-    this.controller = new UIController(this.appState, this.renderer, this.audioManager, this.notificationSystem, this.rateLimiter, TrackProcessor);
+    this.controller = new UIController(this.appState, this.renderer, this.audioManager, this.notificationSystem, this.rateLimiter, TrackProcessor, SecurityUtils);
     this.visualizer = new AudioVisualizer(this.audioManager);
     this.initialized = false;
   }
@@ -492,6 +501,9 @@ class BeatroveApp {
 
       // Set visualizer reference in AudioManager for waveform access
       this.audioManager.setVisualizer(this.visualizer);
+
+      // Set visualizer reference in UI Controller for waveform style control
+      this.controller.setVisualizer(this.visualizer);
 
       // Initial render
       this.renderer.render();

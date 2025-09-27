@@ -604,6 +604,17 @@ export class AudioManager {
         this.fileMap[file.name.toLowerCase()] = file;
       }
     });
+
+    // Handle pending preview if there was one
+    if (this.pendingPreviewTrack) {
+      const track = this.pendingPreviewTrack;
+      this.pendingPreviewTrack = null;
+      // Play the pending track
+      this.playPreview(track).catch(error => {
+        console.error('Error playing pending preview:', error);
+      });
+    }
+
     return Object.keys(this.fileMap).length;
   }
 }

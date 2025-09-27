@@ -7,13 +7,15 @@
 
 // ============= UI CONTROLLER =============
 export class UIController {
-  constructor(appState, renderer, audioManager, notificationSystem, rateLimiter, trackProcessor) {
+  constructor(appState, renderer, audioManager, notificationSystem, rateLimiter, trackProcessor, securityUtils) {
     this.appState = appState;
     this.renderer = renderer;
     this.audioManager = audioManager;
     this.notificationSystem = notificationSystem;
     this.rateLimiter = rateLimiter;
     this.TrackProcessor = trackProcessor;
+    this.SecurityUtils = securityUtils;
+    this.visualizer = null; // Will be set after construction
     this.tagPopup = null;
     this.tagPopupClickHandler = null;
 
@@ -219,6 +221,14 @@ export class UIController {
       });
     }
 
+    // Cover art toggle button
+    const coverArtBtn = document.getElementById('cover-art-toggle-btn');
+    if (coverArtBtn) {
+      coverArtBtn.addEventListener('click', () => {
+        this.toggleCoverArt();
+      });
+    }
+
     // Filter drawer toggle button
     const filterDrawerBtn = document.getElementById('filter-drawer-btn');
     if (filterDrawerBtn) {
@@ -282,6 +292,16 @@ export class UIController {
     this.setupGlobalClickHandler();
   }
 
+  setVisualizer(visualizer) {
+    this.visualizer = visualizer;
+
+    // Set initial waveform style from storage
+    const savedWaveformStyle = this.appState.data.waveformStyle || 'default';
+    if (this.visualizer && savedWaveformStyle) {
+      this.visualizer.setWaveformStyle(savedWaveformStyle);
+    }
+  }
+
   setupThemeHandlers() {
     // Accent color selector
     const accentColorSelect = document.getElementById('accent-color-select');
@@ -310,6 +330,25 @@ export class UIController {
       const savedTheme = this.appState.data.themePreference || 'dark';
       themeToggle.checked = savedTheme === 'light';
       document.body.classList.toggle('light-mode', savedTheme === 'light');
+    }
+
+    // Waveform style selector
+    const waveformStyleSelect = document.getElementById('waveform-style-select');
+    if (waveformStyleSelect) {
+      waveformStyleSelect.addEventListener('change', (e) => {
+        const newStyle = e.target.value;
+        // Don't allow empty value
+        if (newStyle && this.visualizer) {
+          this.visualizer.setWaveformStyle(newStyle);
+          this.appState.data.waveformStyle = newStyle;
+          this.appState.saveToStorage();
+          console.log('Waveform style changed to:', newStyle);
+        }
+      });
+
+      // Set initial waveform style from storage
+      const savedWaveformStyle = this.appState.data.waveformStyle || 'default';
+      waveformStyleSelect.value = savedWaveformStyle;
     }
   }
 
@@ -364,6 +403,12 @@ export class UIController {
     if (fileInput) {
       fileInput.addEventListener('change', (e) => this.handleFileUpload(e));
     }
+
+    // Audio folder input
+    const audioFolderInput = document.getElementById('audio-folder-input');
+    if (audioFolderInput) {
+      audioFolderInput.addEventListener('change', (e) => this.handleAudioFolderUpload(e));
+    }
   }
 
   // Helper methods
@@ -380,7 +425,14 @@ export class UIController {
   async handlePreview(trackDisplay) {
     const track = this.appState.data.tracksForUI.find(t => t.display === trackDisplay);
     if (track) {
-      await this.audioManager.playPreview(track);
+      // Check if audio files are loaded
+      if (Object.keys(this.audioManager.fileMap).length === 0) {
+        // Store pending track and trigger file input
+        this.audioManager.pendingPreviewTrack = track;
+        document.getElementById('audio-folder-input')?.click();
+      } else {
+        await this.audioManager.playPreview(track);
+      }
     }
   }
 
@@ -487,6 +539,111 @@ export class UIController {
     }
   }
 
+  handleAudioFolderUpload(event) {
+    const files = Array.from(event.target.files);
+
+    if (files.length === 0) {
+      if (this.notificationSystem) {
+        this.notificationSystem.warning('No files selected');
+      }
+      return;
+    }
+
+    // Validate audio files
+    const validFiles = [];
+    const errors = [];
+
+    for (const file of files) {
+      const validation = this.SecurityUtils.validateAudioFile(file);
+      if (validation.isValid) {
+        validFiles.push(file);
+      } else {
+        errors.push(`${file.name}: ${validation.errors.join(', ')}`);
+      }
+    }
+
+    // Show validation errors if any
+    if (errors.length > 0) {
+      const errorSummary = errors.slice(0, 3).join('\n');
+      const moreErrors = errors.length > 3 ? `\n... and ${errors.length - 3} more files` : '';
+      if (this.notificationSystem) {
+        this.notificationSystem.warning(`Some files were rejected:\n${errorSummary}${moreErrors}`);
+      }
+    }
+
+    if (validFiles.length === 0) {
+      if (this.notificationSystem) {
+        this.notificationSystem.error('No valid audio files found');
+      }
+      event.target.value = '';
+      return;
+    }
+
+    // Show progress for large batches
+    let processingNotification;
+    if (validFiles.length > 100 && this.notificationSystem) {
+      processingNotification = this.notificationSystem.info(
+        `Processing ${validFiles.length} audio files...`, 0
+      );
+    }
+
+    const loaded = this.audioManager.loadAudioFiles(validFiles);
+
+    // Also load image files for cover art
+    const imageFiles = [];
+    const allowedImageExtensions = window.CONFIG ? window.CONFIG.ALLOWED_IMAGE_EXTENSIONS : ['.jpg', '.jpeg', '.png', '.webp'];
+    for (const file of files) {
+      if (allowedImageExtensions.some(ext => file.name.toLowerCase().endsWith(ext))) {
+        imageFiles.push(file);
+      }
+    }
+
+    // Store image files in renderer for cover art access
+    // Don't reset if we already have image files - preserve them
+    if (!this.renderer.imageFileMap || Object.keys(this.renderer.imageFileMap).length === 0) {
+      this.renderer.imageFileMap = {};
+    }
+
+    for (const imageFile of imageFiles) {
+      if (imageFile.webkitRelativePath) {
+        this.renderer.imageFileMap[imageFile.webkitRelativePath] = imageFile;
+      }
+    }
+
+    console.log('Cover art debug - loaded image files:', Object.keys(this.renderer.imageFileMap));
+
+    // Clear processing notification
+    if (processingNotification) {
+      processingNotification.close();
+    }
+
+    if (loaded > 0) {
+      const rejectedCount = files.length - validFiles.length;
+      const imageMessage = imageFiles.length > 0 ? ` and ${imageFiles.length} image files` : '';
+      const message = rejectedCount > 0
+        ? `Loaded ${loaded} audio files${imageMessage} (${rejectedCount} total files rejected). You can now preview tracks.`
+        : `Loaded ${loaded} audio files${imageMessage}. You can now preview tracks.`;
+
+      if (this.notificationSystem) {
+        this.notificationSystem.success(message);
+      }
+
+      // Update cover art directory path from the first file's path
+      if (files.length > 0 && files[0].webkitRelativePath) {
+        const firstFilePath = files[0].webkitRelativePath;
+        const folderPath = firstFilePath.substring(0, firstFilePath.lastIndexOf('/'));
+        this.renderer.updateCoverArtDirectory(folderPath);
+      }
+    } else {
+      if (this.notificationSystem) {
+        this.notificationSystem.success(`Loaded ${loaded} audio files`);
+      }
+    }
+
+    // Reset file input
+    event.target.value = '';
+  }
+
   // View toggle methods
   toggleDuplicatesView() {
     const duplicatesSection = document.getElementById('duplicate-tracks');
@@ -527,6 +684,35 @@ export class UIController {
         this.showStatsView();
       }
     }
+  }
+
+  toggleCoverArt() {
+    // Ensure coverArtSettings exists
+    if (!this.appState.data.coverArtSettings) {
+      this.appState.data.coverArtSettings = {
+        showCoverArt: window.CONFIG ? window.CONFIG.COVER_ART.SHOW_BY_DEFAULT : true,
+        artworkDirectory: window.CONFIG ? window.CONFIG.COVER_ART.DIRECTORY : 'covers',
+        audioFolderPath: null
+      };
+    }
+
+    // Toggle the setting
+    this.appState.data.coverArtSettings.showCoverArt = !this.appState.data.coverArtSettings.showCoverArt;
+
+    console.log('Cover art toggle debug - showCoverArt:', this.appState.data.coverArtSettings.showCoverArt);
+    console.log('Cover art toggle debug - audioFolderPath:', this.appState.data.coverArtSettings.audioFolderPath);
+    console.log('Cover art toggle debug - artworkDirectory:', this.appState.data.coverArtSettings.artworkDirectory);
+
+    const btn = document.getElementById('cover-art-toggle-btn');
+    if (btn) {
+      btn.classList.toggle('active', this.appState.data.coverArtSettings.showCoverArt);
+    }
+
+    // Save setting to localStorage
+    this.appState.saveToStorage();
+
+    // Re-render tracks to show/hide cover art
+    this.renderer.render();
   }
 
   showStatsView() {
