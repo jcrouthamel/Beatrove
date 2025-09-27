@@ -32,6 +32,9 @@ export class UIController {
 
     // Initialize error handler
     this.errorHandler = new ErrorHandler(notificationSystem);
+
+    // Track active event listeners for cleanup
+    this.activeEventListeners = new Map(); // element -> [listeners]
   }
 
   attachEventListeners() {
@@ -449,7 +452,7 @@ export class UIController {
   toggleFavorite(trackDisplay) {
     console.log('toggleFavorite called with:', trackDisplay);
     // Decode HTML entities to ensure consistent storage keys
-    const decodedTrackDisplay = this.SecurityUtils.unescapeHtml(trackDisplay);
+    const decodedTrackDisplay = this.SecurityUtils.safeUnescapeForComparison(trackDisplay);
     console.log('Decoded trackDisplay:', decodedTrackDisplay);
 
     if (this.appState.data.favoriteTracks[decodedTrackDisplay]) {
@@ -470,10 +473,10 @@ export class UIController {
       // Decode HTML entities in track data for proper filename matching
       const decodedTrack = {
         ...track,
-        display: this.SecurityUtils.unescapeHtml(track.display),
-        artist: this.SecurityUtils.unescapeHtml(track.artist),
-        title: this.SecurityUtils.unescapeHtml(track.title),
-        path: this.SecurityUtils.unescapeHtml(track.path)
+        display: this.SecurityUtils.safeUnescapeForComparison(track.display),
+        artist: this.SecurityUtils.safeUnescapeForComparison(track.artist),
+        title: this.SecurityUtils.safeUnescapeForComparison(track.title),
+        path: this.SecurityUtils.safeUnescapeForComparison(track.path)
       };
 
       // Check if audio files are loaded
@@ -2239,7 +2242,96 @@ export class UIController {
     }
   }
 
+  /**
+   * Add tracked event listener for proper cleanup
+   * @param {Element} element - DOM element
+   * @param {string} event - Event name
+   * @param {Function} handler - Event handler
+   * @param {Object} options - Event listener options
+   */
+  addTrackedEventListener(element, event, handler, options = {}) {
+    element.addEventListener(event, handler, options);
+
+    if (!this.activeEventListeners.has(element)) {
+      this.activeEventListeners.set(element, []);
+    }
+
+    this.activeEventListeners.get(element).push({
+      event,
+      handler,
+      options
+    });
+
+    // Mark element as having tracked listeners
+    element.setAttribute('data-has-listeners', 'true');
+    if (!element._eventListeners) {
+      element._eventListeners = [];
+    }
+    element._eventListeners.push({event, handler});
+  }
+
+  /**
+   * Remove tracked event listeners for an element
+   * @param {Element} element - DOM element
+   */
+  removeTrackedEventListeners(element) {
+    const listeners = this.activeEventListeners.get(element);
+    if (listeners) {
+      listeners.forEach(({event, handler, options}) => {
+        element.removeEventListener(event, handler, options);
+      });
+      this.activeEventListeners.delete(element);
+    }
+
+    element.removeAttribute('data-has-listeners');
+    delete element._eventListeners;
+  }
+
+  /**
+   * Cleanup all tracked event listeners and resources
+   */
   cleanup() {
-    // TODO: Implement cleanup
+    // Clean up tag popup
+    this.cleanupTagPopup();
+
+    // Clean up mood vibe popup
+    this.cleanupMoodVibePopup();
+
+    // Clean up all tracked event listeners
+    for (const [element, listeners] of this.activeEventListeners.entries()) {
+      listeners.forEach(({event, handler, options}) => {
+        this.errorHandler.safe(() => {
+          element.removeEventListener(event, handler, options);
+        }, {
+          component: 'UIController',
+          method: 'cleanup',
+          showUser: false,
+          logToConsole: false
+        });
+      });
+    }
+
+    this.activeEventListeners.clear();
+
+    // Cleanup chart instances
+    [this.genreChart, this.bpmChart, this.keyChart, this.energyChart, this.labelsChart].forEach(chart => {
+      if (chart && typeof chart.destroy === 'function') {
+        this.errorHandler.safe(() => {
+          chart.destroy();
+        }, {
+          component: 'UIController',
+          method: 'cleanup',
+          operation: 'chart cleanup',
+          showUser: false
+        });
+      }
+    });
+
+    // Clear chart references
+    this.genreChart = null;
+    this.bpmChart = null;
+    this.keyChart = null;
+    this.energyChart = null;
+    this.labelsChart = null;
   }
 }

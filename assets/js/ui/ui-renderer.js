@@ -293,7 +293,7 @@ export class UIRenderer {
       }
 
       // Favorites filter
-      const decodedDisplay = SecurityUtils.unescapeHtml(track.display);
+      const decodedDisplay = SecurityUtils.safeUnescapeForComparison(track.display);
       if (filters.showFavoritesOnly && !this.appState.data.favoriteTracks[decodedDisplay]) {
         return false;
       }
@@ -452,31 +452,75 @@ export class UIRenderer {
   }
 
   cleanupTrackElements(container) {
-    // Remove all existing content and trigger garbage collection
-    const existingTracks = container.querySelectorAll('.track');
-    existingTracks.forEach(track => {
+    return this.errorHandler.safe(() => {
+      // Batch DOM queries for performance
+      const existingTracks = container.querySelectorAll('.track');
+      const coverArtImages = container.querySelectorAll('.cover-art-img[data-blob-url]');
+      const audioElements = container.querySelectorAll('audio');
+
       // Clean up blob URLs for cover art images
-      const coverArtImg = track.querySelector('.cover-art-img');
-      if (coverArtImg && coverArtImg.dataset.blobUrl) {
-        this.blobManager.removeReference(coverArtImg.dataset.blobUrl);
-      }
-
-      // Remove any event listeners that might be attached
-      const buttons = track.querySelectorAll('button');
-      buttons.forEach(button => {
-        button.replaceWith(button.cloneNode(true));
+      coverArtImages.forEach(img => {
+        if (img.dataset.blobUrl) {
+          this.blobManager.removeReference(img.dataset.blobUrl);
+          // Clean up any load/error event listeners
+          img.onload = null;
+          img.onerror = null;
+          delete img.dataset.blobUrl;
+        }
       });
+
+      // Clean up audio elements and their event listeners
+      audioElements.forEach(audio => {
+        // Remove all audio event listeners by cloning the element
+        const cleanAudio = audio.cloneNode(false);
+        if (audio.parentNode) {
+          audio.parentNode.replaceChild(cleanAudio, audio);
+        }
+        // Cleanup audio resources
+        audio.pause();
+        audio.src = '';
+        audio.load();
+      });
+
+      // Clean up any ResizeObserver instances (if any)
+      existingTracks.forEach(track => {
+        if (track._resizeObserver) {
+          track._resizeObserver.disconnect();
+          delete track._resizeObserver;
+        }
+
+        // Clean up any Intersection Observer instances
+        if (track._intersectionObserver) {
+          track._intersectionObserver.disconnect();
+          delete track._intersectionObserver;
+        }
+
+        // Clean up any custom event listeners stored as properties
+        const elementsWithListeners = track.querySelectorAll('[data-has-listeners]');
+        elementsWithListeners.forEach(element => {
+          if (element._eventListeners) {
+            element._eventListeners.forEach(({event, handler}) => {
+              element.removeEventListener(event, handler);
+            });
+            delete element._eventListeners;
+          }
+          element.removeAttribute('data-has-listeners');
+        });
+      });
+
+      // Efficient container clearing using modern DOM API
+      container.replaceChildren();
+
+      // Force garbage collection hint and cleanup
+      if (window.gc) {
+        requestIdleCallback(() => window.gc());
+      }
+    }, {
+      component: 'UIRenderer',
+      method: 'cleanupTrackElements',
+      operation: 'track element cleanup',
+      showUser: false
     });
-
-    // Clear container efficiently by removing children
-    while (container.firstChild) {
-      container.removeChild(container.firstChild);
-    }
-
-    // Force garbage collection hint (not guaranteed but helps)
-    if (window.gc) {
-      window.gc();
-    }
   }
 
   createTrackElement(track) {
@@ -493,7 +537,7 @@ export class UIRenderer {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'track';
 
-    const decodedTrackDisplay = SecurityUtils.unescapeHtml(track.display);
+    const decodedTrackDisplay = SecurityUtils.safeUnescapeForComparison(track.display);
     if (this.appState.data.favoriteTracks[decodedTrackDisplay]) {
       trackDiv.className += ' favorite-track';
     }
@@ -635,7 +679,7 @@ export class UIRenderer {
     starBtn.className = 'star-btn';
     starBtn.dataset.trackDisplay = track.display;
     // Use decoded track display for favorites check to handle HTML entities
-    const decodedTrackDisplay = SecurityUtils.unescapeHtml(track.display);
+    const decodedTrackDisplay = SecurityUtils.safeUnescapeForComparison(track.display);
 
     if (this.appState.data.favoriteTracks[decodedTrackDisplay]) {
       starBtn.className += ' favorited';

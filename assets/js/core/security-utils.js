@@ -91,14 +91,86 @@ export class SecurityUtils {
       .replace(/'/g, '&#39;');
   }
 
+  /**
+   * DEPRECATED: Direct HTML unescaping can introduce XSS vulnerabilities
+   * Use safeUnescapeForComparison() for safe comparison operations
+   * @deprecated
+   */
   static unescapeHtml(text) {
+    console.warn('SECURITY WARNING: unescapeHtml is deprecated due to XSS risk. Use safeUnescapeForComparison instead.');
+    return this.safeUnescapeForComparison(text);
+  }
+
+  /**
+   * Safely unescape HTML entities for comparison operations only
+   * Never use result for DOM insertion
+   * @param {string} text - Text with HTML entities
+   * @returns {string} Unescaped text safe for comparison operations
+   */
+  static safeUnescapeForComparison(text) {
     if (typeof text !== 'string') return '';
-    return text
+
+    // Only unescape basic HTML entities that are safe for comparison
+    const unescaped = text
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'");
+
+    // Additional validation: ensure no script tags or dangerous content
+    if (this.containsUnsafeContent(unescaped)) {
+      console.warn('SECURITY WARNING: Unsafe content detected in unescaped text:', unescaped);
+      return this.sanitizeText(text); // Return sanitized version
+    }
+
+    return unescaped;
+  }
+
+  /**
+   * Check if text contains potentially unsafe content
+   * @param {string} text - Text to check
+   * @returns {boolean} True if unsafe content detected
+   */
+  static containsUnsafeContent(text) {
+    const unsafePatterns = [
+      /<script/i,
+      /<iframe/i,
+      /<object/i,
+      /<embed/i,
+      /<form/i,
+      /javascript:/i,
+      /vbscript:/i,
+      /data:/i,
+      /on\w+\s*=/i, // Event handlers like onclick=
+      /<style/i,
+      /<link/i
+    ];
+
+    return unsafePatterns.some(pattern => pattern.test(text));
+  }
+
+  /**
+   * Sanitize text by removing dangerous content
+   * @param {string} text - Text to sanitize
+   * @returns {string} Sanitized text
+   */
+  static sanitizeText(text) {
+    if (typeof text !== 'string') return '';
+
+    // Remove potentially dangerous content
+    return text
+      .replace(/<script[^>]*>.*?<\/script>/gi, '')
+      .replace(/<iframe[^>]*>.*?<\/iframe>/gi, '')
+      .replace(/<object[^>]*>.*?<\/object>/gi, '')
+      .replace(/<embed[^>]*>/gi, '')
+      .replace(/<form[^>]*>.*?<\/form>/gi, '')
+      .replace(/javascript:/gi, '')
+      .replace(/vbscript:/gi, '')
+      .replace(/data:/gi, '')
+      .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+      .replace(/<style[^>]*>.*?<\/style>/gi, '')
+      .replace(/<link[^>]*>/gi, '');
   }
 
   static createSafeElement(tagName, textContent = '', className = '') {

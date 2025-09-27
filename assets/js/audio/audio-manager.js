@@ -27,12 +27,17 @@ export class AudioManager {
     this.visualizer = null; // Direct reference to visualizer
     this.errorHandler = new ErrorHandler(notificationSystem);
 
-    // Race condition prevention
+    // Race condition prevention with enhanced synchronization
     this.isPlayingPreview = false;
     this.isConnectingVisualizer = false;
     this.currentPreviewId = null;
     this.previewQueue = [];
     this.isProcessingQueue = false;
+
+    // Enhanced race condition protection
+    this.audioOperationLock = false;
+    this.pendingOperations = new Set();
+    this.connectionAttempts = new Map(); // Track connection attempts per preview ID
 
   }
 
@@ -42,11 +47,14 @@ export class AudioManager {
 
 
   cleanup() {
-    // Clear race condition state
+    // Clear race condition state and enhanced synchronization
     this.isPlayingPreview = false;
     this.isConnectingVisualizer = false;
     this.currentPreviewId = null;
     this.isProcessingQueue = false;
+    this.audioOperationLock = false;
+    this.pendingOperations.clear();
+    this.connectionAttempts.clear();
 
     // Reject any pending preview requests
     while (this.previewQueue.length > 0) {
@@ -122,8 +130,8 @@ export class AudioManager {
   }
 
   async connectVisualizer(audioElem, waveformCanvasId = null) {
-    // Prevent race conditions in visualizer connection
-    if (this.isConnectingVisualizer) {
+    // Enhanced race condition protection with atomic operations
+    if (this.isConnectingVisualizer || this.audioOperationLock) {
       return;
     }
 
@@ -132,9 +140,15 @@ export class AudioManager {
       return;
     }
 
-    this.isConnectingVisualizer = true;
+    // Create unique operation ID for this connection attempt
+    const operationId = `connect-${Date.now()}-${Math.random()}`;
+    this.pendingOperations.add(operationId);
 
-    return this.errorHandler.safeAsync(async () => {
+    try {
+      this.isConnectingVisualizer = true;
+      this.audioOperationLock = true;
+
+      return await this.errorHandler.safeAsync(async () => {
       // Clean up any existing visualizer first
       this.disconnectVisualizer();
 
@@ -161,6 +175,12 @@ export class AudioManager {
     }).finally(() => {
       this.isConnectingVisualizer = false;
     });
+    } finally {
+      // Always release locks
+      this.audioOperationLock = false;
+      this.pendingOperations.delete(operationId);
+      this.isConnectingVisualizer = false;
+    }
   }
 
   async playPreview(track) {
@@ -175,14 +195,17 @@ export class AudioManager {
   }
 
   async processPreviewQueue() {
-    // Prevent concurrent processing
-    if (this.isProcessingQueue) {
+    // Prevent concurrent processing with enhanced locking
+    if (this.isProcessingQueue || this.audioOperationLock) {
       return;
     }
 
-    this.isProcessingQueue = true;
+    const queueOperationId = `queue-${Date.now()}-${Math.random()}`;
+    this.pendingOperations.add(queueOperationId);
 
     try {
+      this.isProcessingQueue = true;
+      this.audioOperationLock = true;
       while (this.previewQueue.length > 0) {
         // Only process the most recent request, discard older ones
         const latestRequest = this.previewQueue.pop();
@@ -202,9 +225,13 @@ export class AudioManager {
       }
     } finally {
       this.isProcessingQueue = false;
+      this.audioOperationLock = false;
+      this.pendingOperations.delete(queueOperationId);
+
       // Check if new items were added during processing
       if (this.previewQueue.length > 0) {
-        this.processPreviewQueue(); // Recursive call to handle race condition
+        // Use setTimeout to prevent potential stack overflow
+        setTimeout(() => this.processPreviewQueue(), 0);
       }
     }
   }
@@ -421,20 +448,20 @@ export class AudioManager {
       });
 
       audio.addEventListener('play', () => {
-        // Reconnect visualizer if needed when resuming playback
-        if (audio._previewId === this.currentPreviewId) {
+        // Reconnect visualizer if needed when resuming playback (with race condition protection)
+        if (audio._previewId === this.currentPreviewId && !this.audioOperationLock) {
           // Ensure visualizer is connected
-          if (!this.reactToAudio) {
+          if (!this.reactToAudio && !this.isConnectingVisualizer) {
             this.connectVisualizer(audio, `waveform-${audio._previewId}`).catch(() => {});
           }
         }
       });
 
       audio.addEventListener('seeked', () => {
-        // Ensure visualizer stays connected after seeking
-        if (audio._previewId === this.currentPreviewId) {
+        // Ensure visualizer stays connected after seeking (with race condition protection)
+        if (audio._previewId === this.currentPreviewId && !this.audioOperationLock) {
           // Ensure visualizer is connected
-          if (!this.reactToAudio) {
+          if (!this.reactToAudio && !this.isConnectingVisualizer) {
             this.connectVisualizer(audio, `waveform-${audio._previewId}`).catch(() => {});
           }
         }
