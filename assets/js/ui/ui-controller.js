@@ -113,6 +113,7 @@ export class UIController {
 
         // Star button
         if (target.classList.contains('star-btn')) {
+          console.log('Star button clicked, trackDisplay:', target.dataset.trackDisplay);
           this.toggleFavorite(target.dataset.trackDisplay);
         }
 
@@ -159,6 +160,9 @@ export class UIController {
     const searchInput = document.getElementById('search');
     if (searchInput) {
       searchInput.addEventListener('input', () => {
+        // Clear A-Z filter when search is used
+        this.renderer.clearAZFilterOnly();
+
         // Show/hide clear button based on input content
         const clearBtn = document.getElementById('clear-search');
         if (clearBtn) {
@@ -194,7 +198,10 @@ export class UIController {
     // Year search input
     const yearSearchInput = document.getElementById('year-search');
     if (yearSearchInput) {
-      yearSearchInput.addEventListener('input', () => this.renderer.render());
+      yearSearchInput.addEventListener('input', () => {
+        this.renderer.clearAZFilterOnly();
+        this.renderer.render();
+      });
     }
 
     // Filter dropdowns
@@ -202,14 +209,20 @@ export class UIController {
     filterIds.forEach(id => {
       const element = document.getElementById(id);
       if (element) {
-        element.addEventListener('change', () => this.renderer.render());
+        element.addEventListener('change', () => {
+          this.renderer.clearAZFilterOnly();
+          this.renderer.render();
+        });
       }
     });
 
     // Sort selector
     const sortSelect = document.getElementById('sort-select');
     if (sortSelect) {
-      sortSelect.addEventListener('change', () => this.renderer.render());
+      sortSelect.addEventListener('change', () => {
+        this.renderer.clearAZFilterOnly();
+        this.renderer.render();
+      });
     }
 
     // Duplicate tracks toggle button
@@ -225,6 +238,14 @@ export class UIController {
     if (statsToggleBtn) {
       statsToggleBtn.addEventListener('click', () => {
         this.toggleStatsView();
+      });
+    }
+
+    // Favorites toggle button
+    const favoritesToggleBtn = document.getElementById('favorites-toggle-btn');
+    if (favoritesToggleBtn) {
+      favoritesToggleBtn.addEventListener('click', () => {
+        this.toggleFavoritesFilter();
       });
     }
 
@@ -297,6 +318,7 @@ export class UIController {
 
     // Global click handler for dynamic elements
     this.setupGlobalClickHandler();
+    this.setupAZBarHandler();
   }
 
   setVisualizer(visualizer) {
@@ -420,11 +442,19 @@ export class UIController {
 
   // Helper methods
   toggleFavorite(trackDisplay) {
-    if (this.appState.data.favoriteTracks[trackDisplay]) {
-      delete this.appState.data.favoriteTracks[trackDisplay];
+    console.log('toggleFavorite called with:', trackDisplay);
+    // Decode HTML entities to ensure consistent storage keys
+    const decodedTrackDisplay = this.SecurityUtils.unescapeHtml(trackDisplay);
+    console.log('Decoded trackDisplay:', decodedTrackDisplay);
+
+    if (this.appState.data.favoriteTracks[decodedTrackDisplay]) {
+      delete this.appState.data.favoriteTracks[decodedTrackDisplay];
+      console.log('Removed from favorites');
     } else {
-      this.appState.data.favoriteTracks[trackDisplay] = true;
+      this.appState.data.favoriteTracks[decodedTrackDisplay] = true;
+      console.log('Added to favorites');
     }
+    console.log('Current favorites:', Object.keys(this.appState.data.favoriteTracks));
     this.appState.saveToStorage();
     this.renderer.render();
   }
@@ -432,13 +462,22 @@ export class UIController {
   async handlePreview(trackDisplay) {
     const track = this.appState.data.tracksForUI.find(t => t.display === trackDisplay);
     if (track) {
+      // Decode HTML entities in track data for proper filename matching
+      const decodedTrack = {
+        ...track,
+        display: this.SecurityUtils.unescapeHtml(track.display),
+        artist: this.SecurityUtils.unescapeHtml(track.artist),
+        title: this.SecurityUtils.unescapeHtml(track.title),
+        path: this.SecurityUtils.unescapeHtml(track.path)
+      };
+
       // Check if audio files are loaded
       if (Object.keys(this.audioManager.fileMap).length === 0) {
         // Store pending track and trigger file input
-        this.audioManager.pendingPreviewTrack = track;
+        this.audioManager.pendingPreviewTrack = decodedTrack;
         document.getElementById('audio-folder-input')?.click();
       } else {
-        await this.audioManager.playPreview(track);
+        await this.audioManager.playPreview(decodedTrack);
       }
     }
   }
@@ -829,6 +868,17 @@ export class UIController {
         this.showStatsView();
       }
     }
+  }
+
+  toggleFavoritesFilter() {
+    this.appState.data.showFavoritesOnly = !this.appState.data.showFavoritesOnly;
+    const btn = document.getElementById('favorites-toggle-btn');
+    if (btn) {
+      btn.classList.toggle('active', this.appState.data.showFavoritesOnly);
+    }
+    this.appState.saveToStorage();
+    this.renderer.clearAZFilter();
+    this.renderer.render();
   }
 
   toggleCoverArt() {
@@ -2123,7 +2173,6 @@ export class UIController {
   setupGlobalClickHandler() {
     // Consolidated click handler for all dynamic elements
     document.addEventListener('click', (e) => {
-      console.log('Click detected on:', e.target.id, e.target.className, e.target);
 
       // Clear search button
       if (e.target.id === 'clear-search') {
@@ -2144,6 +2193,29 @@ export class UIController {
         this.hideDuplicatesView();
       }
     });
+  }
+
+  setupAZBarHandler() {
+    // A-Z alphabetical filter bar
+    const azBar = document.getElementById('az-bar');
+    if (azBar) {
+      azBar.addEventListener('click', (e) => {
+        if (e.target.classList.contains('az-letter')) {
+          // Remove active class from all letters
+          document.querySelectorAll('.az-letter').forEach(btn => btn.classList.remove('active'));
+          // Add active class to clicked letter
+          e.target.classList.add('active');
+
+          // Handle "ALL" button - clear the filter
+          if (e.target.dataset.letter === 'all') {
+            this.renderer.clearAZFilter();
+          } else {
+            // Jump to artists starting with this letter
+            this.renderer.jumpToArtist(e.target.dataset.letter);
+          }
+        }
+      });
+    }
   }
 
   cleanup() {

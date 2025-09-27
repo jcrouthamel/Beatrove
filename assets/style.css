@@ -1563,6 +1563,13 @@ body.light-mode .az-letter:focus {
   background: linear-gradient(135deg, #555, #444);
 }
 
+.az-all {
+  font-weight: bold;
+  border: 1px solid #666;
+  background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+  margin-right: 8px;
+}
+
 .az-category:hover, .az-category.active {
   background: linear-gradient(135deg, #2196f3, #1976d2);
   border-color: #2196f3;

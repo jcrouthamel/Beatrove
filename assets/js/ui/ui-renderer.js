@@ -175,6 +175,12 @@ export class UIRenderer {
   }
 
   setTracksPerPage(tracksPerPage) {
+    // If this is a user-initiated change while A-Z filter is active,
+    // update the stored original settings so they reflect the user's preference
+    if (this.azBarActive && this.originalPaginationSettings && tracksPerPage !== 'all') {
+      this.originalPaginationSettings.tracksPerPage = parseInt(tracksPerPage);
+    }
+
     if (tracksPerPage === 'all') {
       this.tracksPerPage = Infinity; // Show all tracks
       this.appState.data.tracksPerPage = 'all';
@@ -200,7 +206,8 @@ export class UIRenderer {
       tagSearch: document.getElementById('tag-dropdown')?.value.toLowerCase() || '',
       sortValue: (this.appState.elements?.sortSelect?.value) || document.getElementById('sort-select')?.value || 'name-asc',
       yearSearch: document.getElementById('year-search')?.value.trim() || '',
-      showFavoritesOnly: this.appState.data.showFavoritesOnly || false
+      showFavoritesOnly: this.appState.data.showFavoritesOnly || false,
+      azFilter: this.azBarActive || ''
     };
 
     return filters;
@@ -209,7 +216,8 @@ export class UIRenderer {
   hasActiveFilters(filters) {
     return filters.search || filters.selectedBPM || filters.selectedKey ||
            filters.selectedGenre || filters.selectedEnergy || filters.selectedLabel ||
-           filters.tagSearch || filters.yearSearch || filters.showFavoritesOnly;
+           filters.tagSearch || filters.yearSearch || filters.showFavoritesOnly ||
+           filters.azFilter;
   }
 
   filterTracks(filters) {
@@ -270,7 +278,8 @@ export class UIRenderer {
       }
 
       // Favorites filter
-      if (filters.showFavoritesOnly && !this.appState.data.favoriteTracks[track.display]) {
+      const decodedDisplay = SecurityUtils.unescapeHtml(track.display);
+      if (filters.showFavoritesOnly && !this.appState.data.favoriteTracks[decodedDisplay]) {
         return false;
       }
 
@@ -278,6 +287,15 @@ export class UIRenderer {
       if (yearMin !== null && yearMax !== null) {
         const trackYear = parseInt(track.year, 10);
         if (isNaN(trackYear) || trackYear < yearMin || trackYear > yearMax) return false;
+      }
+
+      // A-Z filter
+      if (filters.azFilter) {
+        const artistFirstChar = this.normalizeFirstCharacter(track.artist || '');
+
+        if (filters.azFilter === 'numbers' && artistFirstChar !== 'numbers') return false;
+        if (filters.azFilter === 'symbols' && artistFirstChar !== 'symbols') return false;
+        if (filters.azFilter.length === 1 && artistFirstChar !== filters.azFilter) return false;
       }
 
       return true;
@@ -454,7 +472,8 @@ export class UIRenderer {
     const trackDiv = document.createElement('div');
     trackDiv.className = 'track';
 
-    if (this.appState.data.favoriteTracks[track.display]) {
+    const decodedTrackDisplay = SecurityUtils.unescapeHtml(track.display);
+    if (this.appState.data.favoriteTracks[decodedTrackDisplay]) {
       trackDiv.className += ' favorite-track';
     }
 
@@ -594,7 +613,10 @@ export class UIRenderer {
     const starBtn = document.createElement('button');
     starBtn.className = 'star-btn';
     starBtn.dataset.trackDisplay = track.display;
-    if (this.appState.data.favoriteTracks[track.display]) {
+    // Use decoded track display for favorites check to handle HTML entities
+    const decodedTrackDisplay = SecurityUtils.unescapeHtml(track.display);
+
+    if (this.appState.data.favoriteTracks[decodedTrackDisplay]) {
       starBtn.className += ' favorited';
       starBtn.textContent = '★';
       starBtn.title = 'Unstar';
@@ -840,6 +862,17 @@ export class UIRenderer {
     // Get available artist initials from current data
     const availableInitials = this.getAvailableArtistInitials();
 
+    // Add "ALL" button to clear A-Z filter
+    const allBtn = document.createElement('button');
+    allBtn.textContent = 'ALL';
+    allBtn.className = 'az-letter az-all';
+    allBtn.dataset.letter = 'all';
+    allBtn.dataset.type = 'all';
+    if (!this.azBarActive) {
+      allBtn.classList.add('active');
+    }
+    azBar.appendChild(allBtn);
+
     // Build categories: Numbers, Letters, Symbols
     const categories = [
       { label: '#', type: 'numbers', chars: '0123456789' },
@@ -857,6 +890,9 @@ export class UIRenderer {
             btn.className = 'az-letter';
             btn.dataset.letter = char;
             btn.dataset.type = 'letter';
+            if (this.azBarActive === char) {
+              btn.classList.add('active');
+            }
             azBar.appendChild(btn);
           }
         }
@@ -872,6 +908,9 @@ export class UIRenderer {
           btn.className = 'az-letter az-category';
           btn.dataset.letter = category.type;
           btn.dataset.type = category.type;
+          if (this.azBarActive === category.type) {
+            btn.classList.add('active');
+          }
           azBar.appendChild(btn);
         }
       }
@@ -925,31 +964,42 @@ export class UIRenderer {
   }
 
   jumpToArtist(letter) {
-    const tracks = document.querySelectorAll('.track');
-
-    for (const track of tracks) {
-      const artist = track.dataset.artist || '';
-      if (!artist) continue;
-
-      const artistFirstChar = this.normalizeFirstCharacter(artist);
-      let shouldJump = false;
-
-      // Handle different jump types
-      if (letter === 'numbers' && artistFirstChar === 'numbers') {
-        shouldJump = true;
-      } else if (letter === 'symbols' && artistFirstChar === 'symbols') {
-        shouldJump = true;
-      } else if (letter.length === 1 && artistFirstChar === letter) {
-        shouldJump = true;
-      }
-
-      if (shouldJump) {
-        track.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        track.classList.add('az-jump-highlight');
-        setTimeout(() => track.classList.remove('az-jump-highlight'), 1200);
-        break;
-      }
+    // Store original pagination settings if not already stored
+    if (!this.originalPaginationSettings) {
+      this.originalPaginationSettings = {
+        tracksPerPage: this.tracksPerPage,
+        currentPage: this.currentPage
+      };
     }
+
+    // Set the A-Z filter and re-render
+    this.azBarActive = letter;
+    this.setTracksPerPage('all');
+    this.currentPage = 1;
+    this.render();
+  }
+
+  clearAZFilter() {
+    this.azBarActive = null;
+
+    // Restore original pagination settings if they were stored
+    if (this.originalPaginationSettings) {
+      this.setTracksPerPage(this.originalPaginationSettings.tracksPerPage);
+      this.currentPage = this.originalPaginationSettings.currentPage;
+      this.originalPaginationSettings = null; // Clear the stored settings
+    }
+
+    // Remove active class from all A-Z letters
+    document.querySelectorAll('.az-letter').forEach(btn => btn.classList.remove('active'));
+    this.render();
+  }
+
+  clearAZFilterOnly() {
+    // Clear A-Z filter without restoring pagination (for automatic clearing by other filters)
+    this.azBarActive = null;
+    this.originalPaginationSettings = null; // Clear stored settings but don't restore
+    document.querySelectorAll('.az-letter').forEach(btn => btn.classList.remove('active'));
+    // Don't call render() - let the calling method handle it
   }
 
   renderDuplicateList() {

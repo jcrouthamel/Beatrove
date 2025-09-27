@@ -91,6 +91,16 @@ export class SecurityUtils {
       .replace(/'/g, '&#39;');
   }
 
+  static unescapeHtml(text) {
+    if (typeof text !== 'string') return '';
+    return text
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+
   static createSafeElement(tagName, textContent = '', className = '') {
     const element = document.createElement(tagName);
     if (className) element.className = className;

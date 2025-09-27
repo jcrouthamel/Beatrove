@@ -178,6 +178,10 @@ class ApplicationState {
       const waveformStyle = this.safeLocalStorageGet('waveformStyle');
       this.data.waveformStyle = (typeof waveformStyle === 'string') ? waveformStyle : 'default';
 
+      // Load favorites filter state
+      const showFavoritesOnly = this.safeLocalStorageGet('showFavoritesOnly');
+      this.data.showFavoritesOnly = (typeof showFavoritesOnly === 'boolean') ? showFavoritesOnly : false;
+
       // Load cover art settings
       const coverArtSettings = this.safeLocalStorageGet('coverArtSettings');
       if (coverArtSettings) {
@@ -203,6 +207,7 @@ class ApplicationState {
       this.safeLocalStorageSet('themePreference', this.data.themePreference);
       this.safeLocalStorageSet('accentColor', this.data.accentColor);
       this.safeLocalStorageSet('waveformStyle', this.data.waveformStyle);
+      this.safeLocalStorageSet('showFavoritesOnly', this.data.showFavoritesOnly);
       this.safeLocalStorageSet('coverArtSettings', this.data.coverArtSettings);
 
       return true;
