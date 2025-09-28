@@ -319,9 +319,15 @@ export class UIController {
 
     const createSmartPlaylistBtn = document.getElementById('create-smart-playlist-btn');
     if (createSmartPlaylistBtn) {
-      createSmartPlaylistBtn.addEventListener('click', () => {
+      console.log('Smart playlist button found, adding event listener');
+      createSmartPlaylistBtn.addEventListener('click', (e) => {
+        console.log('Smart playlist button clicked');
+        e.preventDefault();
+        e.stopPropagation();
         this.showSmartPlaylistModal();
       });
+    } else {
+      console.error('Create smart playlist button not found');
     }
 
     // Global click handler for dynamic elements
@@ -1586,40 +1592,78 @@ export class UIController {
   }
 
   showSmartPlaylistModal() {
-    const modal = document.getElementById('smart-playlist-modal');
-    if (modal) {
+    return this.errorHandler.safe(() => {
+      console.log('Opening smart playlist modal...');
+      const modal = document.getElementById('smart-playlist-modal');
+      if (!modal) {
+        console.error('Smart playlist modal not found');
+        return;
+      }
+
       modal.classList.remove('hidden');
       modal.style.display = 'flex';
 
       // Initialize smart playlist modal if needed
       this.initializeSmartPlaylistModal();
-    }
+      console.log('Smart playlist modal opened successfully');
+    }, {
+      component: 'UIController',
+      method: 'showSmartPlaylistModal',
+      operation: 'smart playlist modal opening',
+      fallbackValue: null
+    });
   }
 
   initializeSmartPlaylistModal() {
-    // Add event listeners for modal close buttons
-    const closeBtn = document.getElementById('close-smart-playlist-modal');
-    const cancelBtn = document.getElementById('cancel-smart-playlist-btn');
-    const saveBtn = document.getElementById('save-smart-playlist-btn');
+    return this.errorHandler.safe(() => {
+      console.log('Initializing smart playlist modal...');
 
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => this.hideSmartPlaylistModal());
-    }
-    if (cancelBtn) {
-      cancelBtn.addEventListener('click', () => this.hideSmartPlaylistModal());
-    }
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => this.saveSmartPlaylist());
-    }
+      // Add event listeners for modal close buttons
+      const closeBtn = document.getElementById('close-smart-playlist-modal');
+      const cancelBtn = document.getElementById('cancel-smart-playlist-btn');
+      const saveBtn = document.getElementById('save-smart-playlist-btn');
 
-    // Initialize add rule button
-    const addRuleBtn = document.getElementById('add-rule-btn');
-    if (addRuleBtn) {
-      addRuleBtn.addEventListener('click', () => this.addSmartPlaylistRule());
-    }
+      if (closeBtn) {
+        closeBtn.addEventListener('click', () => this.hideSmartPlaylistModal());
+      } else {
+        console.warn('Close button not found in smart playlist modal');
+      }
 
-    // Add initial rule
-    this.addSmartPlaylistRule();
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => this.hideSmartPlaylistModal());
+      } else {
+        console.warn('Cancel button not found in smart playlist modal');
+      }
+
+      if (saveBtn) {
+        saveBtn.addEventListener('click', () => this.saveSmartPlaylist());
+      } else {
+        console.warn('Save button not found in smart playlist modal');
+      }
+
+      // Initialize add rule button
+      const addRuleBtn = document.getElementById('add-rule-btn');
+      if (addRuleBtn) {
+        addRuleBtn.addEventListener('click', () => this.addSmartPlaylistRule());
+      } else {
+        console.warn('Add rule button not found in smart playlist modal');
+      }
+
+      // Clear existing rules first
+      const rulesContainer = document.getElementById('smart-playlist-rules-container');
+      if (rulesContainer) {
+        rulesContainer.innerHTML = '';
+      }
+
+      // Add initial rule
+      this.addSmartPlaylistRule();
+      console.log('Smart playlist modal initialized successfully');
+    }, {
+      component: 'UIController',
+      method: 'initializeSmartPlaylistModal',
+      operation: 'smart playlist modal initialization',
+      fallbackValue: null
+    });
   }
 
   hideSmartPlaylistModal() {
@@ -1631,8 +1675,13 @@ export class UIController {
   }
 
   addSmartPlaylistRule() {
-    const container = document.getElementById('smart-playlist-rules-container');
-    if (!container) return;
+    return this.errorHandler.safe(() => {
+      console.log('Adding smart playlist rule...');
+      const container = document.getElementById('smart-playlist-rules-container');
+      if (!container) {
+        console.error('Smart playlist rules container not found');
+        return;
+      }
 
     const ruleDiv = document.createElement('div');
     ruleDiv.className = 'smart-rule-item';
@@ -1688,6 +1737,13 @@ export class UIController {
     });
 
     this.updateSmartPlaylistPreview();
+    console.log('Smart playlist rule added successfully');
+    }, {
+      component: 'UIController',
+      method: 'addSmartPlaylistRule',
+      operation: 'smart playlist rule creation',
+      fallbackValue: null
+    });
   }
 
   updateSmartPlaylistPreview() {
