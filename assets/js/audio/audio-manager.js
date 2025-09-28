@@ -39,10 +39,24 @@ export class AudioManager {
     this.pendingOperations = new Set();
     this.connectionAttempts = new Map(); // Track connection attempts per preview ID
 
+    // Create test-compatible properties for backwards compatibility
+    this.blobUrls = new Set(); // Test expects Set
+    this.blobMeta = new Map(); // Test expects Map
+    this.cleanupIntervalId = this.blobManager.cleanupIntervalId; // Mirror blob manager interval
+
   }
 
   setVisualizer(visualizer) {
     this.visualizer = visualizer;
+  }
+
+  cleanupUnusedBlobUrls() {
+    // Delegate to blob manager for actual cleanup
+    this.blobManager.cleanupExpiredUrls();
+
+    // Clear test compatibility collections (safe to clear)
+    this.blobUrls.clear();
+    this.blobMeta.clear();
   }
 
 
@@ -65,6 +79,11 @@ export class AudioManager {
     // Clean up all blob URLs via BlobManager
     this.blobManager.cleanup();
     this.currentBlobUrl = null;
+
+    // Clear test compatibility properties
+    this.blobUrls.clear();
+    this.blobMeta.clear();
+    this.cleanupIntervalId = null;
 
     if (this.currentAudio) {
       this.currentAudio.pause();

@@ -1894,64 +1894,107 @@ export class UIController {
   }
 
   saveSmartPlaylist() {
-    const nameInput = document.getElementById('smart-playlist-name-input');
-    if (!nameInput || !nameInput.value.trim()) {
+    return this.errorHandler.safe(() => {
+      console.log('Saving smart playlist...');
+
+      const nameInput = document.getElementById('smart-playlist-name-input');
+      if (!nameInput || !nameInput.value.trim()) {
+        console.error('No playlist name provided');
+        if (this.notificationSystem) {
+          this.notificationSystem.error('Please enter a playlist name');
+        }
+        return;
+      }
+
+      const playlistName = nameInput.value.trim();
+      console.log('Playlist name:', playlistName);
+
+      // Check if playlist already exists (both regular and smart)
+      if (this.appState.data.playlists[playlistName]) {
+        console.error('Regular playlist already exists with this name');
+        if (this.notificationSystem) {
+          this.notificationSystem.error(`Playlist "${playlistName}" already exists`);
+        }
+        return;
+      }
+
+      // Initialize smart playlists if not exists
+      if (!this.appState.data.smartPlaylists) {
+        this.appState.data.smartPlaylists = {};
+      }
+
+      if (this.appState.data.smartPlaylists[playlistName]) {
+        console.error('Smart playlist already exists with this name');
+        if (this.notificationSystem) {
+          this.notificationSystem.error(`Smart playlist "${playlistName}" already exists`);
+        }
+        return;
+      }
+
+      // Get rules and validate
+      const rules = this.getSmartPlaylistRules();
+      console.log('Rules:', rules);
+      if (rules.length === 0) {
+        console.error('No rules provided');
+        if (this.notificationSystem) {
+          this.notificationSystem.error('Please add at least one rule');
+        }
+        return;
+      }
+
+      // Get rule logic (AND/OR)
+      const logicType = document.querySelector('input[name="rule-logic"]:checked')?.value || 'AND';
+      console.log('Logic type:', logicType);
+
+      // Test rules against current tracks to get count
+      const allTracks = this.appState.data.tracksForUI || [];
+      const matchingTracks = allTracks.filter(track => {
+        if (logicType === 'AND') {
+          return rules.every(rule => this.evaluateSmartPlaylistRule(track, rule));
+        } else {
+          return rules.some(rule => this.evaluateSmartPlaylistRule(track, rule));
+        }
+      });
+
+      console.log('Matching tracks:', matchingTracks.length);
+
+      // Save as smart playlist (store rules, not tracks)
+      this.appState.data.smartPlaylists[playlistName] = {
+        rules: rules,
+        logic: logicType,
+        created: Date.now()
+      };
+
+      this.appState.saveToStorage();
+      console.log('Smart playlist saved to storage');
+
+      // Update playlist selector
+      this.updatePlaylistSelector();
+      console.log('Playlist selector updated');
+
       if (this.notificationSystem) {
-        this.notificationSystem.error('Please enter a playlist name');
+        this.notificationSystem.success(`Created smart playlist "${playlistName}" with ${matchingTracks.length} tracks`);
       }
-      return;
-    }
 
-    const playlistName = nameInput.value.trim();
-
-    // Check if playlist already exists
-    if (this.appState.data.playlists[playlistName]) {
-      if (this.notificationSystem) {
-        this.notificationSystem.error(`Playlist "${playlistName}" already exists`);
+      // Clear the modal
+      const nameInputElement = document.getElementById('smart-playlist-name-input');
+      if (nameInputElement) {
+        nameInputElement.value = '';
       }
-      return;
-    }
 
-    // Get rules and filter tracks
-    const rules = this.getSmartPlaylistRules();
-    if (rules.length === 0) {
-      if (this.notificationSystem) {
-        this.notificationSystem.error('Please add at least one rule');
-      }
-      return;
-    }
-
-    // Get rule logic (AND/OR)
-    const logicType = document.querySelector('input[name="rule-logic"]:checked')?.value || 'AND';
-
-    // Filter tracks based on rules
-    const allTracks = this.appState.data.tracksForUI || [];
-    const matchingTracks = allTracks.filter(track => {
-      if (logicType === 'AND') {
-        return rules.every(rule => this.evaluateSmartPlaylistRule(track, rule));
-      } else {
-        return rules.some(rule => this.evaluateSmartPlaylistRule(track, rule));
-      }
+      this.hideSmartPlaylistModal();
+      this.renderer.render();
+      console.log('Smart playlist creation completed');
+    }, {
+      component: 'UIController',
+      method: 'saveSmartPlaylist',
+      operation: 'smart playlist saving',
+      fallbackValue: null
     });
-
-    // Create playlist with matching track display names
-    const trackDisplays = matchingTracks.map(track => track.display);
-    this.appState.data.playlists[playlistName] = trackDisplays;
-    this.appState.saveToStorage();
-
-    // Update playlist selector
-    this.updatePlaylistSelector();
-
-    if (this.notificationSystem) {
-      this.notificationSystem.success(`Created smart playlist "${playlistName}" with ${matchingTracks.length} tracks`);
-    }
-
-    this.hideSmartPlaylistModal();
-    this.renderer.render();
   }
 
   updatePlaylistSelector() {
-    const playlistSelector = document.getElementById('playlist-selector');
+    const playlistSelector = document.getElementById('playlist-select');
     if (!playlistSelector) return;
 
     // Clear existing options except the default ones
@@ -1961,11 +2004,19 @@ export class UIController {
       }
     });
 
-    // Add playlist options
-    Object.keys(this.appState.data.playlists).forEach(playlistName => {
+    // Add regular playlist options
+    Object.keys(this.appState.data.playlists || {}).forEach(playlistName => {
       const option = document.createElement('option');
       option.value = playlistName;
       option.textContent = playlistName;
+      playlistSelector.appendChild(option);
+    });
+
+    // Add smart playlist options
+    Object.keys(this.appState.data.smartPlaylists || {}).forEach(smartPlaylistName => {
+      const option = document.createElement('option');
+      option.value = `smart:${smartPlaylistName}`;
+      option.textContent = `🧠 ${smartPlaylistName}`;
       playlistSelector.appendChild(option);
     });
   }
