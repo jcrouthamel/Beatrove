@@ -150,6 +150,11 @@ export class UIController {
           this.showTagDialog(target.dataset.trackDisplay);
         }
 
+        // Tag remove button
+        else if (target.classList.contains('tag-remove-btn')) {
+          this.removeTag(target.dataset.trackDisplay, target.dataset.tagName);
+        }
+
         // Energy button
         else if (target.classList.contains('energy-btn')) {
           this.showEnergyDialog(target.dataset.trackDisplay);
@@ -856,20 +861,53 @@ export class UIController {
     });
   }
 
-  showTagDialog(trackDisplay) {
-    // Simple implementation
-    const tag = prompt('Enter tag:');
-    if (tag) {
-      if (!this.appState.data.trackTags[trackDisplay]) {
-        this.appState.data.trackTags[trackDisplay] = [];
-      }
-      if (!this.appState.data.trackTags[trackDisplay].includes(tag)) {
-        this.appState.data.trackTags[trackDisplay].push(tag);
-        this.appState.saveToStorage();
-        this.renderer.render();
-        if (this.notificationSystem) {
-          this.notificationSystem.success(`Tag added: ${tag}`);
+  async showTagDialog(trackDisplay) {
+    try {
+      const tag = await this.notificationSystem.prompt('Enter tag:', 'Add Tag');
+      if (tag) {
+        if (!this.appState.data.trackTags[trackDisplay]) {
+          this.appState.data.trackTags[trackDisplay] = [];
         }
+        if (!this.appState.data.trackTags[trackDisplay].includes(tag)) {
+          this.appState.data.trackTags[trackDisplay].push(tag);
+          this.appState.saveToStorage();
+          this.renderer.render();
+          if (this.notificationSystem) {
+            this.notificationSystem.success(`Tag added: ${tag}`);
+          }
+        } else {
+          if (this.notificationSystem) {
+            this.notificationSystem.warning(`Tag "${tag}" already exists for this track`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error showing tag dialog:', error);
+      if (this.notificationSystem) {
+        this.notificationSystem.error('Failed to show tag dialog');
+      }
+    }
+  }
+
+  removeTag(trackDisplay, tagName) {
+    if (!this.appState.data.trackTags[trackDisplay]) {
+      return;
+    }
+
+    const tagIndex = this.appState.data.trackTags[trackDisplay].indexOf(tagName);
+    if (tagIndex > -1) {
+      this.appState.data.trackTags[trackDisplay].splice(tagIndex, 1);
+
+      // If no tags left, remove the track from trackTags entirely
+      if (this.appState.data.trackTags[trackDisplay].length === 0) {
+        delete this.appState.data.trackTags[trackDisplay];
+      }
+
+      this.appState.saveToStorage();
+      this.renderer.render();
+
+      if (this.notificationSystem) {
+        this.notificationSystem.success(`Tag removed: ${tagName}`);
       }
     }
   }
@@ -1035,12 +1073,12 @@ export class UIController {
       reader.onload = (e) => {
         this.errorHandler.safe(() => {
           const result = this.TrackProcessor.processTracklist(e.target.result, file.name);
-          Object.assign(this.appState.data, {
-            grouped: result.grouped,
-            totalTracks: result.totalTracks,
-            duplicateTracks: result.duplicateTracks,
-            tracksForUI: result.tracksForUI
-          });
+
+          // Update only track-related data, preserve user data
+          this.appState.data.grouped = result.grouped;
+          this.appState.data.totalTracks = result.totalTracks;
+          this.appState.data.duplicateTracks = result.duplicateTracks;
+          this.appState.data.tracksForUI = result.tracksForUI;
 
           // Repopulate filter dropdowns with new track data
           this.populateFilterDropdowns();
@@ -2564,13 +2602,36 @@ export class UIController {
 
       try {
         const text = await this.readFile(file);
-        const importData = JSON.parse(text);
-
-        // Handle different import formats
+        const fileName = file.name.toLowerCase();
+        let importData;
         let importedCount = 0;
 
-        // Import regular playlists
-        if (importData.playlists) {
+        if (fileName.endsWith('.csv')) {
+          // Handle CSV import - create a new playlist from the CSV tracks
+          const playlistName = this.generatePlaylistNameFromFile(fileName);
+          const tracks = this.parseCSVTracks(text);
+
+          if (tracks.length === 0) {
+            this.notificationSystem.warning('No valid tracks found in CSV file');
+            return;
+          }
+
+          // Create playlist with track display names
+          const trackDisplays = tracks.map(track => track.display);
+          this.appState.data.playlists[playlistName] = trackDisplays;
+
+          // Store track data for any new tracks not already in the system
+          this.mergeImportedTracks(tracks);
+
+          importedCount = 1;
+          this.notificationSystem.success(`Created playlist "${playlistName}" with ${tracks.length} tracks from CSV`);
+
+        } else {
+          // Handle JSON import
+          importData = JSON.parse(text);
+
+          // Import regular playlists
+          if (importData.playlists) {
           Object.entries(importData.playlists).forEach(([name, tracks]) => {
             if (Array.isArray(tracks)) {
               // Sanitize track names
@@ -2618,6 +2679,7 @@ export class UIController {
               importedCount++;
             }
           });
+          }
         }
 
         if (importedCount === 0) {
@@ -2653,6 +2715,131 @@ export class UIController {
       reader.onload = (e) => resolve(e.target.result);
       reader.onerror = (e) => reject(e);
       reader.readAsText(file);
+    });
+  }
+
+  generatePlaylistNameFromFile(fileName) {
+    // Extract playlist name from filename, removing extension and cleaning up
+    let name = fileName.replace(/\.[^/.]+$/, ''); // Remove extension
+    name = name.replace(/_tracks$/, ''); // Remove '_tracks' suffix if present
+    name = name.replace(/[_-]/g, ' '); // Replace underscores and dashes with spaces
+    name = name.replace(/\b\w/g, l => l.toUpperCase()); // Title case
+
+    // Check if playlist already exists and add number if needed
+    let finalName = name;
+    let counter = 1;
+    while (this.appState.data.playlists[finalName]) {
+      finalName = `${name} (${counter})`;
+      counter++;
+    }
+
+    return finalName;
+  }
+
+  parseCSVTracks(csvText) {
+    const lines = csvText.split('\n').filter(line => line.trim());
+    if (lines.length === 0) return [];
+
+    // Skip header line
+    const dataLines = lines.slice(1);
+    const tracks = [];
+
+    dataLines.forEach((line, index) => {
+      try {
+        const values = this.parseCSVLine(line);
+        if (values.length >= 4) { // Minimum: Artist, Title, Key, BPM
+          const track = {
+            artist: values[0] || '',
+            title: values[1] || '',
+            key: values[2] || '',
+            bpm: values[3] || '',
+            duration: values[4] || '',
+            year: values[5] || '',
+            path: values[6] || '',
+            genre: values[7] || '',
+            label: values[9] || ''
+          };
+
+          // Parse energy level from "Energy X" format
+          const energyStr = values[8] || '';
+          if (energyStr.startsWith('Energy ')) {
+            const energyLevel = parseInt(energyStr.replace('Energy ', ''));
+            if (!isNaN(energyLevel) && energyLevel >= 1 && energyLevel <= 10) {
+              // Store energy level separately
+              track.energy = energyLevel;
+            }
+          }
+
+          // Create display name (same format as main tracklist)
+          track.display = `${track.artist} - ${track.title} - ${track.key} - ${track.bpm}`;
+
+          tracks.push(track);
+        }
+      } catch (error) {
+        console.warn(`Error parsing CSV line ${index + 2}:`, error);
+      }
+    });
+
+    return tracks;
+  }
+
+  parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+    let i = 0;
+
+    while (i < line.length) {
+      const char = line[i];
+
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          // Escaped quote
+          current += '"';
+          i += 2;
+        } else {
+          // Toggle quote mode
+          inQuotes = !inQuotes;
+          i++;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // Field separator
+        result.push(current.trim());
+        current = '';
+        i++;
+      } else {
+        current += char;
+        i++;
+      }
+    }
+
+    // Add the last field
+    result.push(current.trim());
+    return result;
+  }
+
+  mergeImportedTracks(tracks) {
+    // Add imported tracks to the main tracklist if they don't already exist
+    const existingDisplays = new Set(
+      (this.appState.data.tracksForUI || []).map(track => track.display)
+    );
+
+    tracks.forEach(track => {
+      if (!existingDisplays.has(track.display)) {
+        // Add to main tracklist
+        if (!this.appState.data.tracksForUI) {
+          this.appState.data.tracksForUI = [];
+        }
+        this.appState.data.tracksForUI.push(track);
+
+        // Store energy level if present
+        if (track.energy) {
+          if (!this.appState.data.energyLevels) {
+            this.appState.data.energyLevels = {};
+          }
+          this.appState.data.energyLevels[track.display] = track.energy;
+        }
+      }
     });
   }
 
@@ -2749,20 +2936,73 @@ export class UIController {
     const tags = this.appState.data.trackTags || {};
     const energyLevels = this.appState.data.energyLevels || {};
 
-    const exportData = {
-      tags,
-      energyLevels,
-      exportDate: new Date().toISOString(),
-      version: '1.0'
-    };
+    // Get all tracks that have tags
+    const taggedTrackDisplays = Object.keys(tags);
 
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    if (taggedTrackDisplays.length === 0) {
+      this.notificationSystem.warning('No tagged tracks found to export');
+      return;
+    }
+
+    // Find the actual track data for tagged tracks
+    const taggedTracks = [];
+    const allTracks = this.appState.data.tracksForUI || [];
+
+    taggedTrackDisplays.forEach(trackDisplay => {
+      const track = allTracks.find(t => t.display === trackDisplay);
+      if (track) {
+        // Create track object with tag information
+        const trackWithTags = {
+          ...track,
+          tags: tags[trackDisplay] || [],
+          energy: energyLevels[trackDisplay] || null
+        };
+        taggedTracks.push(trackWithTags);
+      }
+    });
+
+    if (taggedTracks.length === 0) {
+      this.notificationSystem.warning('No track data found for tagged tracks');
+      return;
+    }
+
+    // Create CSV content with tagged tracks only
+    const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label,Tags\n';
+    const csvRows = taggedTracks.map(track => {
+      const energy = track.energy ? `Energy ${track.energy}` : '';
+      const tagList = (track.tags || []).join('; ');
+
+      // Escape CSV values that contain commas or quotes
+      const escapeCSV = (value) => {
+        if (typeof value !== 'string') value = String(value || '');
+        if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+          return '"' + value.replace(/"/g, '""') + '"';
+        }
+        return value;
+      };
+
+      return [
+        escapeCSV(track.artist || ''),
+        escapeCSV(track.title || ''),
+        escapeCSV(track.key || ''),
+        escapeCSV(track.bpm || ''),
+        escapeCSV(track.duration || ''),
+        escapeCSV(track.year || ''),
+        escapeCSV(track.path || ''),
+        escapeCSV(track.genre || ''),
+        escapeCSV(energy),
+        escapeCSV(track.label || ''),
+        escapeCSV(tagList)
+      ].join(',');
+    }).join('\n');
+
+    const csvContent = csvHeaders + csvRows;
+    const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
 
     const link = document.createElement('a');
-    const url = URL.createObjectURL(dataBlob);
+    const url = URL.createObjectURL(csvBlob);
     link.href = url;
-    link.download = `beatrove-tags-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `beatrove-tagged-tracks-${new Date().toISOString().split('T')[0]}.csv`;
     link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
@@ -2772,7 +3012,7 @@ export class UIController {
     setTimeout(() => URL.revokeObjectURL(url), 100);
 
     if (this.notificationSystem) {
-      this.notificationSystem.success('Tags exported successfully');
+      this.notificationSystem.success(`Exported ${taggedTracks.length} tagged tracks to CSV`);
     }
   }
 

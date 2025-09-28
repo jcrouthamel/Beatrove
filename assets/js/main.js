@@ -192,6 +192,126 @@ class NotificationSystem {
       document.body.appendChild(modal);
     });
   }
+
+  async prompt(message, title = 'Enter Value', defaultValue = '') {
+    return new Promise((resolve) => {
+      // Create modal input dialog
+      const modal = document.createElement('div');
+      modal.className = 'prompt-modal';
+      modal.innerHTML = `
+        <div class="prompt-dialog">
+          <h3>${title}</h3>
+          <p>${message}</p>
+          <input type="text" class="prompt-input" value="${defaultValue}" placeholder="Enter value...">
+          <div class="prompt-buttons">
+            <button class="btn-cancel">Cancel</button>
+            <button class="btn-confirm">OK</button>
+          </div>
+        </div>
+      `;
+
+      // Add styles
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      `;
+
+      const dialog = modal.querySelector('.prompt-dialog');
+      dialog.style.cssText = `
+        background: var(--bg-color, #1a1a1a);
+        color: var(--text-color, #ffffff);
+        padding: 2rem;
+        border-radius: 8px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      `;
+
+      const input = modal.querySelector('.prompt-input');
+      input.style.cssText = `
+        width: 100%;
+        padding: 0.75rem;
+        margin: 1rem 0;
+        border: 1px solid var(--accent-color, #00aaff);
+        border-radius: 4px;
+        background: var(--input-bg, #2a2a2a);
+        color: var(--text-color, #ffffff);
+        font-size: 1rem;
+        outline: none;
+      `;
+
+      const buttonsDiv = modal.querySelector('.prompt-buttons');
+      buttonsDiv.style.cssText = `
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        justify-content: flex-end;
+      `;
+
+      const buttons = modal.querySelectorAll('button');
+      buttons.forEach(btn => {
+        btn.style.cssText = `
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9rem;
+        `;
+      });
+
+      const cancelBtn = modal.querySelector('.btn-cancel');
+      cancelBtn.style.cssText += `
+        background: var(--secondary-color, #666);
+        color: white;
+      `;
+
+      const confirmBtn = modal.querySelector('.btn-confirm');
+      confirmBtn.style.cssText += `
+        background: var(--accent-color, #00aaff);
+        color: white;
+      `;
+
+      // Event listeners
+      const closeModal = (result) => {
+        document.body.removeChild(modal);
+        document.removeEventListener('keydown', handleKeydown);
+        resolve(result);
+      };
+
+      cancelBtn.addEventListener('click', () => closeModal(null));
+      confirmBtn.addEventListener('click', () => {
+        const value = input.value.trim();
+        closeModal(value || null);
+      });
+
+      // Handle keyboard events
+      const handleKeydown = (e) => {
+        if (e.key === 'Escape') {
+          closeModal(null);
+        } else if (e.key === 'Enter') {
+          const value = input.value.trim();
+          closeModal(value || null);
+        }
+      };
+
+      document.addEventListener('keydown', handleKeydown);
+
+      // Focus the input after modal is added
+      document.body.appendChild(modal);
+      setTimeout(() => {
+        input.focus();
+        input.select();
+      }, 100);
+    });
+  }
 }
 
 // ============= APPLICATION STATE =============
@@ -234,7 +354,7 @@ class ApplicationState {
     };
   }
 
-  async safeLocalStorageGet(key, defaultValue = null) {
+  safeLocalStorageGet(key, defaultValue = null) {
     return this.errorHandler.safe(() => {
       const value = localStorage.getItem(key);
       return value !== null ? JSON.parse(value) : defaultValue;
@@ -247,7 +367,7 @@ class ApplicationState {
     });
   }
 
-  async safeLocalStorageSet(key, value) {
+  safeLocalStorageSet(key, value) {
     return this.errorHandler.safe(() => {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
@@ -274,6 +394,14 @@ class ApplicationState {
       this.data.moodVibeTags = this.safeLocalStorageGet('moodVibeTags') || {};
       this.data.energyLevels = this.safeLocalStorageGet('energyLevels') || {};
       this.data.smartPlaylists = this.safeLocalStorageGet('smartPlaylists') || {};
+
+      // Debug logging
+      console.log('🔄 Data loaded from localStorage:', {
+        favoriteTracks: Object.keys(this.data.favoriteTracks).length,
+        playlists: Object.keys(this.data.playlists).length,
+        trackTags: Object.keys(this.data.trackTags).length,
+        energyLevels: Object.keys(this.data.energyLevels).length
+      });
 
       // Ensure theme preferences are strings
       const themePreference = this.safeLocalStorageGet('themePreference');
@@ -303,6 +431,14 @@ class ApplicationState {
 
   saveToStorage() {
     try {
+      // Debug logging
+      console.log('💾 Saving data to localStorage:', {
+        favoriteTracks: Object.keys(this.data.favoriteTracks).length,
+        playlists: Object.keys(this.data.playlists).length,
+        trackTags: Object.keys(this.data.trackTags).length,
+        energyLevels: Object.keys(this.data.energyLevels).length
+      });
+
       // Save all critical data
       this.safeLocalStorageSet('favoriteTracks', this.data.favoriteTracks);
       this.safeLocalStorageSet('playlists', this.data.playlists);
@@ -317,6 +453,7 @@ class ApplicationState {
       this.safeLocalStorageSet('showFavoritesOnly', this.data.showFavoritesOnly);
       this.safeLocalStorageSet('coverArtSettings', this.data.coverArtSettings);
 
+      console.log('✅ Data saved successfully to localStorage');
       return true;
     } catch (error) {
       if (this.notificationSystem) {
@@ -715,11 +852,26 @@ class BeatroveApp {
       const text = await response.text();
       const result = TrackProcessor.processTracklist(text, 'tracklist.csv');
 
-      Object.assign(this.appState.data, {
-        grouped: result.grouped,
-        totalTracks: result.totalTracks,
-        duplicateTracks: result.duplicateTracks,
-        tracksForUI: result.tracksForUI
+      // Debug: Check user data before updating tracks
+      console.log('📁 Before loading tracklist - User data count:', {
+        favoriteTracks: Object.keys(this.appState.data.favoriteTracks || {}).length,
+        playlists: Object.keys(this.appState.data.playlists || {}).length,
+        trackTags: Object.keys(this.appState.data.trackTags || {}).length,
+        energyLevels: Object.keys(this.appState.data.energyLevels || {}).length
+      });
+
+      // Update only track-related data, preserve user data
+      this.appState.data.grouped = result.grouped;
+      this.appState.data.totalTracks = result.totalTracks;
+      this.appState.data.duplicateTracks = result.duplicateTracks;
+      this.appState.data.tracksForUI = result.tracksForUI;
+
+      // Debug: Check user data after updating tracks
+      console.log('📁 After loading tracklist - User data count:', {
+        favoriteTracks: Object.keys(this.appState.data.favoriteTracks || {}).length,
+        playlists: Object.keys(this.appState.data.playlists || {}).length,
+        trackTags: Object.keys(this.appState.data.trackTags || {}).length,
+        energyLevels: Object.keys(this.appState.data.energyLevels || {}).length
       });
 
       // Merge energy levels from CSV with existing energy levels

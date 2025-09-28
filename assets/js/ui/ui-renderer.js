@@ -623,8 +623,21 @@ export class UIRenderer {
       const tagsDiv = document.createElement('div');
       tagsDiv.className = 'track-tags-row';
       tags.forEach(tag => {
+        const tagContainer = document.createElement('span');
+        tagContainer.className = 'tag-pill-container';
+
         const tagSpan = SecurityUtils.createSafeElement('span', tag, 'tag-pill');
-        tagsDiv.appendChild(tagSpan);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'tag-remove-btn';
+        removeBtn.innerHTML = '×';
+        removeBtn.title = `Remove tag: ${tag}`;
+        removeBtn.dataset.trackDisplay = track.display;
+        removeBtn.dataset.tagName = tag;
+
+        tagContainer.appendChild(tagSpan);
+        tagContainer.appendChild(removeBtn);
+        tagsDiv.appendChild(tagContainer);
       });
       trackDiv.appendChild(tagsDiv);
     }
