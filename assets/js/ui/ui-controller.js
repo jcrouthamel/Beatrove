@@ -2431,28 +2431,112 @@ export class UIController {
 
   exportPlaylists() {
     return this.errorHandler.safe(() => {
-      const exportData = {
-        playlists: this.appState.data.playlists || {},
-        smartPlaylists: this.appState.data.smartPlaylists || {},
-        currentPlaylist: this.appState.data.currentPlaylist || '',
-        favorites: this.appState.data.favorites || {},
-        trackTags: this.appState.data.trackTags || {},
-        energyLevels: this.appState.data.energyLevels || {}
-      };
+      const currentPlaylist = this.appState.data.currentPlaylist;
 
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
+      if (!currentPlaylist || currentPlaylist === '' || currentPlaylist === 'favorites') {
+        // Export all playlists metadata if no specific playlist is selected
+        const exportData = {
+          playlists: this.appState.data.playlists || {},
+          smartPlaylists: this.appState.data.smartPlaylists || {},
+          favorites: this.appState.data.favorites || {},
+          trackTags: this.appState.data.trackTags || {},
+          energyLevels: this.appState.data.energyLevels || {}
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'beatrove-all-playlists.json';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        this.notificationSystem.success('All playlists exported successfully');
+        return;
+      }
+
+      // Export tracks from the currently selected playlist
+      let playlistTracks = [];
+      let playlistName = currentPlaylist;
+
+      if (currentPlaylist.startsWith('smart:')) {
+        // Handle smart playlist
+        const smartPlaylistName = currentPlaylist.replace('smart:', '');
+        const smartPlaylist = this.appState.data.smartPlaylists?.[smartPlaylistName];
+        playlistName = smartPlaylistName;
+
+        if (smartPlaylist) {
+          // Get tracks that match the smart playlist rules
+          const allTracks = this.appState.data.tracksForUI || [];
+          playlistTracks = allTracks.filter(track => {
+            if (smartPlaylist.logic === 'AND') {
+              return smartPlaylist.rules.every(rule => this.evaluateSmartPlaylistRule(track, rule));
+            } else {
+              return smartPlaylist.rules.some(rule => this.evaluateSmartPlaylistRule(track, rule));
+            }
+          });
+        }
+      } else {
+        // Handle regular playlist
+        const trackDisplays = this.appState.data.playlists[currentPlaylist] || [];
+        const allTracks = this.appState.data.tracksForUI || [];
+
+        playlistTracks = trackDisplays.map(display =>
+          allTracks.find(track => track.display === display)
+        ).filter(track => track !== undefined);
+      }
+
+      if (playlistTracks.length === 0) {
+        this.notificationSystem.warning(`Playlist "${playlistName}" is empty - nothing to export`);
+        return;
+      }
+
+      // Create CSV content
+      const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label\n';
+      const csvRows = playlistTracks.map(track => {
+        const energy = this.appState.data.energyLevels[track.display] || '';
+        const energyStr = energy ? `Energy ${energy}` : '';
+
+        // Escape CSV values that contain commas or quotes
+        const escapeCSV = (value) => {
+          if (typeof value !== 'string') value = String(value || '');
+          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+            return '"' + value.replace(/"/g, '""') + '"';
+          }
+          return value;
+        };
+
+        return [
+          escapeCSV(track.artist || ''),
+          escapeCSV(track.title || ''),
+          escapeCSV(track.key || ''),
+          escapeCSV(track.bpm || ''),
+          escapeCSV(track.duration || ''),
+          escapeCSV(track.year || ''),
+          escapeCSV(track.path || ''),
+          escapeCSV(track.genre || ''),
+          escapeCSV(energyStr),
+          escapeCSV(track.label || '')
+        ].join(',');
+      }).join('\n');
+
+      const csvContent = csvHeaders + csvRows;
+      const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(csvBlob);
 
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'beatrove-playlists.json';
+      link.download = `${playlistName.replace(/[^a-z0-9]/gi, '_')}_tracks.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
 
-      this.notificationSystem.success('Playlists exported successfully');
+      this.notificationSystem.success(`Exported ${playlistTracks.length} tracks from playlist "${playlistName}"`);
     }, {
       component: 'UIController',
       method: 'exportPlaylists',
