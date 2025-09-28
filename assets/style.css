@@ -3135,6 +3135,26 @@ body.light-mode .footer-border {
   border-top-color: #e5e5e5;
 }
 
+.footer-link {
+  color: var(--accent-color);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.footer-link:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+body.light-mode .footer-link {
+  color: #0066aa;
+}
+
+body.light-mode .footer-link:hover {
+  color: #004488;
+  text-decoration: underline;
+}
+
 /* ============= DYNAMIC STYLE CLASSES ============= */
 .duplicate-list-header {
   color: #ffb300;
