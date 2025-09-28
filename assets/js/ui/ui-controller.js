@@ -236,6 +236,9 @@ export class UIController {
 
         console.log('Playlist changed to:', selectedValue);
 
+        // Update button states based on new selection
+        this.updatePlaylistButtonStates();
+
         // Clear A-Z filter and re-render
         this.renderer.clearAZFilterOnly();
         this.renderer.render();
@@ -346,6 +349,30 @@ export class UIController {
       });
     } else {
       console.error('Create smart playlist button not found');
+    }
+
+    // Delete playlist button
+    const deletePlaylistBtn = document.getElementById('delete-playlist-btn');
+    if (deletePlaylistBtn) {
+      deletePlaylistBtn.addEventListener('click', () => {
+        this.deletePlaylist();
+      });
+    }
+
+    // Rename playlist button
+    const renamePlaylistBtn = document.getElementById('rename-playlist-btn');
+    if (renamePlaylistBtn) {
+      renamePlaylistBtn.addEventListener('click', () => {
+        this.renamePlaylist();
+      });
+    }
+
+    // Export playlist button
+    const exportPlaylistBtn = document.getElementById('export-playlist-btn');
+    if (exportPlaylistBtn) {
+      exportPlaylistBtn.addEventListener('click', () => {
+        this.exportPlaylists();
+      });
     }
 
     // Global click handler for dynamic elements
@@ -2046,6 +2073,143 @@ export class UIController {
     if (this.appState.data.currentPlaylist) {
       playlistSelector.value = this.appState.data.currentPlaylist;
     }
+  }
+
+  async deletePlaylist() {
+    return this.errorHandler.safe(async () => {
+      if (!this.appState.data.currentPlaylist) return;
+
+      const currentPlaylist = this.appState.data.currentPlaylist;
+      let displayName = currentPlaylist;
+
+      // Get display name for confirmation dialog
+      if (currentPlaylist.startsWith('smart:')) {
+        displayName = currentPlaylist.replace('smart:', '') + ' (Smart)';
+      }
+
+      const confirmed = await this.notificationSystem.confirm(`Delete playlist "${displayName}"?`, 'Delete Playlist');
+      if (confirmed) {
+        if (currentPlaylist.startsWith('smart:')) {
+          // Handle smart playlist deletion
+          const smartPlaylistName = currentPlaylist.replace('smart:', '');
+          delete this.appState.data.smartPlaylists[smartPlaylistName];
+        } else {
+          // Handle regular playlist deletion
+          delete this.appState.data.playlists[currentPlaylist];
+        }
+
+        // Reset current playlist and trigger view reset
+        this.appState.data.currentPlaylist = '';
+        this.appState.saveToStorage();
+        this.updatePlaylistSelector();
+        this.updatePlaylistButtonStates();
+
+        // Trigger render to reset to default view
+        this.renderer.render();
+
+        this.notificationSystem.success(`Playlist "${displayName}" deleted successfully`);
+      }
+    }, {
+      component: 'UIController',
+      method: 'deletePlaylist',
+      operation: 'playlist deletion',
+      fallbackValue: null
+    });
+  }
+
+  async renamePlaylist() {
+    return this.errorHandler.safe(async () => {
+      if (!this.appState.data.currentPlaylist) return;
+
+      const currentPlaylist = this.appState.data.currentPlaylist;
+      let currentDisplayName = currentPlaylist;
+      let isSmartPlaylist = false;
+
+      if (currentPlaylist.startsWith('smart:')) {
+        currentDisplayName = currentPlaylist.replace('smart:', '');
+        isSmartPlaylist = true;
+      }
+
+      const newName = prompt(`Rename playlist "${currentDisplayName}" to:`, currentDisplayName);
+      if (!newName || newName === currentDisplayName) return;
+
+      // Check if new name already exists
+      const nameExists = isSmartPlaylist ?
+        this.appState.data.smartPlaylists?.[newName] :
+        this.appState.data.playlists?.[newName];
+
+      if (nameExists) {
+        this.notificationSystem.error(`A playlist named "${newName}" already exists`);
+        return;
+      }
+
+      if (isSmartPlaylist) {
+        // Rename smart playlist
+        this.appState.data.smartPlaylists[newName] = this.appState.data.smartPlaylists[currentDisplayName];
+        delete this.appState.data.smartPlaylists[currentDisplayName];
+        this.appState.data.currentPlaylist = `smart:${newName}`;
+      } else {
+        // Rename regular playlist
+        this.appState.data.playlists[newName] = this.appState.data.playlists[currentDisplayName];
+        delete this.appState.data.playlists[currentDisplayName];
+        this.appState.data.currentPlaylist = newName;
+      }
+
+      this.appState.saveToStorage();
+      this.updatePlaylistSelector();
+      this.notificationSystem.success(`Playlist renamed to "${newName}"`);
+    }, {
+      component: 'UIController',
+      method: 'renamePlaylist',
+      operation: 'playlist renaming',
+      fallbackValue: null
+    });
+  }
+
+  exportPlaylists() {
+    return this.errorHandler.safe(() => {
+      const exportData = {
+        playlists: this.appState.data.playlists || {},
+        smartPlaylists: this.appState.data.smartPlaylists || {},
+        currentPlaylist: this.appState.data.currentPlaylist || '',
+        favorites: this.appState.data.favorites || {},
+        trackTags: this.appState.data.trackTags || {},
+        energyLevels: this.appState.data.energyLevels || {}
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'beatrove-playlists.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      this.notificationSystem.success('Playlists exported successfully');
+    }, {
+      component: 'UIController',
+      method: 'exportPlaylists',
+      operation: 'playlist export',
+      fallbackValue: null
+    });
+  }
+
+  updatePlaylistButtonStates() {
+    const currentPlaylist = this.appState.data.currentPlaylist;
+    const selected = currentPlaylist && currentPlaylist !== '' && currentPlaylist !== 'favorites';
+
+    // Enable/disable rename and delete buttons based on selection
+    document.getElementById('rename-playlist-btn')?.toggleAttribute('disabled', !selected);
+    document.getElementById('delete-playlist-btn')?.toggleAttribute('disabled', !selected);
+
+    // Export button should be enabled if there are any playlists
+    const hasPlaylists = Object.keys(this.appState.data.playlists || {}).length > 0 ||
+                        Object.keys(this.appState.data.smartPlaylists || {}).length > 0;
+    document.getElementById('export-playlist-btn')?.toggleAttribute('disabled', !hasPlaylists);
   }
 
   populateFilterDropdowns() {

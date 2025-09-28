@@ -515,6 +515,9 @@ class BeatroveApp {
       // Update playlist selector with available playlists
       this.controller.updatePlaylistSelector();
 
+      // Update playlist button states
+      this.controller.updatePlaylistButtonStates();
+
       // Start visualizer
       this.visualizer.start();
 
