@@ -546,6 +546,10 @@ export class UIController {
       if (!this.appState.data.playlists[playlistName].includes(trackDisplay)) {
         this.appState.data.playlists[playlistName].push(trackDisplay);
         this.appState.saveToStorage();
+
+        // Update playlist selector to include new playlist
+        this.updatePlaylistSelector();
+
         if (this.notificationSystem) {
           this.notificationSystem.success(`Added to playlist: ${playlistName}`);
         }

@@ -47,15 +47,27 @@ export class UIRenderer {
     const filters = this.getActiveFilters();
     let filteredTracks = this.filterTracks(filters);
 
-    // Apply smart playlist filtering if a smart playlist is selected
+    // Apply playlist filtering if a playlist is selected
     const currentPlaylist = this.appState.data.currentPlaylist;
-    if (currentPlaylist && typeof currentPlaylist === 'string' && currentPlaylist.startsWith('smart:')) {
-      const smartPlaylistName = currentPlaylist.replace('smart:', '');
-      const smartPlaylist = this.appState.data.smartPlaylists?.[smartPlaylistName];
+    if (currentPlaylist && typeof currentPlaylist === 'string') {
+      if (currentPlaylist.startsWith('smart:')) {
+        // Smart playlist filtering
+        const smartPlaylistName = currentPlaylist.replace('smart:', '');
+        const smartPlaylist = this.appState.data.smartPlaylists?.[smartPlaylistName];
 
-      if (smartPlaylist) {
-        // Apply smart playlist rules to the already filtered tracks
-        filteredTracks = this.filterTracksBySmartRules(filteredTracks, smartPlaylist.rules, smartPlaylist.logic);
+        if (smartPlaylist) {
+          // Apply smart playlist rules to the already filtered tracks
+          filteredTracks = this.filterTracksBySmartRules(filteredTracks, smartPlaylist.rules, smartPlaylist.logic);
+        }
+      } else if (currentPlaylist !== '' && currentPlaylist !== 'favorites') {
+        // Regular playlist filtering
+        const playlistTracks = this.appState.data.playlists?.[currentPlaylist];
+        if (playlistTracks && Array.isArray(playlistTracks)) {
+          // Filter tracks to only include those in the selected playlist
+          filteredTracks = filteredTracks.filter(track =>
+            playlistTracks.includes(track.display)
+          );
+        }
       }
     }
 
