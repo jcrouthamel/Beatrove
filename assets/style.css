@@ -3137,7 +3137,8 @@ body.light-mode .duplicate-list-container {
 .search-section-card:hover {
   box-shadow: 0 4px 16px var(--accent-color-alpha);
   transform: translateY(-2px);
-  border-color: var(--accent-color-hover);
+  border-color: var(--accent-color);
+  border-width: 3px;
 }
 
 .search-section-card .filter-card-icon {
@@ -3244,7 +3245,8 @@ body.light-mode .duplicate-list-container {
 .filter-card:hover {
   box-shadow: 0 4px 16px var(--accent-color-alpha);
   transform: translateY(-2px);
-  border-color: var(--accent-color-hover);
+  border-color: var(--accent-color);
+  border-width: 3px;
 }
 
 /* Filter Card Headers */
