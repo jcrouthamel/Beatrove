@@ -381,6 +381,18 @@ export class UIController {
       });
     }
 
+    // Import playlist button and input
+    const importPlaylistBtn = document.getElementById('import-playlists-btn');
+    const importPlaylistInput = document.getElementById('import-playlists-input');
+    if (importPlaylistBtn && importPlaylistInput) {
+      importPlaylistBtn.addEventListener('click', () => {
+        importPlaylistInput.click();
+      });
+      importPlaylistInput.addEventListener('change', (e) => {
+        this.importPlaylists(e);
+      });
+    }
+
     // Global click handler for dynamic elements
     this.setupGlobalClickHandler();
     this.setupAZBarHandler();
@@ -2542,6 +2554,105 @@ export class UIController {
       method: 'exportPlaylists',
       operation: 'playlist export',
       fallbackValue: null
+    });
+  }
+
+  async importPlaylists(event) {
+    return this.errorHandler.safe(async () => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await this.readFile(file);
+        const importData = JSON.parse(text);
+
+        // Handle different import formats
+        let importedCount = 0;
+
+        // Import regular playlists
+        if (importData.playlists) {
+          Object.entries(importData.playlists).forEach(([name, tracks]) => {
+            if (Array.isArray(tracks)) {
+              // Sanitize track names
+              this.appState.data.playlists[name] = tracks.map(track =>
+                this.SecurityUtils ? this.SecurityUtils.sanitizeText(track) : track
+              );
+              importedCount++;
+            }
+          });
+        }
+
+        // Import smart playlists
+        if (importData.smartPlaylists) {
+          if (!this.appState.data.smartPlaylists) {
+            this.appState.data.smartPlaylists = {};
+          }
+          Object.entries(importData.smartPlaylists).forEach(([name, smartPlaylist]) => {
+            if (smartPlaylist && smartPlaylist.rules) {
+              this.appState.data.smartPlaylists[name] = smartPlaylist;
+              importedCount++;
+            }
+          });
+        }
+
+        // Import other data if present
+        if (importData.favorites) {
+          this.appState.data.favorites = { ...this.appState.data.favorites, ...importData.favorites };
+        }
+
+        if (importData.trackTags) {
+          this.appState.data.trackTags = { ...this.appState.data.trackTags, ...importData.trackTags };
+        }
+
+        if (importData.energyLevels) {
+          this.appState.data.energyLevels = { ...this.appState.data.energyLevels, ...importData.energyLevels };
+        }
+
+        // Handle legacy format (just an object of playlists)
+        if (!importData.playlists && !importData.smartPlaylists && typeof importData === 'object') {
+          Object.entries(importData).forEach(([name, tracks]) => {
+            if (Array.isArray(tracks)) {
+              this.appState.data.playlists[name] = tracks.map(track =>
+                this.SecurityUtils ? this.SecurityUtils.sanitizeText(track) : track
+              );
+              importedCount++;
+            }
+          });
+        }
+
+        if (importedCount === 0) {
+          this.notificationSystem.warning('No valid playlists found in the imported file');
+          return;
+        }
+
+        // Save and update UI
+        this.appState.saveToStorage();
+        this.updatePlaylistSelector();
+        this.updatePlaylistButtonStates();
+
+        this.notificationSystem.success(`Successfully imported ${importedCount} playlist(s)`);
+
+      } catch (error) {
+        console.error('Import error:', error);
+        this.notificationSystem.error('Error importing playlists. Please check file format.');
+      }
+
+      // Clear the input value so the same file can be imported again
+      event.target.value = '';
+    }, {
+      component: 'UIController',
+      method: 'importPlaylists',
+      operation: 'playlist import',
+      fallbackValue: null
+    });
+  }
+
+  async readFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = (e) => reject(e);
+      reader.readAsText(file);
     });
   }
 
