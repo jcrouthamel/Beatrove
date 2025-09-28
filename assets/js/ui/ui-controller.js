@@ -1633,16 +1633,14 @@ export class UIController {
       // Update playlist selector
       this.updatePlaylistSelector();
 
-      // Set as current playlist
-      this.appState.data.currentPlaylist = trimmedName;
-      this.appState.saveToStorage();
+      // Update button states but don't change current playlist
+      this.updatePlaylistButtonStates();
 
       if (this.notificationSystem) {
         this.notificationSystem.success(`Created playlist: ${trimmedName}`);
       }
 
-      // Re-render to show playlist changes
-      this.renderer.render();
+      // No need to re-render since we're staying in default view
     }
   }
 
