@@ -95,6 +95,103 @@ class NotificationSystem {
       this.container.remove();
     }
   }
+
+  async confirm(message, title = 'Confirm') {
+    return new Promise((resolve) => {
+      // Create modal confirmation dialog
+      const modal = document.createElement('div');
+      modal.className = 'confirmation-modal';
+      modal.innerHTML = `
+        <div class="confirmation-dialog">
+          <h3>${title}</h3>
+          <p>${message}</p>
+          <div class="confirmation-buttons">
+            <button class="btn-cancel">Cancel</button>
+            <button class="btn-confirm">Delete</button>
+          </div>
+        </div>
+      `;
+
+      // Add styles
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      `;
+
+      const dialog = modal.querySelector('.confirmation-dialog');
+      dialog.style.cssText = `
+        background: var(--bg-color, #1a1a1a);
+        color: var(--text-color, #ffffff);
+        padding: 2rem;
+        border-radius: 8px;
+        max-width: 400px;
+        width: 90%;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      `;
+
+      const buttonsDiv = modal.querySelector('.confirmation-buttons');
+      buttonsDiv.style.cssText = `
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        justify-content: flex-end;
+      `;
+
+      const buttons = modal.querySelectorAll('button');
+      buttons.forEach(btn => {
+        btn.style.cssText = `
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9rem;
+        `;
+      });
+
+      const cancelBtn = modal.querySelector('.btn-cancel');
+      cancelBtn.style.cssText += `
+        background: var(--secondary-color, #666);
+        color: white;
+      `;
+
+      const confirmBtn = modal.querySelector('.btn-confirm');
+      confirmBtn.style.cssText += `
+        background: var(--error-color, #e74c3c);
+        color: white;
+      `;
+
+      // Event listeners
+      cancelBtn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+        resolve(false);
+      });
+
+      confirmBtn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+        resolve(true);
+      });
+
+      // Close on escape key
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          document.body.removeChild(modal);
+          document.removeEventListener('keydown', handleEscape);
+          resolve(false);
+        }
+      };
+      document.addEventListener('keydown', handleEscape);
+
+      document.body.appendChild(modal);
+    });
+  }
 }
 
 // ============= APPLICATION STATE =============

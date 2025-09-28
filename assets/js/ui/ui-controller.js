@@ -354,9 +354,15 @@ export class UIController {
     // Delete playlist button
     const deletePlaylistBtn = document.getElementById('delete-playlist-btn');
     if (deletePlaylistBtn) {
-      deletePlaylistBtn.addEventListener('click', () => {
+      console.log('Delete playlist button found, adding event listener');
+      deletePlaylistBtn.addEventListener('click', (e) => {
+        console.log('Delete playlist button clicked');
+        e.preventDefault();
+        e.stopPropagation();
         this.deletePlaylist();
       });
+    } else {
+      console.error('Delete playlist button not found');
     }
 
     // Rename playlist button
@@ -2076,8 +2082,13 @@ export class UIController {
   }
 
   async deletePlaylist() {
+    console.log('deletePlaylist method called');
     return this.errorHandler.safe(async () => {
-      if (!this.appState.data.currentPlaylist) return;
+      console.log('Current playlist:', this.appState.data.currentPlaylist);
+      if (!this.appState.data.currentPlaylist) {
+        console.log('No current playlist selected, returning');
+        return;
+      }
 
       const currentPlaylist = this.appState.data.currentPlaylist;
       let displayName = currentPlaylist;
