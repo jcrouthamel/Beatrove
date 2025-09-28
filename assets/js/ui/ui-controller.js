@@ -570,24 +570,272 @@ export class UIController {
   }
 
   showPlaylistDialog(trackDisplay) {
-    // Simple implementation - could be enhanced
-    const playlistName = prompt('Enter playlist name:');
-    if (playlistName) {
+    return this.errorHandler.safe(() => {
+      // Create modal for playlist selection
+      const modal = document.createElement('div');
+      modal.className = 'playlist-selection-modal';
+      modal.innerHTML = `
+        <div class="playlist-selection-dialog">
+          <h3>Add Track to Playlist</h3>
+          <div class="track-info">
+            <strong>${trackDisplay}</strong>
+          </div>
+          <div class="playlist-options">
+            <h4>Select Existing Playlist:</h4>
+            <div class="existing-playlists" id="existing-playlists-list">
+              <!-- Playlists will be populated here -->
+            </div>
+            <div class="new-playlist-section">
+              <h4>Or Create New Playlist:</h4>
+              <input type="text" id="new-playlist-name" placeholder="Enter new playlist name..." />
+              <button id="create-new-playlist-btn" class="btn-create">Create & Add</button>
+            </div>
+          </div>
+          <div class="playlist-dialog-buttons">
+            <button id="cancel-playlist-btn" class="btn-cancel">Cancel</button>
+          </div>
+        </div>
+      `;
+
+      // Add styles
+      modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+      `;
+
+      const dialog = modal.querySelector('.playlist-selection-dialog');
+      dialog.style.cssText = `
+        background: var(--bg-color, #1a1a1a);
+        color: var(--text-color, #ffffff);
+        padding: 2rem;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 70vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      `;
+
+      // Style the sections
+      const trackInfo = modal.querySelector('.track-info');
+      trackInfo.style.cssText = `
+        background: var(--secondary-bg, #333);
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1.5rem;
+        font-family: monospace;
+        font-size: 0.9rem;
+      `;
+
+      const existingPlaylists = modal.querySelector('.existing-playlists');
+      existingPlaylists.style.cssText = `
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid var(--border-color, #555);
+        border-radius: 4px;
+        margin: 0.5rem 0 1rem 0;
+      `;
+
+      const newPlaylistSection = modal.querySelector('.new-playlist-section');
+      newPlaylistSection.style.cssText = `
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color, #555);
+      `;
+
+      const input = modal.querySelector('#new-playlist-name');
+      input.style.cssText = `
+        width: 100%;
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        background: var(--secondary-bg, #333);
+        color: var(--text-color, #fff);
+        border: 1px solid var(--border-color, #555);
+        border-radius: 4px;
+        font-size: 0.9rem;
+      `;
+
+      const buttonsDiv = modal.querySelector('.playlist-dialog-buttons');
+      buttonsDiv.style.cssText = `
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        justify-content: flex-end;
+      `;
+
+      // Style buttons
+      const buttons = modal.querySelectorAll('button');
+      buttons.forEach(btn => {
+        btn.style.cssText = `
+          padding: 0.5rem 1rem;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.9rem;
+        `;
+      });
+
+      const cancelBtn = modal.querySelector('#cancel-playlist-btn');
+      cancelBtn.style.cssText += `
+        background: var(--secondary-color, #666);
+        color: white;
+      `;
+
+      const createBtn = modal.querySelector('#create-new-playlist-btn');
+      createBtn.style.cssText += `
+        background: var(--accent-color, #3498db);
+        color: white;
+      `;
+
+      // Populate existing playlists
+      this.populateExistingPlaylists(existingPlaylists, trackDisplay);
+
+      // Event listeners
+      cancelBtn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+      });
+
+      createBtn.addEventListener('click', () => {
+        const newName = input.value.trim();
+        if (newName) {
+          this.addTrackToPlaylist(trackDisplay, newName, true);
+          document.body.removeChild(modal);
+        }
+      });
+
+      // Enter key to create new playlist
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const newName = input.value.trim();
+          if (newName) {
+            this.addTrackToPlaylist(trackDisplay, newName, true);
+            document.body.removeChild(modal);
+          }
+        }
+      });
+
+      // Close on escape key
+      const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+          document.body.removeChild(modal);
+          document.removeEventListener('keydown', handleEscape);
+        }
+      };
+      document.addEventListener('keydown', handleEscape);
+
+      document.body.appendChild(modal);
+    }, {
+      component: 'UIController',
+      method: 'showPlaylistDialog',
+      operation: 'playlist dialog display',
+      fallbackValue: null
+    });
+  }
+
+  populateExistingPlaylists(container, trackDisplay) {
+    const playlists = Object.keys(this.appState.data.playlists || {});
+
+    if (playlists.length === 0) {
+      container.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--secondary-text, #888);">No playlists created yet</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    playlists.forEach(playlistName => {
+      const playlistItem = document.createElement('div');
+      playlistItem.className = 'playlist-item';
+      playlistItem.style.cssText = `
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--border-color, #555);
+        cursor: pointer;
+        transition: background-color 0.2s;
+      `;
+
+      const isAlreadyInPlaylist = this.appState.data.playlists[playlistName].includes(trackDisplay);
+
+      playlistItem.innerHTML = `
+        <span>${playlistName}</span>
+        <span class="playlist-status">${isAlreadyInPlaylist ? '✓ Added' : 'Add'}</span>
+      `;
+
+      const statusSpan = playlistItem.querySelector('.playlist-status');
+      statusSpan.style.cssText = `
+        color: ${isAlreadyInPlaylist ? 'var(--success-color, #27ae60)' : 'var(--accent-color, #3498db)'};
+        font-size: 0.8rem;
+        font-weight: bold;
+      `;
+
+      if (!isAlreadyInPlaylist) {
+        playlistItem.addEventListener('mouseenter', () => {
+          playlistItem.style.backgroundColor = 'var(--hover-color, #444)';
+        });
+
+        playlistItem.addEventListener('mouseleave', () => {
+          playlistItem.style.backgroundColor = 'transparent';
+        });
+
+        playlistItem.addEventListener('click', () => {
+          this.addTrackToPlaylist(trackDisplay, playlistName, false);
+          // Update the UI to show it's been added
+          statusSpan.textContent = '✓ Added';
+          statusSpan.style.color = 'var(--success-color, #27ae60)';
+          playlistItem.style.cursor = 'default';
+          playlistItem.removeEventListener('mouseenter', () => {});
+          playlistItem.removeEventListener('mouseleave', () => {});
+        });
+      } else {
+        playlistItem.style.cursor = 'default';
+        playlistItem.style.opacity = '0.7';
+      }
+
+      container.appendChild(playlistItem);
+    });
+  }
+
+  addTrackToPlaylist(trackDisplay, playlistName, isNewPlaylist) {
+    return this.errorHandler.safe(() => {
+      // Create playlist if it doesn't exist
       if (!this.appState.data.playlists[playlistName]) {
         this.appState.data.playlists[playlistName] = [];
       }
-      if (!this.appState.data.playlists[playlistName].includes(trackDisplay)) {
-        this.appState.data.playlists[playlistName].push(trackDisplay);
-        this.appState.saveToStorage();
 
-        // Update playlist selector to include new playlist
-        this.updatePlaylistSelector();
-
+      // Check if track is already in playlist
+      if (this.appState.data.playlists[playlistName].includes(trackDisplay)) {
         if (this.notificationSystem) {
-          this.notificationSystem.success(`Added to playlist: ${playlistName}`);
+          this.notificationSystem.warning(`Track already in playlist: ${playlistName}`);
         }
+        return;
       }
-    }
+
+      // Add track to playlist
+      this.appState.data.playlists[playlistName].push(trackDisplay);
+      this.appState.saveToStorage();
+
+      // Update playlist selector if new playlist was created
+      if (isNewPlaylist) {
+        this.updatePlaylistSelector();
+      }
+
+      if (this.notificationSystem) {
+        this.notificationSystem.success(`Added to playlist: ${playlistName}`);
+      }
+    }, {
+      component: 'UIController',
+      method: 'addTrackToPlaylist',
+      operation: 'track playlist addition',
+      fallbackValue: null
+    });
   }
 
   showTagDialog(trackDisplay) {
