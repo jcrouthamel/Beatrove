@@ -654,8 +654,21 @@ export class UIRenderer {
       moodTagsDiv.appendChild(moodLabel);
 
       moodTags.forEach(tag => {
+        const tagContainer = document.createElement('span');
+        tagContainer.className = 'mood-vibe-pill-container';
+
         const tagSpan = SecurityUtils.createSafeElement('span', tag, 'mood-vibe-pill');
-        moodTagsDiv.appendChild(tagSpan);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'mood-vibe-remove-btn';
+        removeBtn.innerHTML = '×';
+        removeBtn.title = `Remove mood/vibe tag: ${tag}`;
+        removeBtn.dataset.trackDisplay = track.display;
+        removeBtn.dataset.tagName = tag;
+
+        tagContainer.appendChild(tagSpan);
+        tagContainer.appendChild(removeBtn);
+        moodTagsDiv.appendChild(tagContainer);
       });
       trackDiv.appendChild(moodTagsDiv);
     }

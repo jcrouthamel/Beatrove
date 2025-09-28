@@ -155,6 +155,11 @@ export class UIController {
           this.removeTag(target.dataset.trackDisplay, target.dataset.tagName);
         }
 
+        // Mood & Vibe tag remove button
+        else if (target.classList.contains('mood-vibe-remove-btn')) {
+          this.removeMoodVibeTag(target.dataset.trackDisplay, target.dataset.tagName);
+        }
+
         // Energy button
         else if (target.classList.contains('energy-btn')) {
           this.showEnergyDialog(target.dataset.trackDisplay);
@@ -908,6 +913,29 @@ export class UIController {
 
       if (this.notificationSystem) {
         this.notificationSystem.success(`Tag removed: ${tagName}`);
+      }
+    }
+  }
+
+  removeMoodVibeTag(trackDisplay, tagName) {
+    if (!this.appState.data.moodVibeTags[trackDisplay]) {
+      return;
+    }
+
+    const tagIndex = this.appState.data.moodVibeTags[trackDisplay].indexOf(tagName);
+    if (tagIndex > -1) {
+      this.appState.data.moodVibeTags[trackDisplay].splice(tagIndex, 1);
+
+      // If no mood/vibe tags left, remove the track from moodVibeTags entirely
+      if (this.appState.data.moodVibeTags[trackDisplay].length === 0) {
+        delete this.appState.data.moodVibeTags[trackDisplay];
+      }
+
+      this.appState.saveToStorage();
+      this.renderer.render();
+
+      if (this.notificationSystem) {
+        this.notificationSystem.success(`Mood/Vibe tag removed: ${tagName}`);
       }
     }
   }

@@ -1312,6 +1312,47 @@ body.light-mode .mood-vibe-pill {
   color: #fff;
 }
 
+.mood-vibe-pill-container {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  margin-right: 3px;
+  margin-bottom: 2px;
+}
+
+.mood-vibe-remove-btn {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 3px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mood-vibe-remove-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+body.light-mode .mood-vibe-remove-btn {
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+}
+
+body.light-mode .mood-vibe-remove-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  color: #fff;
+}
+
 /* Mood & Vibe Popup */
 .mood-vibe-popup {
   position: absolute;
