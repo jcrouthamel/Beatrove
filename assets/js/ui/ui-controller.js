@@ -224,6 +224,24 @@ export class UIController {
       }
     });
 
+    // Playlist selector
+    const playlistSelector = document.getElementById('playlist-select');
+    if (playlistSelector) {
+      playlistSelector.addEventListener('change', (e) => {
+        const selectedValue = e.target.value;
+
+        // Update current playlist in app state
+        this.appState.data.currentPlaylist = selectedValue;
+        this.appState.saveToStorage();
+
+        console.log('Playlist changed to:', selectedValue);
+
+        // Clear A-Z filter and re-render
+        this.renderer.clearAZFilterOnly();
+        this.renderer.render();
+      });
+    }
+
     // Sort selector
     const sortSelect = document.getElementById('sort-select');
     if (sortSelect) {
@@ -2019,6 +2037,11 @@ export class UIController {
       option.textContent = `🧠 ${smartPlaylistName}`;
       playlistSelector.appendChild(option);
     });
+
+    // Set the current selection based on stored currentPlaylist
+    if (this.appState.data.currentPlaylist) {
+      playlistSelector.value = this.appState.data.currentPlaylist;
+    }
   }
 
   populateFilterDropdowns() {

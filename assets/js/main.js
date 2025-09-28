@@ -512,6 +512,9 @@ class BeatroveApp {
       // Populate filter dropdowns with track metadata
       this.controller.populateFilterDropdowns();
 
+      // Update playlist selector with available playlists
+      this.controller.updatePlaylistSelector();
+
       // Start visualizer
       this.visualizer.start();
 
