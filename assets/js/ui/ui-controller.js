@@ -791,8 +791,14 @@ export class UIController {
           statusSpan.textContent = '✓ Added';
           statusSpan.style.color = 'var(--success-color, #27ae60)';
           playlistItem.style.cursor = 'default';
-          playlistItem.removeEventListener('mouseenter', () => {});
-          playlistItem.removeEventListener('mouseleave', () => {});
+
+          // Auto-close dialog after successful addition with a short delay for visual feedback
+          setTimeout(() => {
+            const modal = document.querySelector('.playlist-selection-modal');
+            if (modal) {
+              document.body.removeChild(modal);
+            }
+          }, 500);
         });
       } else {
         playlistItem.style.cursor = 'default';
