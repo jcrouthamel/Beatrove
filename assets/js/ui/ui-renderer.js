@@ -716,10 +716,13 @@ export class UIRenderer {
     const decodedTrackDisplay = SecurityUtils.safeUnescapeForComparison(track.display);
 
     // Button configuration with PNG icons and text fallbacks
+    // Use absolute paths from web root for reliable icon loading
+    const ICON_BASE_PATH = '/images/icons/';
+
     const buttons = [
       {
         class: 'star-btn',
-        iconPath: '../../../images/icons/favorite.png',
+        iconPath: `${ICON_BASE_PATH}favorite.png`,
         fallbackText: 'F',
         title: this.appState.data.favoriteTracks[decodedTrackDisplay] ? 'Unstar' : 'Mark as favorite',
         data: { trackDisplay: track.display },
@@ -727,7 +730,7 @@ export class UIRenderer {
       },
       {
         class: 'folder-btn',
-        iconPath: '../../../images/icons/copy-path.png',
+        iconPath: `${ICON_BASE_PATH}copy-path.png`,
         fallbackText: 'P',
         title: 'Copy Path to Clipboard',
         data: { path: track.absPath },
@@ -735,42 +738,42 @@ export class UIRenderer {
       },
       {
         class: 'tag-btn',
-        iconPath: '../../../images/icons/tag.png',
+        iconPath: `${ICON_BASE_PATH}tag.png`,
         fallbackText: 'T',
         title: 'Tag',
         data: { trackDisplay: track.display }
       },
       {
         class: 'mood-vibe-btn',
-        iconPath: '../../../images/icons/mood+vibe.png',
+        iconPath: `${ICON_BASE_PATH}mood+vibe.png`,
         fallbackText: 'M',
         title: 'Edit Mood & Vibe',
         data: { trackDisplay: track.display }
       },
       {
         class: 'add-playlist-btn',
-        iconPath: '../../../images/icons/add-to-playlist.png',
+        iconPath: `${ICON_BASE_PATH}add-to-playlist.png`,
         fallbackText: 'A',
         title: 'Add to Playlist',
         data: { trackDisplay: track.display }
       },
       {
         class: 'copy-track-btn',
-        iconPath: '../../../images/icons/copy-track.png',
+        iconPath: `${ICON_BASE_PATH}copy-track.png`,
         fallbackText: 'C',
         title: 'Copy Track Info',
         data: { trackDisplay: track.display }
       },
       {
         class: 'energy-btn',
-        iconPath: '../../../images/icons/energy.png',
+        iconPath: `${ICON_BASE_PATH}energy.png`,
         fallbackText: 'E',
         title: 'Set Energy Level',
         data: { trackDisplay: track.display }
       },
       {
         class: 'preview-btn',
-        iconPath: '../../../images/icons/player.png',
+        iconPath: `${ICON_BASE_PATH}player.png`,
         fallbackText: '▶',
         title: 'Preview',
         data: { trackDisplay: track.display }
@@ -789,51 +792,23 @@ export class UIRenderer {
         btn.dataset[key] = value;
       });
 
-      // Apply consistent inline styling (border controlled by CSS for theme color)
-      btn.style.cssText = `
-        background: #333 !important;
-        color: white !important;
-        width: 40px !important;
-        height: 40px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 !important;
-        border-radius: 5px !important;
-        cursor: pointer !important;
-        padding: 0 !important;
-        font-size: 14px !important;
-        font-weight: bold !important;
-        font-family: monospace !important;
-        overflow: hidden !important;
-      `;
+      // No inline styles - all styling handled by CSS
 
       // Create image element with fallback
       const img = document.createElement('img');
       img.src = buttonConfig.iconPath;
       img.alt = buttonConfig.fallbackText;
-      img.style.cssText = `
-        width: 30px !important;
-        height: 30px !important;
-        object-fit: contain !important;
-        display: block !important;
-      `;
 
-      // Fallback text span (hidden by default)
+      // Fallback text span (hidden by default, shown on error via CSS)
       const fallbackSpan = document.createElement('span');
       fallbackSpan.textContent = buttonConfig.fallbackText;
-      fallbackSpan.style.cssText = `
-        display: none;
-        font-size: 10px;
-        font-weight: bold;
-        color: white;
-      `;
+      fallbackSpan.className = 'icon-fallback';
 
-      // Error handling for image loading - show fallback text
+      // Error handling for image loading - add error class to trigger CSS fallback
       img.onerror = () => {
         console.error('Failed to load icon:', buttonConfig.iconPath);
-        img.style.display = 'none';
-        fallbackSpan.style.display = 'block';
+        img.classList.add('icon-error');
+        btn.classList.add('icon-load-failed');
       };
 
       btn.appendChild(img);
