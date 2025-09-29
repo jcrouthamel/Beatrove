@@ -712,81 +712,135 @@ export class UIRenderer {
     const iconRow = document.createElement('div');
     iconRow.className = 'track-icons-row';
 
-    // Star button
-    const starBtn = document.createElement('button');
-    starBtn.className = 'star-btn';
-    starBtn.dataset.trackDisplay = track.display;
     // Use decoded track display for favorites check to handle HTML entities
     const decodedTrackDisplay = SecurityUtils.safeUnescapeForComparison(track.display);
 
-    if (this.appState.data.favoriteTracks[decodedTrackDisplay]) {
-      starBtn.className += ' favorited';
-      starBtn.textContent = '★';
-      starBtn.title = 'Unstar';
-    } else {
-      starBtn.textContent = '☆';
-      starBtn.title = 'Mark as favorite';
-    }
-    iconRow.appendChild(starBtn);
+    // Button configuration with PNG icons and text fallbacks
+    const buttons = [
+      {
+        class: 'star-btn',
+        iconPath: '../../../images/icons/favorite.png',
+        fallbackText: 'F',
+        title: this.appState.data.favoriteTracks[decodedTrackDisplay] ? 'Unstar' : 'Mark as favorite',
+        data: { trackDisplay: track.display },
+        extraClass: this.appState.data.favoriteTracks[decodedTrackDisplay] ? ' favorited' : ''
+      },
+      {
+        class: 'folder-btn',
+        iconPath: '../../../images/icons/copy-path.png',
+        fallbackText: 'P',
+        title: 'Copy Path to Clipboard',
+        data: { path: track.absPath },
+        condition: track.absPath
+      },
+      {
+        class: 'tag-btn',
+        iconPath: '../../../images/icons/tag.png',
+        fallbackText: 'T',
+        title: 'Tag',
+        data: { trackDisplay: track.display }
+      },
+      {
+        class: 'mood-vibe-btn',
+        iconPath: '../../../images/icons/mood+vibe.png',
+        fallbackText: 'M',
+        title: 'Edit Mood & Vibe',
+        data: { trackDisplay: track.display }
+      },
+      {
+        class: 'add-playlist-btn',
+        iconPath: '../../../images/icons/add-to-playlist.png',
+        fallbackText: 'A',
+        title: 'Add to Playlist',
+        data: { trackDisplay: track.display }
+      },
+      {
+        class: 'copy-track-btn',
+        iconPath: '../../../images/icons/copy-track.png',
+        fallbackText: 'C',
+        title: 'Copy Track Info',
+        data: { trackDisplay: track.display }
+      },
+      {
+        class: 'energy-btn',
+        iconPath: '../../../images/icons/energy.png',
+        fallbackText: 'E',
+        title: 'Set Energy Level',
+        data: { trackDisplay: track.display }
+      },
+      {
+        class: 'preview-btn',
+        iconPath: '../../../images/icons/player.png',
+        fallbackText: '▶',
+        title: 'Preview',
+        data: { trackDisplay: track.display }
+      }
+    ];
 
-    // Folder button
-    if (track.absPath) {
-      const folderBtn = document.createElement('button');
-      folderBtn.className = 'folder-btn';
-      folderBtn.title = 'Copy Path to Clipboard';
-      folderBtn.textContent = '📁';
-      folderBtn.dataset.path = track.absPath;
-      iconRow.appendChild(folderBtn);
-    }
+    buttons.forEach(buttonConfig => {
+      if (buttonConfig.condition !== undefined && !buttonConfig.condition) return;
 
-    // Tag button
-    const tagBtn = document.createElement('button');
-    tagBtn.className = 'tag-btn';
-    tagBtn.title = 'Tag';
-    tagBtn.textContent = '🏷️';
-    tagBtn.dataset.trackDisplay = track.display;
-    iconRow.appendChild(tagBtn);
+      const btn = document.createElement('button');
+      btn.className = buttonConfig.class + (buttonConfig.extraClass || '');
+      btn.title = buttonConfig.title;
 
-    // Mood & Vibe tag button
-    const moodBtn = document.createElement('button');
-    moodBtn.className = 'mood-vibe-btn';
-    moodBtn.title = 'Edit Mood & Vibe';
-    moodBtn.textContent = '😎';
-    moodBtn.dataset.trackDisplay = track.display;
-    iconRow.appendChild(moodBtn);
+      // Set data attributes
+      Object.entries(buttonConfig.data).forEach(([key, value]) => {
+        btn.dataset[key] = value;
+      });
 
-    // Playlist button
-    const addBtn = document.createElement('button');
-    addBtn.className = 'add-playlist-btn';
-    addBtn.title = 'Add to Playlist';
-    addBtn.textContent = '+';
-    addBtn.dataset.trackDisplay = track.display;
-    iconRow.appendChild(addBtn);
+      // Apply consistent inline styling (border controlled by CSS for theme color)
+      btn.style.cssText = `
+        background: #333 !important;
+        color: white !important;
+        width: 40px !important;
+        height: 40px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        border-radius: 5px !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        font-size: 14px !important;
+        font-weight: bold !important;
+        font-family: monospace !important;
+        overflow: hidden !important;
+      `;
 
-    // Copy button
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-track-btn';
-    copyBtn.title = 'Copy Track Info';
-    copyBtn.textContent = '📋';
-    copyBtn.dataset.trackDisplay = track.display;
-    iconRow.appendChild(copyBtn);
+      // Create image element with fallback
+      const img = document.createElement('img');
+      img.src = buttonConfig.iconPath;
+      img.alt = buttonConfig.fallbackText;
+      img.style.cssText = `
+        width: 30px !important;
+        height: 30px !important;
+        object-fit: contain !important;
+        display: block !important;
+      `;
 
-    // Energy level button
-    const energyBtn = document.createElement('button');
-    energyBtn.className = 'energy-btn';
-    const currentEnergy = this.appState.data.energyLevels[track.display] || 0;
-    energyBtn.title = `Set Energy Level (Current: ${currentEnergy}/5)`;
-    energyBtn.textContent = '⚡';
-    energyBtn.dataset.trackDisplay = track.display;
-    iconRow.appendChild(energyBtn);
+      // Fallback text span (hidden by default)
+      const fallbackSpan = document.createElement('span');
+      fallbackSpan.textContent = buttonConfig.fallbackText;
+      fallbackSpan.style.cssText = `
+        display: none;
+        font-size: 10px;
+        font-weight: bold;
+        color: white;
+      `;
 
-    // Preview button
-    const previewBtn = document.createElement('button');
-    previewBtn.className = 'preview-btn';
-    previewBtn.title = 'Preview';
-    previewBtn.textContent = '▶️';
-    previewBtn.dataset.trackDisplay = track.display;
-    iconRow.appendChild(previewBtn);
+      // Error handling for image loading - show fallback text
+      img.onerror = () => {
+        console.error('Failed to load icon:', buttonConfig.iconPath);
+        img.style.display = 'none';
+        fallbackSpan.style.display = 'block';
+      };
+
+      btn.appendChild(img);
+      btn.appendChild(fallbackSpan);
+
+      iconRow.appendChild(btn);
+    });
 
     return iconRow;
   }
@@ -1175,4 +1229,8 @@ export class UIRenderer {
     document.body.appendChild(tooltip);
     setTimeout(() => tooltip.remove(), 2000);
   }
+
+
+
+
 }

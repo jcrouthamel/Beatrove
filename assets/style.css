@@ -657,76 +657,8 @@ body.light-mode .playlist-btn:hover {
   color: #0088aa;
 }
 
-.folder-btn {
-  background: none;
-  border: none;
-  color: #888;
-  font-size: 18px;
-  margin-left: 7px;
-  cursor: pointer;
-  padding: 0 2px;
-  vertical-align: middle;
-  transition: color 0.15s, transform 0.1s;
-  border-radius: 4px;
-  outline: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+/* Legacy button classes - now using unified track-icons-row button styling */
 
-.folder-btn:hover {
-  color: #00aaff;
-  background: rgba(0,170,255,0.08);
-  transform: scale(1.15);
-}
-
-.folder-btn:focus {
-  color: #00aaff;
-  background: rgba(0,170,255,0.08);
-  transform: scale(1.15);
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-body.light-mode .folder-btn:focus {
-  outline-color: #0088aa;
-}
-
-.track .preview-btn {
-  background: none;
-  border: none;
-  color: #00aaff;
-  font-size: 18px;
-  margin-left: 7px;
-  cursor: pointer;
-  padding: 0 2px;
-  vertical-align: middle;
-  transition: color 0.15s, transform 0.1s;
-  border-radius: 4px;
-  outline: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: none;
-}
-
-.track .preview-btn:hover {
-  color: var(--accent-color);
-  background: none;
-  transform: scale(1.15);
-}
-
-.track .preview-btn:focus {
-  color: var(--accent-color);
-  background: none;
-  transform: scale(1.15);
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-body.light-mode .track .preview-btn:focus {
-  outline-color: #0088aa;
-}
 
 #stats {
   text-align: center;
@@ -896,6 +828,10 @@ body.light-mode .export-btn:hover {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding-bottom: 16px;
   margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden; /* Prevent content from overflowing */
+  box-sizing: border-box;
 }
 
 .track-main {
@@ -922,13 +858,95 @@ body.light-mode .export-btn:hover {
 
 .track-icons-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  flex-wrap: nowrap; /* Prevent wrapping */
+  gap: 5px; /* Comfortable spacing between buttons */
   width: 100%;
+  max-width: 100%; /* Prevent overflow */
   margin-bottom: 8px;
-  margin-top: 0;
-  justify-content: flex-start;
+  margin-top: 12px; /* Add space above track buttons */
+  justify-content: center; /* Center the buttons */
   align-items: center;
+  min-height: 40px; /* Ensure consistent row height */
+  overflow: hidden; /* Prevent overflow into next track */
+}
+
+/* Ensure all buttons in icon row have consistent sizing */
+.track-icons-row button {
+  padding: 0 !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 5px !important;
+  flex-shrink: 0 !important;
+  background: #333 !important;
+  border: 2px solid var(--accent-color) !important;
+  cursor: pointer !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  box-shadow: 0 0 8px var(--accent-color-alpha);
+  transition: all 0.2s ease;
+}
+
+/* Icon images inside track buttons */
+.track-icons-row button img {
+  width: 30px !important;
+  height: 30px !important;
+  filter: none !important;
+  object-fit: contain !important;
+  display: block !important;
+  pointer-events: none !important;
+}
+
+/* Light mode - invert icons for visibility */
+body.light-mode .track-icons-row button img {
+  filter: brightness(0) saturate(100%) !important;
+}
+
+/* Fallback text for buttons (when image fails to load) */
+.track-icons-row button span {
+  font-size: 10px !important;
+  font-weight: bold !important;
+  font-family: monospace !important;
+  color: white !important;
+  display: none !important; /* Hidden by default, shown on img error */
+}
+
+/* Light mode - adjust button and icon styling */
+body.light-mode .track-icons-row button {
+  background: #f5f5f5 !important;
+  border: 2px solid var(--accent-color) !important;
+  box-shadow: 0 0 8px var(--accent-color-alpha);
+}
+
+body.light-mode .track-icons-row button span {
+  color: #333 !important;
+}
+
+/* Hover effects for track action buttons */
+.track-icons-row button:hover {
+  background: var(--accent-color) !important;
+  border-color: var(--accent-color-hover) !important;
+  transform: scale(1.1);
+  box-shadow: 0 0 20px var(--accent-color), 0 0 40px var(--accent-color-alpha);
+}
+
+.track-icons-row button:hover img {
+  filter: brightness(2.5) contrast(1.5) saturate(1.5) drop-shadow(0 0 3px rgba(255, 255, 255, 0.8)) !important;
+}
+
+body.light-mode .track-icons-row button:hover {
+  background: var(--accent-color) !important;
+  border-color: var(--accent-color-hover) !important;
+}
+
+body.light-mode .track-icons-row button:hover img {
+  filter: brightness(0) invert(1) contrast(1.5) drop-shadow(0 0 3px white) !important;
 }
 
 /* ============= COVER ART STYLES ============= */
@@ -1069,36 +1087,6 @@ body.light-mode .copy-btn:focus {
   cursor: not-allowed;
 }
 
-.tag-btn {
-  background: none;
-  border: none;
-  color: #888;
-  font-size: 15px;
-  margin-left: 6px;
-  cursor: pointer;
-  padding: 0 2px;
-  vertical-align: middle;
-  transition: color 0.15s, transform 0.1s;
-  border-radius: 4px;
-}
-
-.tag-btn:hover {
-  color: #00aaff;
-  background: rgba(0,170,255,0.08);
-  transform: scale(1.15);
-}
-
-.tag-btn:focus {
-  color: #00aaff;
-  background: rgba(0,170,255,0.08);
-  transform: scale(1.15);
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-body.light-mode .tag-btn:focus {
-  outline-color: #0088aa;
-}
 
 .tag-popup {
   background: #222;
@@ -1151,14 +1139,16 @@ body.light-mode .tag-popup {
   box-shadow: 0 2px 12px rgba(0,0,0,0.18);
   padding: 12px;
   z-index: 1000;
-  min-width: 200px;
+  min-width: 220px;
   font-size: 14px;
+  border: 1px solid #444;
 }
 
 body.light-mode .energy-popup {
   background: #fff;
   color: #222;
   box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  border: 1px solid #ddd;
 }
 
 .energy-title {
@@ -1414,45 +1404,6 @@ body.light-mode .mood-vibe-popup input[type="text"] {
   width: 200px;
 }
 
-.add-playlist-btn {
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: 1.2em;
-  cursor: pointer;
-  padding: 2px 4px;
-  margin-left: 4px;
-  vertical-align: middle;
-  outline: none;
-  box-shadow: none;
-  transition: color 0.2s;
-}
-
-.add-playlist-btn:hover, .add-playlist-btn:focus {
-  color: #2196f3;
-  background: none;
-  box-shadow: none;
-}
-
-.copy-track-btn {
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: 1.2em;
-  cursor: pointer;
-  padding: 2px 4px;
-  margin-left: 4px;
-  vertical-align: middle;
-  outline: none;
-  box-shadow: none;
-  transition: color 0.2s;
-}
-
-.copy-track-btn:hover, .copy-track-btn:focus {
-  color: #2196f3;
-  background: none;
-  box-shadow: none;
-}
 
 #top-audio-visualizer,
 #audio-visualizer {
@@ -1695,27 +1646,15 @@ body.light-mode .az-category:hover, body.light-mode .az-category.active {
   color: #ff2222 !important;
 }
 
-.star-btn {
-  background: none;
-  border: none;
-  font-size: 1.3em;
-  cursor: pointer;
-  margin-right: 4px;
-  color: #bbb;
-  transition: color 0.2s;
+/* Star button favorited state */
+.track-icons-row .star-btn.favorited {
+  background: #ff2222 !important;
+  border-color: #ff2222 !important;
 }
 
-.star-btn:focus {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-body.light-mode .star-btn:focus {
-  outline-color: #0088aa;
-}
-
-.star-btn.favorited {
-  color: #ff2222;
+body.light-mode .track-icons-row .star-btn.favorited {
+  background: #ff2222 !important;
+  border-color: #ff2222 !important;
 }
 
 #favorites-toggle-btn {

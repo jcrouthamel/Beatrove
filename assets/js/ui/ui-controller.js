@@ -162,7 +162,7 @@ export class UIController {
 
         // Energy button
         else if (target.classList.contains('energy-btn')) {
-          this.showEnergyDialog(target.dataset.trackDisplay);
+          this.showEnergyDialog(target.dataset.trackDisplay, target);
         }
 
         // Mood & Vibe button
@@ -940,19 +940,101 @@ export class UIController {
     }
   }
 
-  showEnergyDialog(trackDisplay) {
-    // Simple implementation
-    const energy = prompt('Enter energy level (1-10):');
-    if (energy) {
-      const energyLevel = parseInt(energy, 10);
-      if (energyLevel >= 1 && energyLevel <= 10) {
-        this.appState.data.energyLevels[trackDisplay] = energyLevel;
+  showEnergyDialog(trackDisplay, anchorElement) {
+    // Remove any existing energy popup
+    this.cleanupEnergyPopup();
+
+    const popup = document.createElement('div');
+    popup.className = 'energy-popup';
+    popup.style.position = 'absolute';
+
+    const currentEnergy = this.appState.data.energyLevels[trackDisplay] || 0;
+
+    const titleText = currentEnergy > 0
+      ? `Set Energy Level (Current: ${currentEnergy}/10)`
+      : 'Set Energy Level (No Rating)';
+
+    const title = this.SecurityUtils.createSafeElement('div', titleText, 'energy-title');
+    popup.appendChild(title);
+
+    // Create buttons for energy levels 1-10
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'energy-buttons';
+
+    for (let i = 1; i <= 10; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'energy-level-btn';
+      if (i === currentEnergy) {
+        btn.className += ' active';
+      }
+      btn.textContent = `${i} ${'★'.repeat(i)}${'☆'.repeat(10-i)}`;
+      btn.dataset.level = i;
+      buttonsContainer.appendChild(btn);
+    }
+
+    popup.appendChild(buttonsContainer);
+
+    // Clear energy button
+    const clearBtn = document.createElement('button');
+    clearBtn.className = 'energy-clear-btn';
+    clearBtn.textContent = '✕ Clear Rating';
+    popup.appendChild(clearBtn);
+
+    // Position popup near the anchor element
+    const rect = anchorElement.getBoundingClientRect();
+    popup.style.left = rect.left + window.scrollX + 'px';
+    popup.style.top = rect.bottom + window.scrollY + 'px';
+
+    document.body.appendChild(popup);
+    this.energyPopup = popup;
+
+    // Event handlers
+    buttonsContainer.addEventListener('click', (e) => {
+      if (e.target.classList.contains('energy-level-btn')) {
+        const level = parseInt(e.target.dataset.level);
+        this.appState.data.energyLevels[trackDisplay] = level;
         this.appState.saveToStorage();
+        this.cleanupEnergyPopup();
         this.renderer.render();
         if (this.notificationSystem) {
-          this.notificationSystem.success(`Energy level set: ${energyLevel}/10`);
+          this.notificationSystem.success(`Energy level set: ${level}/10`);
         }
       }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      delete this.appState.data.energyLevels[trackDisplay];
+      this.appState.saveToStorage();
+      this.cleanupEnergyPopup();
+      this.renderer.render();
+      if (this.notificationSystem) {
+        this.notificationSystem.success('Energy rating cleared');
+      }
+    });
+
+    // Close on outside click
+    this.energyPopupClickHandler = (e) => {
+      if (!popup.contains(e.target)) {
+        this.cleanupEnergyPopup();
+      }
+    };
+
+    setTimeout(() => {
+      if (this.energyPopup === popup) {
+        document.addEventListener('mousedown', this.energyPopupClickHandler);
+      }
+    }, 10);
+  }
+
+  cleanupEnergyPopup() {
+    if (this.energyPopup) {
+      this.energyPopup.remove();
+      this.energyPopup = null;
+    }
+
+    if (this.energyPopupClickHandler) {
+      document.removeEventListener('mousedown', this.energyPopupClickHandler);
+      this.energyPopupClickHandler = null;
     }
   }
 
