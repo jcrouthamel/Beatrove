@@ -1429,6 +1429,7 @@ export class UIController {
     const totalArtistsEl = document.getElementById('total-artists');
     const topArtistEl = document.getElementById('top-artist');
     const avgBpmEl = document.getElementById('average-bpm');
+    const avgSongLengthEl = document.getElementById('average-song-length');
     const totalDurationEl = document.getElementById('total-duration');
 
     if (totalTracksEl) totalTracksEl.textContent = stats.totalTracks.toLocaleString();
@@ -1439,12 +1440,14 @@ export class UIController {
         : '-';
     }
     if (avgBpmEl) avgBpmEl.textContent = stats.averageBPM;
+    if (avgSongLengthEl) avgSongLengthEl.textContent = stats.averageSongLength;
     if (totalDurationEl) totalDurationEl.textContent = stats.totalDuration;
 
     // Update overview stats (overlay section)
     const totalTracksCountEl = document.getElementById('total-tracks-count');
     const totalArtistsCountEl = document.getElementById('total-artists-count');
     const topArtistCountEl = document.getElementById('top-artist-count');
+    const avgSongLengthCountEl = document.getElementById('average-song-length-count');
 
     if (totalTracksCountEl) totalTracksCountEl.textContent = stats.totalTracks.toLocaleString();
     if (totalArtistsCountEl) totalArtistsCountEl.textContent = stats.totalArtists.toLocaleString();
@@ -1453,6 +1456,7 @@ export class UIController {
         ? `${stats.artistWithMostTracks.name} (${stats.artistWithMostTracks.count})`
         : '-';
     }
+    if (avgSongLengthCountEl) avgSongLengthCountEl.textContent = stats.averageSongLength;
 
     // Create charts
     this.createGenreChart(stats.genres);
@@ -1474,6 +1478,7 @@ export class UIController {
       totalArtists: new Set(tracks.map(t => t.artist)).size,
       totalDuration: '0:00',
       averageBPM: 0,
+      averageSongLength: '0:00',
       artistWithMostTracks: { name: '', count: 0 },
       topArtists: [],
       genres: [],
@@ -1488,6 +1493,25 @@ export class UIController {
     const bpms = tracks.map(t => parseInt(t.bpm)).filter(bpm => !isNaN(bpm));
     if (bpms.length > 0) {
       stats.averageBPM = Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length);
+    }
+
+    // Calculate average song length
+    const durations = tracks.map(t => {
+      if (!t.trackTime) return 0;
+      const parts = t.trackTime.split(':');
+      if (parts.length === 2) {
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]); // minutes:seconds
+      } else if (parts.length === 3) {
+        return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]); // hours:minutes:seconds
+      }
+      return 0;
+    }).filter(d => d > 0);
+
+    if (durations.length > 0) {
+      const avgSeconds = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+      const minutes = Math.floor(avgSeconds / 60);
+      const seconds = avgSeconds % 60;
+      stats.averageSongLength = `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
     // Count occurrences
