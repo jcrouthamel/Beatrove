@@ -1194,6 +1194,10 @@ export class UIController {
           this.populateFilterDropdowns();
 
           this.renderer.render();
+
+          // Update footer timestamp
+          this.updateFooterTimestamp();
+
           if (this.notificationSystem) {
             this.notificationSystem.success(`Loaded ${result.totalTracks} tracks`);
           }
@@ -3391,6 +3395,25 @@ export class UIController {
 
     element.removeAttribute('data-has-listeners');
     delete element._eventListeners;
+  }
+
+  /**
+   * Update the footer timestamp to show when the tracklist was last loaded
+   */
+  updateFooterTimestamp() {
+    const footerElement = document.getElementById('footer-updated');
+    if (footerElement) {
+      const now = new Date();
+      const formattedDate = now.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+      footerElement.textContent = `Updated: ${formattedDate}`;
+    }
   }
 
   /**

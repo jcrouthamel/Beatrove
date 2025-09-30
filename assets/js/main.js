@@ -907,6 +907,9 @@ class BeatroveApp {
       if (result.energyLevels && Object.keys(result.energyLevels).length > 0) {
         Object.assign(this.appState.data.energyLevels, result.energyLevels);
       }
+
+      // Update footer timestamp
+      this.uiController.updateFooterTimestamp();
     }, {
       component: 'BeatroveApp',
       method: 'loadDefaultTracklist',
