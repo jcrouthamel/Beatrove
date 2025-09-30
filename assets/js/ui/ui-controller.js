@@ -1688,7 +1688,7 @@ export class UIController {
       this.genreChart.destroy();
     }
 
-    const data = genres.slice(0, 8); // Top 8 genres
+    const data = genres.slice(0, 20); // Top 20 genres
     console.log('Genre data for chart:', data);
     if (data.length === 0) {
       console.log('❌ No genre data available');
@@ -1706,25 +1706,54 @@ export class UIController {
       });
 
       this.genreChart = new window.Chart(ctx, {
-        type: 'doughnut',
+        type: 'bar',
         data: {
           labels: data.map(g => g.label),
           datasets: [{
             data: data.map(g => g.value),
-            backgroundColor: [
-              '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4',
-              '#ffeaa7', '#fab1a0', '#fd79a8', '#a29bfe'
-            ],
-            borderWidth: 0
+            backgroundColor: '#ff6b35',
+            borderWidth: 0,
+            barThickness: 20,
+            maxBarThickness: 25
           }]
         },
         options: {
+          indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              position: 'bottom',
-              labels: { color: '#fff', font: { size: 11 } }
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return context.parsed.x + ' tracks';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              ticks: {
+                color: '#999',
+                font: { size: 11 }
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.05)',
+                drawBorder: false
+              }
+            },
+            y: {
+              ticks: {
+                color: '#ff6b35',
+                font: { size: 12, weight: 'normal' }
+              },
+              grid: {
+                display: false,
+                drawBorder: false
+              }
             }
           }
         }

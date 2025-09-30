@@ -2499,6 +2499,11 @@ body.light-mode .dialog-btn-confirm:hover {
   padding: 20px;
 }
 
+/* Larger height for genre chart to accommodate horizontal bars */
+.stat-section:has(#genre-chart) .chart-container {
+  height: 650px;
+}
+
 body.light-mode .chart-container {
   background: rgba(0, 0, 0, 0.02);
 }
