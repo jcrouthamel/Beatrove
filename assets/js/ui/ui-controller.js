@@ -29,6 +29,7 @@ export class UIController {
     this.keyChart = null;
     this.energyChart = null;
     this.labelsChart = null;
+    this.topArtistsChart = null;
 
     // Initialize error handler
     this.errorHandler = new ErrorHandler(notificationSystem);
@@ -1423,16 +1424,35 @@ export class UIController {
     // Calculate statistics
     const stats = this.calculateLibraryStats(tracks);
 
-    // Update overview stats
+    // Update overview stats (main section)
     const totalTracksEl = document.getElementById('total-tracks');
     const totalArtistsEl = document.getElementById('total-artists');
+    const topArtistEl = document.getElementById('top-artist');
     const avgBpmEl = document.getElementById('average-bpm');
     const totalDurationEl = document.getElementById('total-duration');
 
     if (totalTracksEl) totalTracksEl.textContent = stats.totalTracks.toLocaleString();
     if (totalArtistsEl) totalArtistsEl.textContent = stats.totalArtists.toLocaleString();
+    if (topArtistEl) {
+      topArtistEl.textContent = stats.artistWithMostTracks.name
+        ? `${stats.artistWithMostTracks.name} (${stats.artistWithMostTracks.count})`
+        : '-';
+    }
     if (avgBpmEl) avgBpmEl.textContent = stats.averageBPM;
     if (totalDurationEl) totalDurationEl.textContent = stats.totalDuration;
+
+    // Update overview stats (overlay section)
+    const totalTracksCountEl = document.getElementById('total-tracks-count');
+    const totalArtistsCountEl = document.getElementById('total-artists-count');
+    const topArtistCountEl = document.getElementById('top-artist-count');
+
+    if (totalTracksCountEl) totalTracksCountEl.textContent = stats.totalTracks.toLocaleString();
+    if (totalArtistsCountEl) totalArtistsCountEl.textContent = stats.totalArtists.toLocaleString();
+    if (topArtistCountEl) {
+      topArtistCountEl.textContent = stats.artistWithMostTracks.name
+        ? `${stats.artistWithMostTracks.name} (${stats.artistWithMostTracks.count})`
+        : '-';
+    }
 
     // Create charts
     this.createGenreChart(stats.genres);
@@ -1441,6 +1461,7 @@ export class UIController {
     this.createEnergyChart(stats.energyLevels);
     this.createYearChart(stats.years);
     this.createLabelsChart(stats.labels);
+    this.createTopArtistsChart(stats.topArtists);
 
     // Force all charts to resize after creation
     this.resizeAllCharts();
@@ -1453,6 +1474,8 @@ export class UIController {
       totalArtists: new Set(tracks.map(t => t.artist)).size,
       totalDuration: '0:00',
       averageBPM: 0,
+      artistWithMostTracks: { name: '', count: 0 },
+      topArtists: [],
       genres: [],
       bpmRanges: [],
       keys: [],
@@ -1469,6 +1492,7 @@ export class UIController {
 
     // Count occurrences
     const counters = {
+      artists: {},
       genres: {},
       keys: {},
       energyLevels: {},
@@ -1477,6 +1501,10 @@ export class UIController {
     };
 
     tracks.forEach(track => {
+      // Artist counting
+      if (track.artist) {
+        counters.artists[track.artist] = (counters.artists[track.artist] || 0) + 1;
+      }
       // Genre counting
       if (track.genre) {
         counters.genres[track.genre] = (counters.genres[track.genre] || 0) + 1;
@@ -1522,6 +1550,19 @@ export class UIController {
     stats.keys = Object.entries(counters.keys)
       .sort((a, b) => b[1] - a[1])
       .map(([name, count]) => ({ label: name, value: count }));
+
+    // Find artist with most tracks and top 20 artists
+    const artistEntries = Object.entries(counters.artists);
+    if (artistEntries.length > 0) {
+      const sortedArtists = artistEntries.sort((a, b) => b[1] - a[1]);
+      const topArtist = sortedArtists[0];
+      stats.artistWithMostTracks = { name: topArtist[0], count: topArtist[1] };
+
+      // Get top 20 artists
+      stats.topArtists = sortedArtists
+        .slice(0, 20)
+        .map(([name, count]) => ({ label: name, value: count }));
+    }
 
     // Create energy levels 1-10 with proper counts
     stats.energyLevels = [];
@@ -1657,6 +1698,7 @@ export class UIController {
       if (this.energyChart) this.energyChart.resize();
       if (this.yearChart) this.yearChart.resize();
       if (this.labelsChart) this.labelsChart.resize();
+      if (this.topArtistsChart) this.topArtistsChart.resize();
       console.log('🔄 All charts resized');
     }, 100);
   }
@@ -1998,6 +2040,97 @@ export class UIController {
 
     // Trigger Chart.js resize after creation with multiple retries
     this.retryChartResize(this.labelsChart, 'Labels', 0);
+  }
+
+  createTopArtistsChart(artists) {
+    const ctx = document.getElementById('top-artists-chart');
+    if (!ctx) return;
+
+    if (!window.Chart) {
+      console.error('Chart.js is not loaded');
+      return;
+    }
+
+    if (this.topArtistsChart) {
+      this.topArtistsChart.destroy();
+    }
+
+    const data = artists.slice(0, 20); // Top 20 artists
+    if (data.length === 0) return;
+
+    // Fix canvas sizing
+    this.fixCanvasSize(ctx);
+
+    this.topArtistsChart = new window.Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.map(a => a.label),
+        datasets: [{
+          data: data.map(a => a.value),
+          backgroundColor: '#4ecdc4',
+          borderWidth: 0,
+          categoryPercentage: 0.9,
+          barPercentage: 0.8
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: {
+          padding: {
+            left: 10,
+            right: 10,
+            top: 10,
+            bottom: 10
+          }
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.parsed.x + ' tracks';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              color: '#999',
+              font: { size: 11 }
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false
+            }
+          },
+          y: {
+            ticks: {
+              color: '#4ecdc4',
+              font: { size: 12, weight: 'normal' },
+              autoSkip: false,
+              maxRotation: 0,
+              minRotation: 0
+            },
+            grid: {
+              display: true,
+              color: 'rgba(255, 255, 255, 0.1)',
+              drawBorder: false,
+              lineWidth: 1,
+              drawTicks: false
+            }
+          }
+        }
+      }
+    });
+
+    // Trigger Chart.js resize after creation
+    this.retryChartResize(this.topArtistsChart, 'TopArtists', 0);
   }
 
   createYearChart(years) {
@@ -3486,7 +3619,7 @@ export class UIController {
     this.activeEventListeners.clear();
 
     // Cleanup chart instances
-    [this.genreChart, this.bpmChart, this.keyChart, this.energyChart, this.labelsChart].forEach(chart => {
+    [this.genreChart, this.bpmChart, this.keyChart, this.energyChart, this.labelsChart, this.topArtistsChart].forEach(chart => {
       if (chart && typeof chart.destroy === 'function') {
         this.errorHandler.safe(() => {
           chart.destroy();
@@ -3505,5 +3638,6 @@ export class UIController {
     this.keyChart = null;
     this.energyChart = null;
     this.labelsChart = null;
+    this.topArtistsChart = null;
   }
 }

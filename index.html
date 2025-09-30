@@ -214,8 +214,19 @@
             <span class="stat-label">Total Artists:</span>
             <span class="stat-value" id="total-artists">0</span>
           </div>
+          <div class="stat-item">
+            <span class="stat-label">Artist With Most Tracks:</span>
+            <span class="stat-value" id="top-artist">-</span>
+          </div>
         </div>
-        
+
+        <div class="stat-section">
+          <h3>🎤 Top 20 Artists</h3>
+          <div class="chart-container">
+            <canvas id="top-artists-chart"></canvas>
+          </div>
+        </div>
+
         <div class="stat-section">
           <h3>🎵 Genres</h3>
           <div class="chart-container">
@@ -409,6 +420,10 @@
             <div class="overview-item">
               <span class="overview-label">Total Artists</span>
               <span class="overview-value" id="total-artists-count">0</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Artist With Most Tracks</span>
+              <span class="overview-value" id="top-artist-count">-</span>
             </div>
             <div class="overview-item">
               <span class="overview-label">Average BPM</span>
