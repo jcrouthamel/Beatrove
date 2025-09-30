@@ -785,11 +785,25 @@ export class UIRenderer {
 
       const btn = document.createElement('button');
       btn.className = buttonConfig.class + (buttonConfig.extraClass || '');
-      btn.title = buttonConfig.title;
+      btn.dataset.tooltip = buttonConfig.title; // Use data attribute for custom tooltip
+
+      // Accessibility: Add ARIA labels and attributes
+      btn.setAttribute('aria-label', buttonConfig.title);
+      btn.setAttribute('role', 'button');
+      btn.setAttribute('type', 'button');
+      btn.setAttribute('tabindex', '0');
 
       // Set data attributes
       Object.entries(buttonConfig.data).forEach(([key, value]) => {
         btn.dataset[key] = value;
+      });
+
+      // Accessibility: Keyboard navigation support
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          btn.click();
+        }
       });
 
       // No inline styles - all styling handled by CSS
@@ -797,12 +811,13 @@ export class UIRenderer {
       // Create image element with fallback
       const img = document.createElement('img');
       img.src = buttonConfig.iconPath;
-      img.alt = buttonConfig.fallbackText;
+      img.alt = ''; // Decorative image - button already has aria-label
 
       // Fallback text span (hidden by default, shown on error via CSS)
       const fallbackSpan = document.createElement('span');
       fallbackSpan.textContent = buttonConfig.fallbackText;
       fallbackSpan.className = 'icon-fallback';
+      fallbackSpan.setAttribute('aria-hidden', 'true'); // Hide from screen readers
 
       // Error handling for image loading - add error class to trigger CSS fallback
       img.onerror = () => {
