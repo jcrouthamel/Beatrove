@@ -1713,14 +1713,22 @@ export class UIController {
             data: data.map(g => g.value),
             backgroundColor: '#ff6b35',
             borderWidth: 0,
-            barThickness: 20,
-            maxBarThickness: 25
+            categoryPercentage: 0.9,
+            barPercentage: 0.8
           }]
         },
         options: {
           indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
+          layout: {
+            padding: {
+              left: 10,
+              right: 10,
+              top: 10,
+              bottom: 10
+            }
+          },
           plugins: {
             legend: {
               display: false
@@ -1748,11 +1756,17 @@ export class UIController {
             y: {
               ticks: {
                 color: '#ff6b35',
-                font: { size: 12, weight: 'normal' }
+                font: { size: 12, weight: 'normal' },
+                autoSkip: false,
+                maxRotation: 0,
+                minRotation: 0
               },
               grid: {
-                display: false,
-                drawBorder: false
+                display: true,
+                color: 'rgba(255, 255, 255, 0.1)',
+                drawBorder: false,
+                lineWidth: 1,
+                drawTicks: false
               }
             }
           }
