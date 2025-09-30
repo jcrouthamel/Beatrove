@@ -409,8 +409,8 @@ body.light-mode .control-btn:hover {
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
-  opacity: 0;
-  pointer-events: none;
+  opacity: 0.6;
+  pointer-events: auto;
 }
 
 .clear-search.visible {
@@ -657,86 +657,19 @@ body.light-mode .playlist-btn:hover {
   color: #0088aa;
 }
 
-.folder-btn {
-  background: none;
-  border: none;
-  color: #888;
-  font-size: 18px;
-  margin-left: 7px;
-  cursor: pointer;
-  padding: 0 2px;
-  vertical-align: middle;
-  transition: color 0.15s, transform 0.1s;
-  border-radius: 4px;
-  outline: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+/* Legacy button classes - now using unified track-icons-row button styling */
 
-.folder-btn:hover {
-  color: #00aaff;
-  background: rgba(0,170,255,0.08);
-  transform: scale(1.15);
-}
-
-.folder-btn:focus {
-  color: #00aaff;
-  background: rgba(0,170,255,0.08);
-  transform: scale(1.15);
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-body.light-mode .folder-btn:focus {
-  outline-color: #0088aa;
-}
-
-.track .preview-btn {
-  background: none;
-  border: none;
-  color: #00aaff;
-  font-size: 18px;
-  margin-left: 7px;
-  cursor: pointer;
-  padding: 0 2px;
-  vertical-align: middle;
-  transition: color 0.15s, transform 0.1s;
-  border-radius: 4px;
-  outline: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: none;
-}
-
-.track .preview-btn:hover {
-  color: var(--accent-color);
-  background: none;
-  transform: scale(1.15);
-}
-
-.track .preview-btn:focus {
-  color: var(--accent-color);
-  background: none;
-  transform: scale(1.15);
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-body.light-mode .track .preview-btn:focus {
-  outline-color: #0088aa;
-}
 
 #stats {
   text-align: center;
   margin: 15px 0;
-  padding: 10px;
-  font-size: 0.95em;
+  padding: 12px;
+  font-size: 1.15em;
   color: var(--text-color);
   background-color: var(--stats-bg, rgba(0, 0, 0, 0.1));
   border-radius: 20px;
   line-height: 1.4;
+  font-weight: 500;
 }
 
 body.light-mode #stats {
@@ -828,6 +761,7 @@ body.light-mode .file-format-info {
   display: inline-block;
   width: 100%;
   vertical-align: top;
+  overflow: visible;
 }
 
 body.light-mode .column-group {
@@ -896,6 +830,11 @@ body.light-mode .export-btn:hover {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   padding-bottom: 16px;
   margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible; /* Allow tooltips to show */
+  box-sizing: border-box;
+  position: relative;
 }
 
 .track-main {
@@ -916,19 +855,192 @@ body.light-mode .export-btn:hover {
   line-height: 1.02;
 }
 
+body.light-mode .track-details {
+  color: #555;
+}
+
 .track-name {
   margin-bottom: 0;
 }
 
 .track-icons-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  flex-wrap: nowrap; /* Prevent wrapping */
+  gap: 5px; /* Comfortable spacing between buttons */
   width: 100%;
+  max-width: 100%; /* Prevent overflow */
   margin-bottom: 8px;
-  margin-top: 0;
-  justify-content: flex-start;
+  margin-top: 12px; /* Add space above track buttons */
+  justify-content: center; /* Center the buttons */
   align-items: center;
+  min-height: 40px; /* Ensure consistent row height */
+  overflow: visible; /* Allow tooltips to show */
+}
+
+/* Track icon buttons - using higher specificity to avoid !important */
+.track .track-icons-row button {
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  max-width: 40px;
+  max-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+  flex-shrink: 0;
+  background: #333;
+  border: 2px solid var(--accent-color);
+  cursor: pointer;
+  margin: 0;
+  box-shadow: 0 0 8px var(--accent-color-alpha);
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+/* Keep icon images clipped inside button */
+.track .track-icons-row button > img {
+  border-radius: 3px;
+}
+
+/* Enhanced tooltip styling for track icon buttons */
+.track .track-icons-row button::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+  color: #ffffff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 10000;
+  border: 3px solid var(--accent-color);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 30px var(--accent-color);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.track .track-icons-row button::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 9px solid transparent;
+  border-top-color: var(--accent-color);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 9999;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.track .track-icons-row button:hover::before,
+.track .track-icons-row button:focus::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.track .track-icons-row button:hover::after,
+.track .track-icons-row button:focus::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Light mode tooltip styling */
+body.light-mode .track .track-icons-row button::before {
+  background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 100%);
+  color: #222;
+  border: 3px solid var(--accent-color);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 0 30px var(--accent-color);
+  text-shadow: none;
+}
+
+/* Icon images inside track buttons */
+.track .track-icons-row button img {
+  width: 40px;
+  height: 40px;
+  filter: brightness(1.3) contrast(1.2);
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+/* Hide images that fail to load */
+.track .track-icons-row button img.icon-error {
+  display: none;
+}
+
+/* Fallback text (hidden by default, shown when icon fails) */
+.track .track-icons-row button .icon-fallback {
+  font-size: 14px;
+  font-weight: bold;
+  font-family: monospace;
+  color: white;
+  display: none;
+}
+
+/* Show fallback text when icon load fails */
+.track .track-icons-row button.icon-load-failed .icon-fallback {
+  display: block;
+}
+
+/* Light mode - button background and icons */
+body.light-mode .track .track-icons-row button {
+  background: #f5f5f5;
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 8px var(--accent-color-alpha);
+}
+
+body.light-mode .track .track-icons-row button img {
+  filter: brightness(0.5) contrast(1.4);
+}
+
+body.light-mode .track .track-icons-row button .icon-fallback {
+  color: #333;
+}
+
+/* Hover and focus effects for track action buttons */
+.track .track-icons-row button:hover,
+.track .track-icons-row button:focus {
+  background: var(--accent-color);
+  border-color: var(--accent-color-hover);
+  transform: scale(1.1);
+  box-shadow: 0 0 20px var(--accent-color), 0 0 40px var(--accent-color-alpha);
+  outline: none;
+}
+
+/* Focus-visible for keyboard navigation - visible outline for keyboard users */
+.track .track-icons-row button:focus-visible {
+  outline: 3px solid var(--accent-color);
+  outline-offset: 2px;
+}
+
+.track .track-icons-row button:hover img,
+.track .track-icons-row button:focus img {
+  filter: brightness(2.5) contrast(1.5) saturate(1.5) drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
+}
+
+body.light-mode .track .track-icons-row button:hover,
+body.light-mode .track .track-icons-row button:focus {
+  background: var(--accent-color);
+  border-color: var(--accent-color-hover);
+}
+
+body.light-mode .track .track-icons-row button:hover img,
+body.light-mode .track .track-icons-row button:focus img {
+  filter: brightness(1.8) contrast(1.6) saturate(1.3);
 }
 
 /* ============= COVER ART STYLES ============= */
@@ -1069,36 +1181,6 @@ body.light-mode .copy-btn:focus {
   cursor: not-allowed;
 }
 
-.tag-btn {
-  background: none;
-  border: none;
-  color: #888;
-  font-size: 15px;
-  margin-left: 6px;
-  cursor: pointer;
-  padding: 0 2px;
-  vertical-align: middle;
-  transition: color 0.15s, transform 0.1s;
-  border-radius: 4px;
-}
-
-.tag-btn:hover {
-  color: #00aaff;
-  background: rgba(0,170,255,0.08);
-  transform: scale(1.15);
-}
-
-.tag-btn:focus {
-  color: #00aaff;
-  background: rgba(0,170,255,0.08);
-  transform: scale(1.15);
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-body.light-mode .tag-btn:focus {
-  outline-color: #0088aa;
-}
 
 .tag-popup {
   background: #222;
@@ -1151,14 +1233,16 @@ body.light-mode .tag-popup {
   box-shadow: 0 2px 12px rgba(0,0,0,0.18);
   padding: 12px;
   z-index: 1000;
-  min-width: 200px;
+  min-width: 220px;
   font-size: 14px;
+  border: 1px solid #444;
 }
 
 body.light-mode .energy-popup {
   background: #fff;
   color: #222;
   box-shadow: 0 2px 12px rgba(0,0,0,0.10);
+  border: 1px solid #ddd;
 }
 
 .energy-title {
@@ -1236,6 +1320,47 @@ body.light-mode .tag-pill {
   color: #fff;
 }
 
+.tag-pill-container {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  margin-right: 2px;
+  margin-bottom: 1px;
+}
+
+.tag-remove-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 4px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.tag-remove-btn:hover {
+  background: rgba(255, 0, 0, 0.7);
+  transform: scale(1.1);
+}
+
+body.light-mode .tag-remove-btn {
+  background: rgba(0, 0, 0, 0.2);
+  color: #fff;
+}
+
+body.light-mode .tag-remove-btn:hover {
+  background: rgba(255, 0, 0, 0.7);
+  color: #fff;
+}
+
 /* ============= MOOD & VIBE TAGS ============= */
 .mood-vibe-tags-row {
   display: flex;
@@ -1268,6 +1393,47 @@ body.light-mode .tag-pill {
 
 body.light-mode .mood-vibe-pill {
   background: linear-gradient(135deg, #e91e63, #ff5722);
+  color: #fff;
+}
+
+.mood-vibe-pill-container {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  margin-right: 3px;
+  margin-bottom: 2px;
+}
+
+.mood-vibe-remove-btn {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 14px;
+  height: 14px;
+  font-size: 9px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 3px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mood-vibe-remove-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+body.light-mode .mood-vibe-remove-btn {
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+}
+
+body.light-mode .mood-vibe-remove-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
   color: #fff;
 }
 
@@ -1332,45 +1498,6 @@ body.light-mode .mood-vibe-popup input[type="text"] {
   width: 200px;
 }
 
-.add-playlist-btn {
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: 1.2em;
-  cursor: pointer;
-  padding: 2px 4px;
-  margin-left: 4px;
-  vertical-align: middle;
-  outline: none;
-  box-shadow: none;
-  transition: color 0.2s;
-}
-
-.add-playlist-btn:hover, .add-playlist-btn:focus {
-  color: #2196f3;
-  background: none;
-  box-shadow: none;
-}
-
-.copy-track-btn {
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: 1.2em;
-  cursor: pointer;
-  padding: 2px 4px;
-  margin-left: 4px;
-  vertical-align: middle;
-  outline: none;
-  box-shadow: none;
-  transition: color 0.2s;
-}
-
-.copy-track-btn:hover, .copy-track-btn:focus {
-  color: #2196f3;
-  background: none;
-  box-shadow: none;
-}
 
 #top-audio-visualizer,
 #audio-visualizer {
@@ -1563,6 +1690,13 @@ body.light-mode .az-letter:focus {
   background: linear-gradient(135deg, #555, #444);
 }
 
+.az-all {
+  font-weight: bold;
+  border: 1px solid #666;
+  background: linear-gradient(135deg, #2a2a2a, #1a1a1a);
+  margin-right: 8px;
+}
+
 .az-category:hover, .az-category.active {
   background: linear-gradient(135deg, #2196f3, #1976d2);
   border-color: #2196f3;
@@ -1606,27 +1740,15 @@ body.light-mode .az-category:hover, body.light-mode .az-category.active {
   color: #ff2222 !important;
 }
 
-.star-btn {
-  background: none;
-  border: none;
-  font-size: 1.3em;
-  cursor: pointer;
-  margin-right: 4px;
-  color: #bbb;
-  transition: color 0.2s;
+/* Star button favorited state */
+.track-icons-row .star-btn.favorited {
+  background: #ff2222 !important;
+  border-color: #ff2222 !important;
 }
 
-.star-btn:focus {
-  outline: 2px solid var(--accent-color);
-  outline-offset: 2px;
-}
-
-body.light-mode .star-btn:focus {
-  outline-color: #0088aa;
-}
-
-.star-btn.favorited {
-  color: #ff2222;
+body.light-mode .track-icons-row .star-btn.favorited {
+  background: #ff2222 !important;
+  border-color: #ff2222 !important;
 }
 
 #favorites-toggle-btn {
@@ -2301,6 +2423,12 @@ body.light-mode .dialog-btn-confirm:hover {
   min-height: 480px;
 }
 
+/* Make years section span full width */
+.years-section {
+  grid-column: 1 / -1;
+  min-height: 400px;
+}
+
 /* Make record labels section span full width */
 .record-labels-section {
   grid-column: 1 / -1;
@@ -2377,6 +2505,36 @@ body.light-mode .dialog-btn-confirm:hover {
   padding: 20px;
 }
 
+/* Larger height for genre chart to accommodate 20 horizontal bars */
+.stat-section:has(#genre-chart) .chart-container {
+  height: 900px;
+  min-height: 900px;
+}
+
+/* Larger height for top artists chart to accommodate 20 horizontal bars */
+.stat-section:has(#top-artists-chart) .chart-container {
+  height: 900px;
+  min-height: 900px;
+}
+
+/* Larger height for key chart to accommodate 24 horizontal bars */
+.stat-section:has(#key-chart) .chart-container {
+  height: 1000px;
+  min-height: 1000px;
+}
+
+/* Larger height for labels chart to accommodate 25 horizontal bars */
+.stat-section:has(#label-chart) .chart-container {
+  height: 1100px;
+  min-height: 1100px;
+}
+
+/* Larger height for year chart to accommodate 30 horizontal bars */
+.stat-section:has(#year-chart) .chart-container {
+  height: 1200px;
+  min-height: 1200px;
+}
+
 body.light-mode .chart-container {
   background: rgba(0, 0, 0, 0.02);
 }
@@ -2432,19 +2590,25 @@ body.light-mode .chart-container {
   height: 100%;
   background: rgba(0, 0, 0, 0.8);
   z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
   overflow-y: auto;
   padding: 20px;
   box-sizing: border-box;
 }
 
 .duplicate-container {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: 800px;
+  max-height: 80vh;
+  margin: 10vh auto;
   background: #1a1a1a;
   border-radius: 8px;
   border: 1px solid #333;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  min-height: calc(100vh - 40px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .light-mode .duplicate-container {
@@ -2495,6 +2659,9 @@ body.light-mode .chart-container {
 
 #duplicate-content {
   padding: 0 24px 24px 24px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .duplicate-group {
@@ -2577,7 +2744,8 @@ body.light-mode .chart-container {
   }
 
   .duplicate-container {
-    min-height: calc(100vh - 20px);
+    max-height: 90vh;
+    margin: 5vh auto;
   }
 
   .duplicate-container h2 {
@@ -3077,6 +3245,26 @@ body.light-mode .footer-border {
   border-top-color: #e5e5e5;
 }
 
+.footer-link {
+  color: var(--accent-color);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.footer-link:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+body.light-mode .footer-link {
+  color: #0066aa;
+}
+
+body.light-mode .footer-link:hover {
+  color: #004488;
+  text-decoration: underline;
+}
+
 /* ============= DYNAMIC STYLE CLASSES ============= */
 .duplicate-list-header {
   color: #ffb300;
@@ -3130,7 +3318,8 @@ body.light-mode .duplicate-list-container {
 .search-section-card:hover {
   box-shadow: 0 4px 16px var(--accent-color-alpha);
   transform: translateY(-2px);
-  border-color: var(--accent-color-hover);
+  border-color: var(--accent-color);
+  border-width: 3px;
 }
 
 .search-section-card .filter-card-icon {
@@ -3237,7 +3426,8 @@ body.light-mode .duplicate-list-container {
 .filter-card:hover {
   box-shadow: 0 4px 16px var(--accent-color-alpha);
   transform: translateY(-2px);
-  border-color: var(--accent-color-hover);
+  border-color: var(--accent-color);
+  border-width: 3px;
 }
 
 /* Filter Card Headers */
@@ -3490,6 +3680,11 @@ body.light-mode .filter-toggle-btn:hover {
     padding: 16px;
   }
 
+  .years-section {
+    grid-column: 1 / -1;
+    min-height: 320px;
+  }
+
   .record-labels-section {
     grid-column: 1 / -1;
     min-height: 320px;
@@ -3513,8 +3708,280 @@ body.light-mode .filter-toggle-btn:hover {
     padding: 16px;
   }
 
+  .years-section {
+    grid-column: 1 / -1;
+    min-height: 360px;
+  }
+
   .record-labels-section {
     grid-column: 1 / -1;
     min-height: 360px;
+  }
+}
+
+/* ============= OVERLAY SECTIONS ============= */
+.overlay-section {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.overlay-content {
+  background: var(--bg-color, #181818);
+  border: 2px solid var(--accent-color);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 1200px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  margin: 20px;
+  position: relative;
+}
+
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--accent-color);
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+.overlay-header h2 {
+  margin: 0;
+  color: var(--accent-color);
+  font-size: 1.4em;
+  flex: 1;
+}
+
+.overlay-header .close-btn {
+  background: none;
+  border: 1px solid var(--accent-color);
+  color: var(--accent-color);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.overlay-header .close-btn:hover,
+.close-btn:hover {
+  background: var(--accent-color);
+  color: #000;
+}
+
+.overlay-section .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 20px;
+}
+
+.stats-category {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--accent-color);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 300px;
+}
+
+.stats-category h3 {
+  margin: 0 0 12px 0;
+  color: var(--accent-color);
+  font-size: 1.1em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stats-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 0.9em;
+}
+
+.stats-label {
+  color: var(--text-color);
+  opacity: 0.9;
+}
+
+.stats-value {
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+.duplicates-container {
+  padding: 20px;
+}
+
+.stats-category .chart-container {
+  flex: 1;
+  position: relative;
+  height: 300px;
+  width: 100%;
+  display: block;
+}
+
+.chart-container {
+  flex: 1;
+  position: relative;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-container canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.stats-overview {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex: 1;
+}
+
+.overview-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.overview-label {
+  font-size: 0.9em;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-bottom: 8px;
+}
+
+.overview-value {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+/* Smart Playlist Preview Styles */
+.preview-track-item {
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  border-left: 3px solid var(--accent-color);
+  font-size: 0.9em;
+}
+
+.preview-artist {
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+.preview-title {
+  color: var(--text-color);
+}
+
+.preview-details {
+  color: var(--text-color);
+  opacity: 0.7;
+  font-size: 0.85em;
+}
+
+.preview-more {
+  text-align: center;
+  font-style: italic;
+  color: var(--text-color);
+  opacity: 0.7;
+  margin-top: 12px;
+  padding: 8px;
+}
+
+/* Light mode adjustments */
+body.light-mode .overlay-content {
+  --bg-color: #f5f5f5;
+}
+
+body.light-mode .stats-category {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .close-btn:hover {
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .overlay-content {
+    width: 95%;
+    max-width: calc(100vw - 20px);
+    max-height: 90vh;
+    margin: 10px;
+  }
+
+  .overlay-header {
+    padding: 16px;
+  }
+
+  .overlay-header h2 {
+    font-size: 1.2em;
+  }
+}
+
+/* Additional centering improvements for very small screens */
+@media (max-width: 480px) {
+  .overlay-content {
+    width: 98%;
+    max-width: calc(100vw - 10px);
+    max-height: 95vh;
+    margin: 5px;
+  }
+
+  .overlay-header {
+    padding: 12px;
+  }
+
+  .stats-grid {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .duplicates-container {
+    padding: 12px;
   }
 }

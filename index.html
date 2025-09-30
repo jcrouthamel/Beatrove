@@ -214,8 +214,23 @@
             <span class="stat-label">Total Artists:</span>
             <span class="stat-value" id="total-artists">0</span>
           </div>
+          <div class="stat-item">
+            <span class="stat-label">Artist With Most Tracks:</span>
+            <span class="stat-value" id="top-artist">-</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Average Song Length:</span>
+            <span class="stat-value" id="average-song-length">0:00</span>
+          </div>
         </div>
-        
+
+        <div class="stat-section">
+          <h3>🎤 Top 20 Artists</h3>
+          <div class="chart-container">
+            <canvas id="top-artists-chart"></canvas>
+          </div>
+        </div>
+
         <div class="stat-section">
           <h3>🎵 Genres</h3>
           <div class="chart-container">
@@ -248,7 +263,7 @@
           <div id="energy-stats" class="stat-list"></div>
         </div>
 
-        <div class="stat-section">
+        <div class="stat-section years-section">
           <h3>📅 Years</h3>
           <div class="chart-container">
             <canvas id="year-chart"></canvas>
@@ -289,7 +304,7 @@
     <button id="delete-playlist-btn" class="control-btn" disabled>🗑️ Delete</button>
     <button id="export-playlist-btn" class="control-btn" disabled>Export Playlists</button>
     <button id="import-playlists-btn" class="control-btn">Import Playlists</button>
-    <input type="file" id="import-playlists-input" accept="application/json" class="hidden">
+    <input type="file" id="import-playlists-input" accept=".json,.csv,application/json,text/csv" class="hidden">
   </div>
   
   <div class="pagination-controls">
@@ -391,10 +406,100 @@
     </div>
   </div>
 
+  <!-- Stats Section -->
+  <div id="stats-section" class="overlay-section" style="display: none;">
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <h2>📊 Library Statistics</h2>
+        <button id="close-stats" class="close-btn">✕</button>
+      </div>
+      <div class="stats-grid">
+        <div id="total-stats" class="stats-category">
+          <h3>Overview</h3>
+          <div class="stats-overview">
+            <div class="overview-item">
+              <span class="overview-label">Total Tracks</span>
+              <span class="overview-value" id="total-tracks-count">0</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Total Artists</span>
+              <span class="overview-value" id="total-artists-count">0</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Artist With Most Tracks</span>
+              <span class="overview-value" id="top-artist-count">-</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Average Song Length</span>
+              <span class="overview-value" id="average-song-length-count">0:00</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Average BPM</span>
+              <span class="overview-value" id="average-bpm">0</span>
+            </div>
+            <div class="overview-item">
+              <span class="overview-label">Total Duration</span>
+              <span class="overview-value" id="total-duration">0:00</span>
+            </div>
+          </div>
+        </div>
+        <div id="genre-stats" class="stats-category">
+          <h3>Genre Distribution</h3>
+          <div class="chart-container">
+            <canvas id="genre-chart"></canvas>
+          </div>
+        </div>
+        <div id="bpm-stats" class="stats-category">
+          <h3>BPM Ranges</h3>
+          <div class="chart-container">
+            <canvas id="bpm-chart"></canvas>
+          </div>
+        </div>
+        <div id="key-stats" class="stats-category">
+          <h3>Key Distribution</h3>
+          <div class="chart-container">
+            <canvas id="key-chart"></canvas>
+          </div>
+        </div>
+        <div id="energy-stats" class="stats-category">
+          <h3>Energy Levels</h3>
+          <div class="chart-container">
+            <canvas id="energy-chart"></canvas>
+          </div>
+        </div>
+        <div id="year-stats" class="stats-category">
+          <h3>Years</h3>
+          <div class="chart-container">
+            <canvas id="year-chart"></canvas>
+          </div>
+        </div>
+        <div id="label-stats" class="stats-category">
+          <h3>Top Record Labels</h3>
+          <div class="chart-container">
+            <canvas id="labels-chart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Duplicates Section -->
+  <div id="duplicates-section" class="overlay-section" style="display: none;">
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <h2>🔍 Duplicate Tracks</h2>
+        <button id="close-duplicates" class="close-btn">✕</button>
+      </div>
+      <div id="duplicates-list" class="duplicates-container">
+        <!-- Duplicate tracks will be rendered here -->
+      </div>
+    </div>
+  </div>
+
   <footer>
     <div class="footer-content">
       <span id="footer-updated">Updated: never</span>
-      <span class="float-right">&copy; 2025 DJ Total Kaos</span>
+      <span class="float-right">&copy; 2025 <a href="https://totalkaos.net/" target="_blank" rel="noopener noreferrer" class="footer-link">DJ Total Kaos</a></span>
     </div>
     <div class="footer-border text-center">
       <a href="#top" class="control-btn no-text-decoration">⬆ Back to Top</a>
@@ -402,6 +507,6 @@
   </footer>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-  <script src="assets/script.js" defer></script>
+  <script type="module" src="assets/js/main.js" defer></script>
 </body>
 </html>

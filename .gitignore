@@ -15,3 +15,14 @@ beatrove-logo.psd
 tracklist-old.csv
 tracklist-old-*.csv
 CLAUDE.md
+covers/
+tests/integration/
+
+# IDE and tooling
+.claude/
+.vscode/
+
+# Personal data and assets
+music_list.txt
+favicon.ico
+images/
