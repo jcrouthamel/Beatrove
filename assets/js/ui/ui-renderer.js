@@ -554,16 +554,16 @@ export class UIRenderer {
       trackDiv.className += ' favorite-track';
     }
 
-    // Store data attributes for later retrieval
-    trackDiv.dataset.artist = track.artist || '';
-    trackDiv.dataset.title = track.title || '';
-    trackDiv.dataset.key = track.key || '';
-    trackDiv.dataset.bpm = track.bpm || '';
-    trackDiv.dataset.year = track.year || '';
-    trackDiv.dataset.genre = track.genre || '';
-    trackDiv.dataset.path = track.absPath || '';
-    trackDiv.dataset.display = track.display || '';
-    trackDiv.dataset.trackTime = track.trackTime || '';
+    // Store data attributes for later retrieval (sanitized for security)
+    trackDiv.dataset.artist = SecurityUtils.sanitizeForAttribute(track.artist || '');
+    trackDiv.dataset.title = SecurityUtils.sanitizeForAttribute(track.title || '');
+    trackDiv.dataset.key = SecurityUtils.sanitizeForAttribute(track.key || '');
+    trackDiv.dataset.bpm = SecurityUtils.sanitizeForAttribute(track.bpm || '');
+    trackDiv.dataset.year = SecurityUtils.sanitizeForAttribute(track.year || '');
+    trackDiv.dataset.genre = SecurityUtils.sanitizeForAttribute(track.genre || '');
+    trackDiv.dataset.path = SecurityUtils.sanitizeForAttribute(track.absPath || '');
+    trackDiv.dataset.display = SecurityUtils.sanitizeForAttribute(track.display || '');
+    trackDiv.dataset.trackTime = SecurityUtils.sanitizeForAttribute(track.trackTime || '');
 
     // Main content container
     const mainContainer = document.createElement('div');

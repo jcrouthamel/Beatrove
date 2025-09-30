@@ -101,16 +101,33 @@ class NotificationSystem {
       // Create modal confirmation dialog
       const modal = document.createElement('div');
       modal.className = 'confirmation-modal';
-      modal.innerHTML = `
-        <div class="confirmation-dialog">
-          <h3>${title}</h3>
-          <p>${message}</p>
-          <div class="confirmation-buttons">
-            <button class="btn-cancel">Cancel</button>
-            <button class="btn-confirm">Delete</button>
-          </div>
-        </div>
-      `;
+
+      const dialog = document.createElement('div');
+      dialog.className = 'confirmation-dialog';
+
+      const titleEl = document.createElement('h3');
+      titleEl.textContent = title;
+
+      const messageEl = document.createElement('p');
+      messageEl.textContent = message;
+
+      const buttonsDiv = document.createElement('div');
+      buttonsDiv.className = 'confirmation-buttons';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn-cancel';
+      cancelBtn.textContent = 'Cancel';
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'btn-confirm';
+      confirmBtn.textContent = 'Delete';
+
+      buttonsDiv.appendChild(cancelBtn);
+      buttonsDiv.appendChild(confirmBtn);
+      dialog.appendChild(titleEl);
+      dialog.appendChild(messageEl);
+      dialog.appendChild(buttonsDiv);
+      modal.appendChild(dialog);
 
       // Add styles
       modal.style.cssText = `
@@ -126,7 +143,6 @@ class NotificationSystem {
         z-index: 10000;
       `;
 
-      const dialog = modal.querySelector('.confirmation-dialog');
       dialog.style.cssText = `
         background: var(--bg-color, #1a1a1a);
         color: var(--text-color, #ffffff);
@@ -137,7 +153,6 @@ class NotificationSystem {
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       `;
 
-      const buttonsDiv = modal.querySelector('.confirmation-buttons');
       buttonsDiv.style.cssText = `
         display: flex;
         gap: 1rem;
@@ -145,25 +160,22 @@ class NotificationSystem {
         justify-content: flex-end;
       `;
 
-      const buttons = modal.querySelectorAll('button');
-      buttons.forEach(btn => {
-        btn.style.cssText = `
-          padding: 0.5rem 1rem;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.9rem;
-        `;
-      });
-
-      const cancelBtn = modal.querySelector('.btn-cancel');
-      cancelBtn.style.cssText += `
+      cancelBtn.style.cssText = `
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
         background: var(--secondary-color, #666);
         color: white;
       `;
 
-      const confirmBtn = modal.querySelector('.btn-confirm');
-      confirmBtn.style.cssText += `
+      confirmBtn.style.cssText = `
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
         background: var(--error-color, #e74c3c);
         color: white;
       `;
@@ -198,17 +210,40 @@ class NotificationSystem {
       // Create modal input dialog
       const modal = document.createElement('div');
       modal.className = 'prompt-modal';
-      modal.innerHTML = `
-        <div class="prompt-dialog">
-          <h3>${title}</h3>
-          <p>${message}</p>
-          <input type="text" class="prompt-input" value="${defaultValue}" placeholder="Enter value...">
-          <div class="prompt-buttons">
-            <button class="btn-cancel">Cancel</button>
-            <button class="btn-confirm">OK</button>
-          </div>
-        </div>
-      `;
+
+      const dialog = document.createElement('div');
+      dialog.className = 'prompt-dialog';
+
+      const titleEl = document.createElement('h3');
+      titleEl.textContent = title;
+
+      const messageEl = document.createElement('p');
+      messageEl.textContent = message;
+
+      const inputEl = document.createElement('input');
+      inputEl.type = 'text';
+      inputEl.className = 'prompt-input';
+      inputEl.value = defaultValue;
+      inputEl.placeholder = 'Enter value...';
+
+      const buttonsDiv = document.createElement('div');
+      buttonsDiv.className = 'prompt-buttons';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn-cancel';
+      cancelBtn.textContent = 'Cancel';
+
+      const confirmBtn = document.createElement('button');
+      confirmBtn.className = 'btn-confirm';
+      confirmBtn.textContent = 'OK';
+
+      buttonsDiv.appendChild(cancelBtn);
+      buttonsDiv.appendChild(confirmBtn);
+      dialog.appendChild(titleEl);
+      dialog.appendChild(messageEl);
+      dialog.appendChild(inputEl);
+      dialog.appendChild(buttonsDiv);
+      modal.appendChild(dialog);
 
       // Add styles
       modal.style.cssText = `
@@ -224,7 +259,6 @@ class NotificationSystem {
         z-index: 10000;
       `;
 
-      const dialog = modal.querySelector('.prompt-dialog');
       dialog.style.cssText = `
         background: var(--bg-color, #1a1a1a);
         color: var(--text-color, #ffffff);
@@ -235,8 +269,7 @@ class NotificationSystem {
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       `;
 
-      const input = modal.querySelector('.prompt-input');
-      input.style.cssText = `
+      inputEl.style.cssText = `
         width: 100%;
         padding: 0.75rem;
         margin: 1rem 0;
@@ -248,7 +281,6 @@ class NotificationSystem {
         outline: none;
       `;
 
-      const buttonsDiv = modal.querySelector('.prompt-buttons');
       buttonsDiv.style.cssText = `
         display: flex;
         gap: 1rem;
@@ -256,25 +288,22 @@ class NotificationSystem {
         justify-content: flex-end;
       `;
 
-      const buttons = modal.querySelectorAll('button');
-      buttons.forEach(btn => {
-        btn.style.cssText = `
-          padding: 0.5rem 1rem;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 0.9rem;
-        `;
-      });
-
-      const cancelBtn = modal.querySelector('.btn-cancel');
-      cancelBtn.style.cssText += `
+      cancelBtn.style.cssText = `
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
         background: var(--secondary-color, #666);
         color: white;
       `;
 
-      const confirmBtn = modal.querySelector('.btn-confirm');
-      confirmBtn.style.cssText += `
+      confirmBtn.style.cssText = `
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
         background: var(--accent-color, #00aaff);
         color: white;
       `;
@@ -288,7 +317,7 @@ class NotificationSystem {
 
       cancelBtn.addEventListener('click', () => closeModal(null));
       confirmBtn.addEventListener('click', () => {
-        const value = input.value.trim();
+        const value = inputEl.value.trim();
         closeModal(value || null);
       });
 
@@ -297,7 +326,7 @@ class NotificationSystem {
         if (e.key === 'Escape') {
           closeModal(null);
         } else if (e.key === 'Enter') {
-          const value = input.value.trim();
+          const value = inputEl.value.trim();
           closeModal(value || null);
         }
       };
@@ -307,8 +336,8 @@ class NotificationSystem {
       // Focus the input after modal is added
       document.body.appendChild(modal);
       setTimeout(() => {
-        input.focus();
-        input.select();
+        inputEl.focus();
+        inputEl.select();
       }, 100);
     });
   }
