@@ -2517,6 +2517,12 @@ body.light-mode .dialog-btn-confirm:hover {
   min-height: 1100px;
 }
 
+/* Larger height for year chart to accommodate 30 horizontal bars */
+.stat-section:has(#year-chart) .chart-container {
+  height: 1200px;
+  min-height: 1200px;
+}
+
 body.light-mode .chart-container {
   background: rgba(0, 0, 0, 0.02);
 }

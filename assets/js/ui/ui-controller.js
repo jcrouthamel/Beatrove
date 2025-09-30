@@ -2176,7 +2176,9 @@ export class UIController {
       this.yearChart.destroy();
     }
 
-    const data = years.slice(0, 20); // Top 20 years
+    const data = years.slice(0, 30); // Top 30 years
+
+    if (data.length === 0) return;
 
     // Fix canvas sizing
     this.fixCanvasSize(ctx);
@@ -2188,24 +2190,63 @@ export class UIController {
         datasets: [{
           data: data.map(y => y.value),
           backgroundColor: '#9966FF',
-          borderRadius: 4
+          borderWidth: 0,
+          categoryPercentage: 0.9,
+          barPercentage: 0.8
         }]
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            left: 10,
+            right: 10,
+            top: 10,
+            bottom: 10
+          }
+        },
         plugins: {
-          legend: { display: false }
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.parsed.x + ' tracks';
+              }
+            }
+          }
         },
         scales: {
           x: {
+            beginAtZero: true,
             ticks: {
-              color: '#fff',
-              font: { size: 10 },
-              maxRotation: 45
+              color: '#999',
+              font: { size: 11 }
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false
             }
           },
-          y: { ticks: { color: '#fff', font: { size: 10 } } }
+          y: {
+            ticks: {
+              color: '#9966FF',
+              font: { size: 12, weight: 'normal' },
+              autoSkip: false,
+              maxRotation: 0,
+              minRotation: 0
+            },
+            grid: {
+              display: true,
+              color: 'rgba(255, 255, 255, 0.1)',
+              drawBorder: false,
+              lineWidth: 1,
+              drawTicks: false
+            }
+          }
         }
       }
     });
