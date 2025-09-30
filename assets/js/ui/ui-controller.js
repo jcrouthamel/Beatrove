@@ -1906,8 +1906,10 @@ export class UIController {
       this.keyChart.destroy();
     }
 
-    const data = keys.slice(0, 12); // Top 12 keys
+    const data = keys.slice(0, 24); // Top 24 keys (12 major + 12 minor)
     console.log('Key chart data:', data);
+
+    if (data.length === 0) return;
 
     // Fix canvas sizing
     this.fixCanvasSize(ctx);
@@ -1917,31 +1919,63 @@ export class UIController {
       data: {
         labels: data.map(k => k.label),
         datasets: [{
-          label: 'Tracks',
           data: data.map(k => k.value),
           backgroundColor: '#45b7d1',
-          borderRadius: 4
+          borderWidth: 0,
+          categoryPercentage: 0.9,
+          barPercentage: 0.8
         }]
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            left: 10,
+            right: 10,
+            top: 10,
+            bottom: 10
+          }
+        },
         plugins: {
-          legend: { display: false }
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.parsed.x + ' tracks';
+              }
+            }
+          }
         },
         scales: {
           x: {
+            beginAtZero: true,
             ticks: {
-              color: '#fff',
-              font: { size: 10 },
-              maxRotation: 45
+              color: '#999',
+              font: { size: 11 }
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false
             }
           },
           y: {
-            beginAtZero: true,
             ticks: {
-              color: '#fff',
-              font: { size: 10 }
+              color: '#45b7d1',
+              font: { size: 12, weight: 'normal' },
+              autoSkip: false,
+              maxRotation: 0,
+              minRotation: 0
+            },
+            grid: {
+              display: true,
+              color: 'rgba(255, 255, 255, 0.1)',
+              drawBorder: false,
+              lineWidth: 1,
+              drawTicks: false
             }
           }
         }
