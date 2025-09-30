@@ -1579,20 +1579,11 @@ export class UIController {
       .sort((a, b) => parseInt(b[0]) - parseInt(a[0])) // Newest first
       .map(([year, count]) => ({ label: year, value: count }));
 
-    // Process labels with "Others" grouping for better chart balance
-    const sortedLabels = Object.entries(counters.labels)
-      .sort((a, b) => b[1] - a[1]);
-
-    const topLabels = sortedLabels.slice(0, 8); // Top 8 labels
-    const remainingLabels = sortedLabels.slice(8);
-    const othersCount = remainingLabels.reduce((sum, [, count]) => sum + count, 0);
-
-    stats.labels = topLabels.map(([name, count]) => ({ label: name, value: count }));
-
-    // Add "Others" category if there are remaining labels
-    if (othersCount > 0) {
-      stats.labels.push({ label: 'Others', value: othersCount });
-    }
+    // Get top 25 labels
+    stats.labels = Object.entries(counters.labels)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 25)
+      .map(([name, count]) => ({ label: name, value: count }));
 
     // BPM ranges
     const bpmRanges = {
@@ -1998,40 +1989,79 @@ export class UIController {
       this.labelsChart.destroy();
     }
 
-    const data = labels; // Use all processed labels (includes "Others")
+    const data = labels.slice(0, 25); // Top 25 labels
     console.log('Labels chart data:', data);
 
-    // If no label data, show placeholder
-    if (!data || data.length === 0) {
-      data.push({ label: 'No Labels Found', value: 0 });
+    if (data.length === 0) {
+      console.log('No label data available');
+      return;
     }
 
     // Fix canvas sizing
     this.fixCanvasSize(ctx);
 
     this.labelsChart = new window.Chart(ctx, {
-      type: 'doughnut',
+      type: 'bar',
       data: {
         labels: data.map(l => l.label || 'Unknown'),
         datasets: [{
           data: data.map(l => l.value || 0),
-          backgroundColor: [
-            '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#fab1a0',
-            '#fd79a8', '#a29bfe', '#ff7675', '#00b894', '#0984e3', '#6c5ce7'
-          ],
-          borderWidth: 0
+          backgroundColor: '#fab1a0',
+          borderWidth: 0,
+          categoryPercentage: 0.9,
+          barPercentage: 0.8
         }]
       },
       options: {
+        indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
+        layout: {
+          padding: {
+            left: 10,
+            right: 10,
+            top: 10,
+            bottom: 10
+          }
+        },
         plugins: {
           legend: {
-            position: 'right',
-            labels: {
-              color: '#fff',
-              font: { size: 10 },
-              usePointStyle: true
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.parsed.x + ' tracks';
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: {
+              color: '#999',
+              font: { size: 11 }
+            },
+            grid: {
+              color: 'rgba(255, 255, 255, 0.05)',
+              drawBorder: false
+            }
+          },
+          y: {
+            ticks: {
+              color: '#fab1a0',
+              font: { size: 12, weight: 'normal' },
+              autoSkip: false,
+              maxRotation: 0,
+              minRotation: 0
+            },
+            grid: {
+              display: true,
+              color: 'rgba(255, 255, 255, 0.1)',
+              drawBorder: false,
+              lineWidth: 1,
+              drawTicks: false
             }
           }
         }

@@ -2511,6 +2511,12 @@ body.light-mode .dialog-btn-confirm:hover {
   min-height: 900px;
 }
 
+/* Larger height for labels chart to accommodate 25 horizontal bars */
+.stat-section:has(#label-chart) .chart-container {
+  height: 1100px;
+  min-height: 1100px;
+}
+
 body.light-mode .chart-container {
   background: rgba(0, 0, 0, 0.02);
 }
