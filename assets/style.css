@@ -2423,6 +2423,12 @@ body.light-mode .dialog-btn-confirm:hover {
   min-height: 480px;
 }
 
+/* Make years section span full width */
+.years-section {
+  grid-column: 1 / -1;
+  min-height: 400px;
+}
+
 /* Make record labels section span full width */
 .record-labels-section {
   grid-column: 1 / -1;
@@ -3668,6 +3674,11 @@ body.light-mode .filter-toggle-btn:hover {
     padding: 16px;
   }
 
+  .years-section {
+    grid-column: 1 / -1;
+    min-height: 320px;
+  }
+
   .record-labels-section {
     grid-column: 1 / -1;
     min-height: 320px;
@@ -3689,6 +3700,11 @@ body.light-mode .filter-toggle-btn:hover {
   .chart-container {
     height: 340px;
     padding: 16px;
+  }
+
+  .years-section {
+    grid-column: 1 / -1;
+    min-height: 360px;
   }
 
   .record-labels-section {
