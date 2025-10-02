@@ -1,0 +1,172 @@
+/* Color Drip Theme for Beatrove */
+/* Animated colorful dripping lines background */
+
+body[data-theme="color-drip"] {
+  /* Dark background */
+  background-color: #111;
+
+  /* Main colors */
+  --text-color: #f2f2f2;
+  --border-color: rgba(255, 255, 255, 0.2);
+  --input-bg: rgba(30, 30, 30, 0.9);
+  --bg-color: #111;
+
+  /* Accent colors - Multi-color theme */
+  --accent-color: #FF4500;
+  --accent-color-hover: #FF6347;
+  --accent-color-light: #FF6347;
+  --accent-color-alpha: rgba(255, 69, 0, 0.15);
+
+  /* Buttons */
+  --button-bg: rgba(30, 30, 30, 0.9);
+  --button-text: #f2f2f2;
+
+  /* Stats */
+  --stats-bg: rgba(20, 20, 20, 0.8);
+}
+
+body[data-theme="color-drip"].light-mode {
+  /* Light mode variant */
+  background-color: #f5f5f5;
+
+  --text-color: #333;
+  --border-color: rgba(0, 0, 0, 0.2);
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --bg-color: #f5f5f5;
+
+  --accent-color: #FF4500;
+  --accent-color-hover: #FF6347;
+  --accent-color-light: #FF6347;
+  --accent-color-alpha: rgba(255, 69, 0, 0.1);
+
+  --button-bg: rgba(255, 255, 255, 0.95);
+  --button-text: #333;
+
+  --stats-bg: rgba(255, 255, 255, 0.6);
+}
+
+/* Animated dripping lines container */
+.color-drip-lines {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  margin: auto;
+  width: 90vw;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.color-drip-line {
+  position: relative;
+  width: 1px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.color-drip-line::after {
+  content: '';
+  display: block;
+  position: absolute;
+  height: 15vh;
+  width: 100%;
+  top: -50%;
+  left: 0;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0) 0%, #ffffff 75%, #ffffff 100%);
+  animation: color-drip-drop 7s 0s infinite;
+  animation-fill-mode: forwards;
+  animation-timing-function: cubic-bezier(0.4, 0.26, 0, 0.97);
+}
+
+/* Different colors for each line */
+.color-drip-line:nth-child(1)::after {
+  background: linear-gradient(to bottom, rgba(255, 69, 0, 0) 0%, #FF4500 75%, #FF4500 100%);
+  animation-delay: 0.5s;
+}
+
+.color-drip-line:nth-child(2)::after {
+  background: linear-gradient(to bottom, rgba(50, 205, 50, 0) 0%, #32CD32 75%, #32CD32 100%);
+  animation-delay: 1s;
+}
+
+.color-drip-line:nth-child(3)::after {
+  background: linear-gradient(to bottom, rgba(30, 144, 255, 0) 0%, #1E90FF 75%, #1E90FF 100%);
+  animation-delay: 1.5s;
+}
+
+.color-drip-line:nth-child(4)::after {
+  background: linear-gradient(to bottom, rgba(255, 215, 0, 0) 0%, #FFD700 75%, #FFD700 100%);
+  animation-delay: 2s;
+}
+
+.color-drip-line:nth-child(5)::after {
+  background: linear-gradient(to bottom, rgba(138, 43, 226, 0) 0%, #8A2BE2 75%, #8A2BE2 100%);
+  animation-delay: 2.5s;
+}
+
+.color-drip-line:nth-child(6)::after {
+  background: linear-gradient(to bottom, rgba(32, 178, 170, 0) 0%, #20B2AA 75%, #20B2AA 100%);
+  animation-delay: 3s;
+}
+
+.color-drip-line:nth-child(7)::after {
+  background: linear-gradient(to bottom, rgba(220, 20, 60, 0) 0%, #DC143C 75%, #DC143C 100%);
+  animation-delay: 3.5s;
+}
+
+.color-drip-line:nth-child(8)::after {
+  background: linear-gradient(to bottom, rgba(0, 250, 154, 0) 0%, #00FA9A 75%, #00FA9A 100%);
+  animation-delay: 4s;
+}
+
+.color-drip-line:nth-child(9)::after {
+  background: linear-gradient(to bottom, rgba(255, 20, 147, 0) 0%, #FF1493 75%, #FF1493 100%);
+  animation-delay: 4.5s;
+}
+
+.color-drip-line:nth-child(10)::after {
+  background: linear-gradient(to bottom, rgba(0, 191, 255, 0) 0%, #00BFFF 75%, #00BFFF 100%);
+  animation-delay: 5s;
+}
+
+@keyframes color-drip-drop {
+  0% {
+    top: -50%;
+  }
+  100% {
+    top: 110%;
+  }
+}
+
+/* Track cards */
+body[data-theme="color-drip"] .track {
+  background: rgba(20, 20, 20, 0.85);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+body[data-theme="color-drip"] .track:hover {
+  border-color: rgba(255, 69, 0, 0.6);
+  box-shadow: 0 4px 20px rgba(255, 69, 0, 0.2);
+}
+
+/* Control buttons */
+body[data-theme="color-drip"] .control-btn {
+  background: rgba(30, 30, 30, 0.9);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #f2f2f2;
+}
+
+body[data-theme="color-drip"] .control-btn:hover {
+  background: rgba(40, 40, 40, 0.95);
+  box-shadow: 0 4px 16px rgba(255, 69, 0, 0.3);
+}
+
+/* Filter cards */
+body[data-theme="color-drip"] .filter-card,
+body[data-theme="color-drip"] .search-section-card {
+  background: rgba(20, 20, 20, 0.85);
+  border-color: rgba(255, 255, 255, 0.2);
+}

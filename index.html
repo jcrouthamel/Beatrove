@@ -8,10 +8,60 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; font-src 'self'; connect-src 'self';">
   <title>DJ Total Kaos - EDM Bangers</title>
   <link rel="stylesheet" href="assets/style.css" />
+  <link rel="stylesheet" href="themes/color-drip.css" />
+  <link rel="stylesheet" href="themes/shooting-stars.css" />
+  <link rel="stylesheet" href="themes/parallax-stars.css" />
+  <link rel="stylesheet" href="themes/gradient.css" />
   <!-- rest of head -->
 </head>
 <body id="top">
+  <!-- Color Drip animated background lines -->
+  <div class="color-drip-lines" style="display: none;">
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+    <div class="color-drip-line"></div>
+  </div>
+
+  <!-- Shooting Stars animated background -->
+  <div class="shooting-stars-bg" style="display: none;">
+    <div class="stars"></div>
+    <div class="shooting-star"></div>
+    <div class="shooting-star"></div>
+    <div class="shooting-star"></div>
+  </div>
+
+  <!-- Parallax Stars animated background -->
+  <div class="parallax-stars-bg" style="display: none;">
+    <div id="stars-small"></div>
+    <div id="stars-medium"></div>
+    <div id="stars-large"></div>
+  </div>
+
+  <!-- Gradient animated waves -->
+  <div class="gradient-waves" style="display: none;">
+    <div class="wave"></div>
+    <div class="wave"></div>
+    <div class="wave"></div>
+  </div>
+
   <div class="top-right-controls">
+    <div class="theme-selector">
+      <label for="theme-select" title="Choose Theme">🎭</label>
+      <select id="theme-select">
+        <option value="default" selected>Default</option>
+        <option value="gradient">Gradient</option>
+        <option value="color-drip">Color Drip</option>
+        <option value="shooting-stars">Shooting Stars</option>
+        <option value="parallax-stars">Parallax Stars</option>
+      </select>
+    </div>
     <div class="accent-color-selector">
       <label for="accent-color-select" title="Choose Accent Color">🎨</label>
       <select id="accent-color-select">

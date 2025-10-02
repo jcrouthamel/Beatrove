@@ -428,6 +428,19 @@ export class UIController {
   }
 
   setupThemeHandlers() {
+    // Theme selector
+    const themeSelect = document.getElementById('theme-select');
+    if (themeSelect) {
+      themeSelect.addEventListener('change', () => {
+        this.changeTheme(themeSelect.value);
+      });
+
+      // Set initial theme from storage or default
+      const savedTheme = this.appState.data.selectedTheme || 'default';
+      themeSelect.value = savedTheme;
+      this.changeTheme(savedTheme);
+    }
+
     // Accent color selector
     const accentColorSelect = document.getElementById('accent-color-select');
     if (accentColorSelect) {
@@ -475,6 +488,62 @@ export class UIController {
       const savedWaveformStyle = this.appState.data.waveformStyle || 'default';
       waveformStyleSelect.value = savedWaveformStyle;
     }
+  }
+
+  changeTheme(theme) {
+    // Remove all theme data attributes
+    document.body.removeAttribute('data-theme');
+
+    // Apply new theme if not default
+    if (theme && theme !== 'default') {
+      document.body.setAttribute('data-theme', theme);
+    }
+
+    // Show/hide color drip animated lines
+    const colorDripLines = document.querySelector('.color-drip-lines');
+    if (colorDripLines) {
+      if (theme === 'color-drip') {
+        colorDripLines.style.display = 'flex';
+      } else {
+        colorDripLines.style.display = 'none';
+      }
+    }
+
+    // Show/hide shooting stars background
+    const shootingStarsBg = document.querySelector('.shooting-stars-bg');
+    if (shootingStarsBg) {
+      if (theme === 'shooting-stars') {
+        shootingStarsBg.style.display = 'block';
+      } else {
+        shootingStarsBg.style.display = 'none';
+      }
+    }
+
+    // Show/hide parallax stars background
+    const parallaxStarsBg = document.querySelector('.parallax-stars-bg');
+    if (parallaxStarsBg) {
+      if (theme === 'parallax-stars') {
+        parallaxStarsBg.style.display = 'block';
+      } else {
+        parallaxStarsBg.style.display = 'none';
+      }
+    }
+
+    // Show/hide gradient waves
+    const gradientWaves = document.querySelector('.gradient-waves');
+    if (gradientWaves) {
+      if (theme === 'gradient') {
+        gradientWaves.style.display = 'block';
+      } else {
+        gradientWaves.style.display = 'none';
+      }
+    }
+
+    // Save to storage
+    this.appState.data.selectedTheme = theme;
+    this.appState.saveToStorage();
+
+    console.log('Theme changed to:', theme);
   }
 
   changeAccentColor(color) {
@@ -3620,6 +3689,7 @@ export class UIController {
       energyLevels: this.appState.data.energyLevels || {},
       currentPlaylist: this.appState.data.currentPlaylist || '',
       themePreference: this.appState.data.themePreference || 'dark',
+      selectedTheme: this.appState.data.selectedTheme || 'default',
       accentColor: this.appState.data.accentColor || 'red',
       tracksPerPage: this.appState.data.tracksPerPage || 100,
       exportDate: new Date().toISOString(),
@@ -3685,6 +3755,9 @@ export class UIController {
         if (importData.themePreference) {
           this.appState.data.themePreference = importData.themePreference;
         }
+        if (importData.selectedTheme) {
+          this.appState.data.selectedTheme = importData.selectedTheme;
+        }
         if (importData.accentColor) {
           this.appState.data.accentColor = importData.accentColor;
         }
@@ -3699,7 +3772,15 @@ export class UIController {
         this.populateFilterDropdowns();
         this.renderer.render();
 
-        // Apply imported theme and accent color
+        // Apply imported theme selector
+        if (importData.selectedTheme) {
+          const themeSelect = document.getElementById('theme-select');
+          if (themeSelect) {
+            themeSelect.value = importData.selectedTheme;
+            this.changeTheme(importData.selectedTheme);
+          }
+        }
+        // Apply imported theme toggle (light/dark mode)
         if (importData.themePreference) {
           const themeToggle = document.getElementById('theme-toggle');
           if (themeToggle) {

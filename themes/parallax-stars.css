@@ -1,0 +1,156 @@
+/* Parallax Stars Theme for Beatrove */
+/* Slowly scrolling parallax star field at different depths */
+
+body[data-theme="parallax-stars"] {
+  /* Deep space gradient background */
+  background: radial-gradient(ellipse at bottom, #1B2735 0%, #090A0F 100%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+
+  /* Main colors */
+  --text-color: #e8e8ff;
+  --border-color: rgba(255, 255, 255, 0.2);
+  --input-bg: rgba(27, 39, 53, 0.85);
+  --bg-color: #090A0F;
+
+  /* Accent colors - Starlight theme */
+  --accent-color: #88ccff;
+  --accent-color-hover: #aaddff;
+  --accent-color-light: #66aadd;
+  --accent-color-alpha: rgba(136, 204, 255, 0.15);
+
+  /* Buttons */
+  --button-bg: rgba(27, 39, 53, 0.85);
+  --button-text: #e8e8ff;
+
+  /* Stats */
+  --stats-bg: rgba(20, 30, 45, 0.8);
+}
+
+body[data-theme="parallax-stars"].light-mode {
+  /* Light mode variant - dawn sky */
+  background: radial-gradient(ellipse at bottom, #6a8ba8, #c8d5e0);
+
+  --text-color: #1a2540;
+  --border-color: rgba(0, 0, 0, 0.15);
+  --input-bg: rgba(255, 255, 255, 0.85);
+  --bg-color: #6a8ba8;
+
+  --accent-color: #2b5580;
+  --accent-color-hover: #3a6a9f;
+  --accent-color-light: #1c4565;
+  --accent-color-alpha: rgba(43, 85, 128, 0.1);
+
+  --button-bg: rgba(255, 255, 255, 0.9);
+  --button-text: #1a2540;
+
+  --stats-bg: rgba(255, 255, 255, 0.7);
+}
+
+/* Parallax stars container */
+.parallax-stars-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Small stars layer - fastest */
+#stars-small {
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  box-shadow: 1872px 654px #FFF, 432px 1234px #FFF, 1654px 234px #FFF, 876px 1876px #FFF, 234px 987px #FFF, 1543px 432px #FFF, 765px 1654px #FFF, 1987px 876px #FFF, 543px 234px #FFF, 1234px 1543px #FFF, 987px 765px #FFF, 432px 1987px #FFF, 1876px 543px #FFF, 654px 1234px #FFF, 234px 987px #FFF, 1654px 432px #FFF, 876px 1876px #FFF, 1234px 654px #FFF, 543px 234px #FFF, 1987px 1543px #FFF, 765px 876px #FFF, 432px 1654px #FFF, 1543px 234px #FFF, 987px 1987px #FFF, 654px 543px #FFF, 234px 1234px #FFF, 1876px 987px #FFF, 876px 432px #FFF, 1654px 1876px #FFF, 432px 654px #FFF, 1234px 234px #FFF, 543px 1543px #FFF, 1987px 765px #FFF, 765px 1987px #FFF, 234px 543px #FFF, 1543px 1234px #FFF, 987px 654px #FFF, 432px 876px #FFF, 1876px 1654px #FFF, 654px 432px #FFF, 1234px 1876px #FFF, 876px 234px #FFF, 543px 1543px #FFF, 1987px 987px #FFF, 234px 765px #FFF, 1654px 432px #FFF, 765px 1987px #FFF, 432px 543px #FFF, 1543px 1234px #FFF, 987px 654px #FFF;
+  animation: animStar 50s linear infinite;
+}
+
+#stars-small:after {
+  content: " ";
+  position: absolute;
+  top: 2000px;
+  width: 1px;
+  height: 1px;
+  background: transparent;
+  box-shadow: 1872px 654px #FFF, 432px 1234px #FFF, 1654px 234px #FFF, 876px 1876px #FFF, 234px 987px #FFF, 1543px 432px #FFF, 765px 1654px #FFF, 1987px 876px #FFF, 543px 234px #FFF, 1234px 1543px #FFF, 987px 765px #FFF, 432px 1987px #FFF, 1876px 543px #FFF, 654px 1234px #FFF, 234px 987px #FFF, 1654px 432px #FFF, 876px 1876px #FFF, 1234px 654px #FFF, 543px 234px #FFF, 1987px 1543px #FFF, 765px 876px #FFF, 432px 1654px #FFF, 1543px 234px #FFF, 987px 1987px #FFF, 654px 543px #FFF, 234px 1234px #FFF, 1876px 987px #FFF, 876px 432px #FFF, 1654px 1876px #FFF, 432px 654px #FFF, 1234px 234px #FFF, 543px 1543px #FFF, 1987px 765px #FFF, 765px 1987px #FFF, 234px 543px #FFF, 1543px 1234px #FFF, 987px 654px #FFF, 432px 876px #FFF, 1876px 1654px #FFF, 654px 432px #FFF, 1234px 1876px #FFF, 876px 234px #FFF, 543px 1543px #FFF, 1987px 987px #FFF, 234px 765px #FFF, 1654px 432px #FFF, 765px 1987px #FFF, 432px 543px #FFF, 1543px 1234px #FFF, 987px 654px #FFF;
+}
+
+/* Medium stars layer - medium speed */
+#stars-medium {
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  box-shadow: 1342px 876px #FFF, 654px 1432px #FFF, 1876px 345px #FFF, 432px 1765px #FFF, 1234px 654px #FFF, 876px 1234px #FFF, 345px 876px #FFF, 1765px 432px #FFF, 654px 1876px #FFF, 1432px 345px #FFF, 876px 1654px #FFF, 234px 876px #FFF, 1654px 1234px #FFF, 876px 432px #FFF, 1234px 1765px #FFF, 432px 654px #FFF, 1876px 1432px #FFF, 654px 876px #FFF, 1432px 234px #FFF, 876px 1654px #FFF;
+  animation: animStar 100s linear infinite;
+}
+
+#stars-medium:after {
+  content: " ";
+  position: absolute;
+  top: 2000px;
+  width: 2px;
+  height: 2px;
+  background: transparent;
+  box-shadow: 1342px 876px #FFF, 654px 1432px #FFF, 1876px 345px #FFF, 432px 1765px #FFF, 1234px 654px #FFF, 876px 1234px #FFF, 345px 876px #FFF, 1765px 432px #FFF, 654px 1876px #FFF, 1432px 345px #FFF, 876px 1654px #FFF, 234px 876px #FFF, 1654px 1234px #FFF, 876px 432px #FFF, 1234px 1765px #FFF, 432px 654px #FFF, 1876px 1432px #FFF, 654px 876px #FFF, 1432px 234px #FFF, 876px 1654px #FFF;
+}
+
+/* Large stars layer - slowest */
+#stars-large {
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  box-shadow: 987px 1234px #FFF, 1543px 765px #FFF, 432px 1654px #FFF, 1876px 432px #FFF, 654px 1234px #FFF, 1234px 876px #FFF, 876px 1543px #FFF, 1654px 654px #FFF, 432px 1876px #FFF, 1234px 432px #FFF;
+  animation: animStar 150s linear infinite;
+}
+
+#stars-large:after {
+  content: " ";
+  position: absolute;
+  top: 2000px;
+  width: 3px;
+  height: 3px;
+  background: transparent;
+  box-shadow: 987px 1234px #FFF, 1543px 765px #FFF, 432px 1654px #FFF, 1876px 432px #FFF, 654px 1234px #FFF, 1234px 876px #FFF, 876px 1543px #FFF, 1654px 654px #FFF, 432px 1876px #FFF, 1234px 432px #FFF;
+}
+
+@keyframes animStar {
+  from {
+    transform: translateY(0px);
+  }
+  to {
+    transform: translateY(-2000px);
+  }
+}
+
+/* Track cards */
+body[data-theme="parallax-stars"] .track {
+  background: rgba(27, 39, 53, 0.75);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+body[data-theme="parallax-stars"] .track:hover {
+  border-color: rgba(136, 204, 255, 0.5);
+  box-shadow: 0 4px 20px rgba(136, 204, 255, 0.2);
+}
+
+/* Control buttons */
+body[data-theme="parallax-stars"] .control-btn {
+  background: rgba(27, 39, 53, 0.85);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #e8e8ff;
+}
+
+body[data-theme="parallax-stars"] .control-btn:hover {
+  background: rgba(37, 49, 68, 0.92);
+  box-shadow: 0 4px 16px rgba(136, 204, 255, 0.3);
+}
+
+/* Filter cards */
+body[data-theme="parallax-stars"] .filter-card,
+body[data-theme="parallax-stars"] .search-section-card {
+  background: rgba(27, 39, 53, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+}
