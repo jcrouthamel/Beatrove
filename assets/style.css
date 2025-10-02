@@ -969,12 +969,18 @@ body.light-mode .track .track-icons-row button::before {
 
 /* Icon images inside track buttons */
 .track .track-icons-row button img {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   filter: brightness(1.3) contrast(1.2);
   object-fit: contain;
   display: block;
   pointer-events: none;
+}
+
+/* SVG icon specific styling - white icons on dark background */
+.track .track-icons-row button img[src$=".svg"] {
+  filter: brightness(1.5) contrast(1.3);
+  opacity: 0.9;
 }
 
 /* Hide images that fail to load */
@@ -1007,6 +1013,12 @@ body.light-mode .track .track-icons-row button img {
   filter: brightness(0.5) contrast(1.4);
 }
 
+/* SVG icons in light mode - darken them */
+body.light-mode .track .track-icons-row button img[src$=".svg"] {
+  filter: brightness(0.3) contrast(1.5);
+  opacity: 0.85;
+}
+
 body.light-mode .track .track-icons-row button .icon-fallback {
   color: #333;
 }
@@ -1032,6 +1044,13 @@ body.light-mode .track .track-icons-row button .icon-fallback {
   filter: brightness(2.5) contrast(1.5) saturate(1.5) drop-shadow(0 0 3px rgba(255, 255, 255, 0.8));
 }
 
+/* SVG hover effects */
+.track .track-icons-row button:hover img[src$=".svg"],
+.track .track-icons-row button:focus img[src$=".svg"] {
+  filter: brightness(3) contrast(1.8) drop-shadow(0 0 5px rgba(255, 255, 255, 1));
+  opacity: 1;
+}
+
 body.light-mode .track .track-icons-row button:hover,
 body.light-mode .track .track-icons-row button:focus {
   background: var(--accent-color);
@@ -1041,6 +1060,13 @@ body.light-mode .track .track-icons-row button:focus {
 body.light-mode .track .track-icons-row button:hover img,
 body.light-mode .track .track-icons-row button:focus img {
   filter: brightness(1.8) contrast(1.6) saturate(1.3);
+}
+
+/* SVG hover in light mode */
+body.light-mode .track .track-icons-row button:hover img[src$=".svg"],
+body.light-mode .track .track-icons-row button:focus img[src$=".svg"] {
+  filter: brightness(0.1) contrast(2) drop-shadow(0 0 3px rgba(0, 0, 0, 0.5));
+  opacity: 1;
 }
 
 /* ============= COVER ART STYLES ============= */
@@ -1746,9 +1772,26 @@ body.light-mode .az-category:hover, body.light-mode .az-category.active {
   border-color: #ff2222 !important;
 }
 
+/* Make the favorite icon yellow/gold when favorited */
+.track-icons-row .star-btn.favorited img {
+  filter: brightness(2) saturate(2) hue-rotate(0deg) drop-shadow(0 0 5px rgba(255, 215, 0, 0.8)) !important;
+}
+
+/* SVG favorite icon - bright yellow/gold when favorited */
+.track-icons-row .star-btn.favorited img[src$=".svg"] {
+  filter: brightness(1.5) contrast(1.2) invert(85%) sepia(100%) saturate(1000%) hue-rotate(0deg) drop-shadow(0 0 8px rgba(255, 215, 0, 1)) !important;
+  opacity: 1 !important;
+}
+
 body.light-mode .track-icons-row .star-btn.favorited {
   background: #ff2222 !important;
   border-color: #ff2222 !important;
+}
+
+/* Light mode favorite icon - also yellow/gold when favorited */
+body.light-mode .track-icons-row .star-btn.favorited img[src$=".svg"] {
+  filter: brightness(1.3) contrast(1.3) invert(85%) sepia(100%) saturate(1000%) hue-rotate(0deg) drop-shadow(0 0 5px rgba(255, 215, 0, 0.8)) !important;
+  opacity: 1 !important;
 }
 
 #favorites-toggle-btn {

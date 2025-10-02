@@ -722,7 +722,7 @@ export class UIRenderer {
     const buttons = [
       {
         class: 'star-btn',
-        iconPath: `${ICON_BASE_PATH}favorite.png`,
+        iconPath: `${ICON_BASE_PATH}favorite.svg`,
         fallbackText: 'F',
         title: this.appState.data.favoriteTracks[decodedTrackDisplay] ? 'Unstar' : 'Mark as favorite',
         data: { trackDisplay: track.display },
@@ -730,7 +730,7 @@ export class UIRenderer {
       },
       {
         class: 'folder-btn',
-        iconPath: `${ICON_BASE_PATH}copy-path.png`,
+        iconPath: `${ICON_BASE_PATH}copy-path.svg`,
         fallbackText: 'P',
         title: 'Copy Path to Clipboard',
         data: { path: track.absPath },
@@ -738,42 +738,42 @@ export class UIRenderer {
       },
       {
         class: 'tag-btn',
-        iconPath: `${ICON_BASE_PATH}tag.png`,
+        iconPath: `${ICON_BASE_PATH}tag.svg`,
         fallbackText: 'T',
         title: 'Tag',
         data: { trackDisplay: track.display }
       },
       {
         class: 'mood-vibe-btn',
-        iconPath: `${ICON_BASE_PATH}mood+vibe.png`,
+        iconPath: `${ICON_BASE_PATH}mood+vibe.svg`,
         fallbackText: 'M',
         title: 'Edit Mood & Vibe',
         data: { trackDisplay: track.display }
       },
       {
         class: 'add-playlist-btn',
-        iconPath: `${ICON_BASE_PATH}add-to-playlist.png`,
+        iconPath: `${ICON_BASE_PATH}add-to-playlist.svg`,
         fallbackText: 'A',
         title: 'Add to Playlist',
         data: { trackDisplay: track.display }
       },
       {
         class: 'copy-track-btn',
-        iconPath: `${ICON_BASE_PATH}copy-track.png`,
+        iconPath: `${ICON_BASE_PATH}copy-track.svg`,
         fallbackText: 'C',
         title: 'Copy Track Info',
         data: { trackDisplay: track.display }
       },
       {
         class: 'energy-btn',
-        iconPath: `${ICON_BASE_PATH}energy.png`,
+        iconPath: `${ICON_BASE_PATH}energy.svg`,
         fallbackText: 'E',
         title: 'Set Energy Level',
         data: { trackDisplay: track.display }
       },
       {
         class: 'preview-btn',
-        iconPath: `${ICON_BASE_PATH}player.png`,
+        iconPath: `${ICON_BASE_PATH}player.svg`,
         fallbackText: '▶',
         title: 'Preview',
         data: { trackDisplay: track.display }
