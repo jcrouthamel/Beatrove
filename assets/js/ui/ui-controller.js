@@ -289,6 +289,14 @@ export class UIController {
       });
     }
 
+    // Export favorites button
+    const exportFavoritesBtn = document.getElementById('export-favorites-btn');
+    if (exportFavoritesBtn) {
+      exportFavoritesBtn.addEventListener('click', () => {
+        this.exportFavorites();
+      });
+    }
+
     // Cover art toggle button
     const coverArtBtn = document.getElementById('cover-art-toggle-btn');
     if (coverArtBtn) {
@@ -3049,6 +3057,70 @@ export class UIController {
       component: 'UIController',
       method: 'exportPlaylists',
       operation: 'playlist export',
+      fallbackValue: null
+    });
+  }
+
+  exportFavorites() {
+    return this.errorHandler.safe(() => {
+      // Get all favorited tracks
+      const allTracks = this.appState.data.tracksForUI || [];
+      const favoriteTracks = allTracks.filter(track =>
+        this.appState.data.favoriteTracks[track.display]
+      );
+
+      if (favoriteTracks.length === 0) {
+        this.notificationSystem.warning('No favorite tracks to export');
+        return;
+      }
+
+      // Create CSV content
+      const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label\n';
+      const csvRows = favoriteTracks.map(track => {
+        const energy = this.appState.data.energyLevels[track.display] || '';
+        const energyStr = energy ? `Energy ${energy}` : '';
+
+        // Escape CSV values that contain commas or quotes
+        const escapeCSV = (value) => {
+          if (typeof value !== 'string') value = String(value || '');
+          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+            return '"' + value.replace(/"/g, '""') + '"';
+          }
+          return value;
+        };
+
+        return [
+          escapeCSV(track.artist || ''),
+          escapeCSV(track.title || ''),
+          escapeCSV(track.key || ''),
+          escapeCSV(track.bpm || ''),
+          escapeCSV(track.trackTime || ''),
+          escapeCSV(track.year || ''),
+          escapeCSV(track.absPath || ''),
+          escapeCSV(track.genre || ''),
+          escapeCSV(energyStr),
+          escapeCSV(track.recordLabel || '')
+        ].join(',');
+      }).join('\n');
+
+      const csvContent = csvHeaders + csvRows;
+      const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(csvBlob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      link.download = `favorites_${timestamp}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      this.notificationSystem.success(`Exported ${favoriteTracks.length} favorite tracks`);
+    }, {
+      component: 'UIController',
+      method: 'exportFavorites',
+      operation: 'favorites export',
       fallbackValue: null
     });
   }
