@@ -12,11 +12,7 @@ body[data-theme="shooting-stars"] {
   --input-bg: rgba(20, 30, 50, 0.85);
   --bg-color: #0b0b2b;
 
-  /* Accent colors - Starlight theme */
-  --accent-color: #88ccff;
-  --accent-color-hover: #aaddff;
-  --accent-color-light: #66aadd;
-  --accent-color-alpha: rgba(136, 204, 255, 0.15);
+  /* Accent colors inherited from main theme */
 
   /* Buttons */
   --button-bg: rgba(20, 30, 50, 0.85);
@@ -35,10 +31,7 @@ body[data-theme="shooting-stars"].light-mode {
   --input-bg: rgba(255, 255, 255, 0.85);
   --bg-color: #5a7ba8;
 
-  --accent-color: #2b5580;
-  --accent-color-hover: #3a6a9f;
-  --accent-color-light: #1c4565;
-  --accent-color-alpha: rgba(43, 85, 128, 0.1);
+  /* Accent colors inherited from main theme */
 
   --button-bg: rgba(255, 255, 255, 0.9);
   --button-text: #1a2540;

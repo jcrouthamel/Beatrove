@@ -14,11 +14,7 @@ body[data-theme="gradient"] {
   --input-bg: rgba(0, 0, 0, 0.3);
   --bg-color: transparent;
 
-  /* Accent colors - Vibrant theme */
-  --accent-color: #30eee2;
-  --accent-color-hover: #60ffef;
-  --accent-color-light: #20c9bf;
-  --accent-color-alpha: rgba(48, 238, 226, 0.2);
+  /* Accent colors inherited from main theme */
 
   /* Buttons */
   --button-bg: rgba(0, 0, 0, 0.3);
@@ -40,10 +36,7 @@ body[data-theme="gradient"].light-mode {
   --input-bg: rgba(255, 255, 255, 0.5);
   --bg-color: transparent;
 
-  --accent-color: #20a89f;
-  --accent-color-hover: #30c8bf;
-  --accent-color-light: #108880;
-  --accent-color-alpha: rgba(32, 168, 159, 0.15);
+  /* Accent colors inherited from main theme */
 
   --button-bg: rgba(255, 255, 255, 0.5);
   --button-text: #1a1a1a;
