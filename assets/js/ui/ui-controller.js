@@ -2956,7 +2956,8 @@ export class UIController {
           smartPlaylists: this.appState.data.smartPlaylists || {},
           favorites: this.appState.data.favorites || {},
           trackTags: this.appState.data.trackTags || {},
-          energyLevels: this.appState.data.energyLevels || {}
+          energyLevels: this.appState.data.energyLevels || {},
+          moodVibeTags: this.appState.data.moodVibeTags || {}
         };
 
         const dataStr = JSON.stringify(exportData, null, 2);
@@ -3012,10 +3013,14 @@ export class UIController {
       }
 
       // Create CSV content
-      const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label\n';
+      const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label,MoodVibe\n';
       const csvRows = playlistTracks.map(track => {
         const energy = this.appState.data.energyLevels[track.display] || '';
         const energyStr = energy ? `Energy ${energy}` : '';
+
+        // Get mood/vibe tags
+        const moodVibeTags = this.appState.data.moodVibeTags[track.display] || [];
+        const moodVibeStr = moodVibeTags.join('; ');
 
         // Escape CSV values that contain commas or quotes
         const escapeCSV = (value) => {
@@ -3036,7 +3041,8 @@ export class UIController {
           escapeCSV(track.path || ''),
           escapeCSV(track.genre || ''),
           escapeCSV(energyStr),
-          escapeCSV(track.label || '')
+          escapeCSV(track.label || ''),
+          escapeCSV(moodVibeStr)
         ].join(',');
       }).join('\n');
 
@@ -3075,10 +3081,14 @@ export class UIController {
       }
 
       // Create CSV content
-      const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label\n';
+      const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label,MoodVibe\n';
       const csvRows = favoriteTracks.map(track => {
         const energy = this.appState.data.energyLevels[track.display] || '';
         const energyStr = energy ? `Energy ${energy}` : '';
+
+        // Get mood/vibe tags
+        const moodVibeTags = this.appState.data.moodVibeTags[track.display] || [];
+        const moodVibeStr = moodVibeTags.join('; ');
 
         // Escape CSV values that contain commas or quotes
         const escapeCSV = (value) => {
@@ -3099,7 +3109,8 @@ export class UIController {
           escapeCSV(track.absPath || ''),
           escapeCSV(track.genre || ''),
           escapeCSV(energyStr),
-          escapeCSV(track.recordLabel || '')
+          escapeCSV(track.recordLabel || ''),
+          escapeCSV(moodVibeStr)
         ].join(',');
       }).join('\n');
 
