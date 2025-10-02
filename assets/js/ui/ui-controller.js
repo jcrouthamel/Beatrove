@@ -3476,11 +3476,15 @@ export class UIController {
   exportTags() {
     const tags = this.appState.data.trackTags || {};
     const energyLevels = this.appState.data.energyLevels || {};
+    const moodVibeTags = this.appState.data.moodVibeTags || {};
 
-    // Get all tracks that have tags
-    const taggedTrackDisplays = Object.keys(tags);
+    // Get all tracks that have tags or mood/vibe tags
+    const taggedTrackDisplays = new Set([
+      ...Object.keys(tags),
+      ...Object.keys(moodVibeTags)
+    ]);
 
-    if (taggedTrackDisplays.length === 0) {
+    if (taggedTrackDisplays.size === 0) {
       this.notificationSystem.warning('No tagged tracks found to export');
       return;
     }
@@ -3496,6 +3500,7 @@ export class UIController {
         const trackWithTags = {
           ...track,
           tags: tags[trackDisplay] || [],
+          moodVibe: moodVibeTags[trackDisplay] || [],
           energy: energyLevels[trackDisplay] || null
         };
         taggedTracks.push(trackWithTags);
@@ -3508,10 +3513,11 @@ export class UIController {
     }
 
     // Create CSV content with tagged tracks only
-    const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label,Tags\n';
+    const csvHeaders = 'Artist,Title,Key,BPM,Duration,Year,Path,Genre,Energy,Label,Tags,MoodVibe\n';
     const csvRows = taggedTracks.map(track => {
       const energy = track.energy ? `Energy ${track.energy}` : '';
       const tagList = (track.tags || []).join('; ');
+      const moodVibeList = (track.moodVibe || []).join('; ');
 
       // Escape CSV values that contain commas or quotes
       const escapeCSV = (value) => {
@@ -3533,7 +3539,8 @@ export class UIController {
         escapeCSV(track.genre || ''),
         escapeCSV(energy),
         escapeCSV(track.label || ''),
-        escapeCSV(tagList)
+        escapeCSV(tagList),
+        escapeCSV(moodVibeList)
       ].join(',');
     }).join('\n');
 
@@ -3606,8 +3613,10 @@ export class UIController {
   exportAll() {
     const exportData = {
       playlists: this.appState.data.playlists || {},
+      smartPlaylists: this.appState.data.smartPlaylists || {},
       favoriteTracks: this.appState.data.favoriteTracks || {},
       trackTags: this.appState.data.trackTags || {},
+      moodVibeTags: this.appState.data.moodVibeTags || {},
       energyLevels: this.appState.data.energyLevels || {},
       currentPlaylist: this.appState.data.currentPlaylist || '',
       themePreference: this.appState.data.themePreference || 'dark',
@@ -3655,11 +3664,17 @@ export class UIController {
         if (importData.playlists) {
           this.appState.data.playlists = importData.playlists;
         }
+        if (importData.smartPlaylists) {
+          this.appState.data.smartPlaylists = importData.smartPlaylists;
+        }
         if (importData.favoriteTracks) {
           this.appState.data.favoriteTracks = importData.favoriteTracks;
         }
         if (importData.trackTags) {
           this.appState.data.trackTags = importData.trackTags;
+        }
+        if (importData.moodVibeTags) {
+          this.appState.data.moodVibeTags = importData.moodVibeTags;
         }
         if (importData.energyLevels) {
           this.appState.data.energyLevels = importData.energyLevels;
@@ -3712,11 +3727,13 @@ export class UIController {
         }
 
         const playlistsCount = Object.keys(importData.playlists || {}).length;
+        const smartPlaylistsCount = Object.keys(importData.smartPlaylists || {}).length;
         const favoritesCount = Object.keys(importData.favoriteTracks || {}).length;
         const tagsCount = Object.keys(importData.trackTags || {}).length;
+        const moodVibeCount = Object.keys(importData.moodVibeTags || {}).length;
 
         if (this.notificationSystem) {
-          this.notificationSystem.success(`Imported ${playlistsCount} playlists, ${favoritesCount} favorites, and ${tagsCount} tags`);
+          this.notificationSystem.success(`Imported ${playlistsCount} playlists, ${smartPlaylistsCount} smart playlists, ${favoritesCount} favorites, ${tagsCount} tags, and ${moodVibeCount} mood/vibe tags`);
         }
 
       } catch (error) {
