@@ -2466,6 +2466,47 @@ body.light-mode .dialog-btn-confirm:hover {
   min-height: 480px;
 }
 
+/* Make keys section span full width with Camelot Wheel */
+.keys-section-full-width {
+  grid-column: 1 / -1;
+}
+
+.keys-content-wrapper {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 24px;
+  align-items: start;
+}
+
+.keys-chart-container {
+  flex: 1;
+  min-width: 0; /* Prevent overflow */
+}
+
+.camelot-wheel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.camelot-wheel-image {
+  max-width: 400px;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body.light-mode .camelot-wheel-container {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: #e9ecef;
+}
+
 /* Make years section span full width */
 .years-section {
   grid-column: 1 / -1;
@@ -2618,9 +2659,19 @@ body.light-mode .chart-container {
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .stats-container {
     padding: 16px;
+  }
+
+  /* Stack Keys chart and Camelot Wheel vertically on mobile */
+  .keys-content-wrapper {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .camelot-wheel-image {
+    max-width: 300px;
   }
 }
 
