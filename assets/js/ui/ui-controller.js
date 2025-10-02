@@ -1430,6 +1430,8 @@ export class UIController {
     const topArtistEl = document.getElementById('top-artist');
     const avgBpmEl = document.getElementById('average-bpm');
     const avgSongLengthEl = document.getElementById('average-song-length');
+    const longestSongEl = document.getElementById('longest-song');
+    const shortestSongEl = document.getElementById('shortest-song');
     const totalDurationEl = document.getElementById('total-duration');
 
     if (totalTracksEl) totalTracksEl.textContent = stats.totalTracks.toLocaleString();
@@ -1441,6 +1443,18 @@ export class UIController {
     }
     if (avgBpmEl) avgBpmEl.textContent = stats.averageBPM;
     if (avgSongLengthEl) avgSongLengthEl.textContent = stats.averageSongLength;
+    if (longestSongEl) {
+      longestSongEl.textContent = stats.longestSong.title !== '-'
+        ? `${stats.longestSong.title} (${stats.longestSong.duration})`
+        : '-';
+      longestSongEl.title = stats.longestSong.title; // Full title in tooltip
+    }
+    if (shortestSongEl) {
+      shortestSongEl.textContent = stats.shortestSong.title !== '-'
+        ? `${stats.shortestSong.title} (${stats.shortestSong.duration})`
+        : '-';
+      shortestSongEl.title = stats.shortestSong.title; // Full title in tooltip
+    }
     if (totalDurationEl) totalDurationEl.textContent = stats.totalDuration;
 
     // Update overview stats (overlay section)
@@ -1479,6 +1493,8 @@ export class UIController {
       totalDuration: '0:00',
       averageBPM: 0,
       averageSongLength: '0:00',
+      longestSong: { title: '-', duration: '0:00' },
+      shortestSong: { title: '-', duration: '0:00' },
       artistWithMostTracks: { name: '', count: 0 },
       topArtists: [],
       genres: [],
@@ -1495,23 +1511,46 @@ export class UIController {
       stats.averageBPM = Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length);
     }
 
-    // Calculate average song length
-    const durations = tracks.map(t => {
-      if (!t.trackTime) return 0;
+    // Calculate average song length and find longest/shortest songs
+    const tracksWithDurations = tracks.map(t => {
+      if (!t.trackTime) return null;
       const parts = t.trackTime.split(':');
+      let seconds = 0;
       if (parts.length === 2) {
-        return parseInt(parts[0]) * 60 + parseInt(parts[1]); // minutes:seconds
+        seconds = parseInt(parts[0]) * 60 + parseInt(parts[1]); // minutes:seconds
       } else if (parts.length === 3) {
-        return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]); // hours:minutes:seconds
+        seconds = parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]); // hours:minutes:seconds
       }
-      return 0;
-    }).filter(d => d > 0);
+      if (seconds > 0) {
+        return { track: t, seconds: seconds };
+      }
+      return null;
+    }).filter(item => item !== null);
 
-    if (durations.length > 0) {
-      const avgSeconds = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
+    if (tracksWithDurations.length > 0) {
+      // Calculate average
+      const avgSeconds = Math.round(tracksWithDurations.reduce((sum, item) => sum + item.seconds, 0) / tracksWithDurations.length);
       const minutes = Math.floor(avgSeconds / 60);
       const seconds = avgSeconds % 60;
       stats.averageSongLength = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      // Find longest song
+      const longest = tracksWithDurations.reduce((max, item) => item.seconds > max.seconds ? item : max);
+      const longestMin = Math.floor(longest.seconds / 60);
+      const longestSec = longest.seconds % 60;
+      stats.longestSong = {
+        title: `${longest.track.artist} - ${longest.track.title}`,
+        duration: `${longestMin}:${longestSec.toString().padStart(2, '0')}`
+      };
+
+      // Find shortest song
+      const shortest = tracksWithDurations.reduce((min, item) => item.seconds < min.seconds ? item : min);
+      const shortestMin = Math.floor(shortest.seconds / 60);
+      const shortestSec = shortest.seconds % 60;
+      stats.shortestSong = {
+        title: `${shortest.track.artist} - ${shortest.track.title}`,
+        duration: `${shortestMin}:${shortestSec.toString().padStart(2, '0')}`
+      };
     }
 
     // Count occurrences
