@@ -716,8 +716,8 @@ export class UIRenderer {
     const decodedTrackDisplay = SecurityUtils.safeUnescapeForComparison(track.display);
 
     // Button configuration with PNG icons and text fallbacks
-    // Use absolute paths from web root for reliable icon loading
-    const ICON_BASE_PATH = '/images/icons/';
+    // Use relative paths for deployment flexibility
+    const ICON_BASE_PATH = 'images/icons/';
 
     const buttons = [
       {

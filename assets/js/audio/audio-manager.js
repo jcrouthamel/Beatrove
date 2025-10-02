@@ -126,7 +126,7 @@ export class AudioManager {
     }
   }
 
-  disconnectVisualizer() {
+  disconnectVisualizer(hideWaveform = true) {
     if (this.sourceNode) {
       this.errorHandler.safe(() => {
         this.sourceNode.disconnect();
@@ -142,8 +142,8 @@ export class AudioManager {
     this.analyser = null;
     this.audioDataArray = null;
 
-    // Hide waveform when audio stops
-    if (window.app && window.app.visualizer) {
+    // Only hide waveform if explicitly requested (e.g., when audio truly stops, not during reconnection)
+    if (hideWaveform && window.app && window.app.visualizer) {
       window.app.visualizer.hideWaveform();
     }
   }
@@ -168,8 +168,8 @@ export class AudioManager {
       this.audioOperationLock = true;
 
       return await this.errorHandler.safeAsync(async () => {
-      // Clean up any existing visualizer first
-      this.disconnectVisualizer();
+      // Clean up any existing visualizer first (but don't hide waveform - we're reconnecting)
+      this.disconnectVisualizer(false);
 
       this.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       this.analyser = this.audioCtx.createAnalyser();
@@ -531,24 +531,27 @@ export class AudioManager {
       if (this.currentPreviewId === previewId) {
         await this.connectVisualizer(audio, `waveform-${previewId}`);
 
-        // Show waveform immediately to at least display the test pattern
-        if (this.visualizer) {
-          this.visualizer.showWaveform(`waveform-${previewId}`, audio);
+        // Wait for audio metadata to load before showing waveform
+        // This ensures duration is available for Full Track Overview
+        const showWaveformWhenReady = () => {
+          if (this.visualizer && this.currentPreviewId === previewId) {
+            // Ensure duration is valid before showing waveform
+            if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+              this.visualizer.showWaveform(`waveform-${previewId}`, audio);
+            }
+          }
+        };
+
+        // Check if we can show waveform immediately
+        if (audio.readyState >= 1 && audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+          // Metadata already loaded with valid duration
+          showWaveformWhenReady();
+        } else {
+          // Wait for metadata to load with valid duration
+          audio.addEventListener('loadedmetadata', showWaveformWhenReady, { once: true });
+          // Also try on canplay as backup
+          audio.addEventListener('canplay', showWaveformWhenReady, { once: true });
         }
-
-        // Wait for audio to start playing before showing waveform
-        audio.addEventListener('play', () => {
-          if (this.visualizer) {
-            this.visualizer.showWaveform(`waveform-${previewId}`, audio);
-          }
-        }, { once: true });
-
-        // Also try enabling waveform when audio data is loading
-        audio.addEventListener('loadeddata', () => {
-          if (this.visualizer) {
-            this.visualizer.showWaveform(`waveform-${previewId}`, audio);
-          }
-        }, { once: true });
       }
 
     } catch (error) {
