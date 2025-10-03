@@ -224,6 +224,7 @@ export class UIRenderer {
     // Ensure elements are defined with fallback to document.getElementById
     const filters = {
       search: document.getElementById('search')?.value.toLowerCase() || '',
+      artistSearch: document.getElementById('artist-search')?.value.toLowerCase() || '',
       fuzzySearchEnabled: document.getElementById('fuzzy-search-toggle')?.checked || false,
       selectedBPM: (this.appState.elements?.bpmFilter?.value) || document.getElementById('bpm-filter')?.value || '',
       selectedKey: (this.appState.elements?.keyFilter?.value) || document.getElementById('key-filter')?.value || '',
@@ -241,7 +242,7 @@ export class UIRenderer {
   }
 
   hasActiveFilters(filters) {
-    return filters.search || filters.selectedBPM || filters.selectedKey ||
+    return filters.search || filters.artistSearch || filters.selectedBPM || filters.selectedKey ||
            filters.selectedGenre || filters.selectedEnergy || filters.selectedLabel ||
            filters.tagSearch || filters.yearSearch || filters.showFavoritesOnly ||
            filters.azFilter;
@@ -259,6 +260,21 @@ export class UIRenderer {
     }
 
     const result = this.appState.data.tracksForUI.filter(track => {
+      // Artist-only search filter
+      if (filters.artistSearch) {
+        let artistMatch = false;
+
+        if (filters.fuzzySearchEnabled) {
+          // Fuzzy search on artist name only
+          artistMatch = FuzzySearchUtils.fuzzyMatch(filters.artistSearch, track.artist || '');
+        } else {
+          // Standard exact substring matching on artist only
+          artistMatch = track.artist?.toLowerCase().includes(filters.artistSearch);
+        }
+
+        if (!artistMatch) return false;
+      }
+
       // Search filter (with optional fuzzy matching)
       if (filters.search) {
         let searchMatch = false;

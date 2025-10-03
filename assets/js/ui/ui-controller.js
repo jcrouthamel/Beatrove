@@ -213,6 +213,40 @@ export class UIController {
       });
     }
 
+    // Artist search input
+    const artistSearchInput = document.getElementById('artist-search');
+    if (artistSearchInput) {
+      artistSearchInput.addEventListener('input', () => {
+        // Clear A-Z filter when search is used
+        this.renderer.clearAZFilterOnly();
+
+        // Show/hide clear button based on input content
+        const clearBtn = document.getElementById('clear-artist-search');
+        if (clearBtn) {
+          if (artistSearchInput.value.length > 0) {
+            clearBtn.classList.add('visible');
+          } else {
+            clearBtn.classList.remove('visible');
+          }
+        }
+        this.renderer.render();
+      });
+    }
+
+    // Clear artist search button
+    const clearArtistSearchBtn = document.getElementById('clear-artist-search');
+    if (clearArtistSearchBtn) {
+      clearArtistSearchBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const artistSearchInput = document.getElementById('artist-search');
+        if (artistSearchInput) {
+          artistSearchInput.value = '';
+          clearArtistSearchBtn.classList.remove('visible');
+          this.renderer.render();
+        }
+      });
+    }
 
     // Year search input
     const yearSearchInput = document.getElementById('year-search');
@@ -3845,6 +3879,15 @@ export class UIController {
           console.log('Search cleared and render called');
         } else {
           console.log('Search input not found!');
+        }
+      }
+      // Clear artist search button
+      else if (e.target.id === 'clear-artist-search') {
+        const artistSearchInput = document.getElementById('artist-search');
+        if (artistSearchInput) {
+          artistSearchInput.value = '';
+          e.target.classList.remove('visible');
+          this.renderer.render();
         }
       }
       // Close duplicates
