@@ -13,6 +13,7 @@ import { ErrorHandler } from './core/error-handler.js';
 // Import audio modules
 import { AudioManager } from './audio/audio-manager.js';
 import { AudioVisualizer } from './audio/audio-visualizer.js';
+import { PlayQueueManager } from './audio/play-queue.js';
 
 // Import UI modules
 import { UIRenderer } from './ui/ui-renderer.js';
@@ -744,6 +745,7 @@ class BeatroveApp {
     this.appState = new ApplicationState(this.notificationSystem, this.errorHandler);
     this.rateLimiter = new RateLimiter();
     this.audioManager = new AudioManager(this.notificationSystem);
+    this.playQueue = new PlayQueueManager(this.audioManager, this.appState, this.notificationSystem);
     this.renderer = new UIRenderer(this.appState);
     this.controller = new UIController(this.appState, this.renderer, this.audioManager, this.notificationSystem, this.rateLimiter, TrackProcessor, SecurityUtils);
     this.visualizer = new AudioVisualizer(this.audioManager);

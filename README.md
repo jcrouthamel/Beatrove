@@ -29,11 +29,16 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **A-Z Navigation**: Quick jump to artists by letter
 - **Typo Tolerance**: Find "Deadmau5" when searching "deadmaus" or "artbt" → "Artbat"
 
-### 🎧 Audio Preview
+### 🎧 Audio Preview & Playlist Playback
 - **Real-time Preview**: Play audio files directly in the browser
 - **Audio Visualizer**: Animated spectrum visualization during playback
 - **Folder Integration**: Select your audio files folder for seamless previews
 - **Audio Controls**: Standard playback controls with track information
+- **Playlist Auto-Play**: Play all tracks in a playlist sequentially with queue controls
+- **Auto-Mix Crossfade**: Professional DJ-style crossfading between tracks (1-15 seconds)
+- **Queue Management**: Previous, pause, next, and stop controls for playlist playback
+- **Crossfade Duration**: Adjustable crossfade timing with real-time slider
+- **Dual Player Display**: Visual indication during crossfade with fading player overlay
 
 ### 🎨 Cover Art Display
 - **Visual Track Display**: Show album artwork alongside track information
@@ -64,6 +69,10 @@ A powerful web application for DJs to manage, filter, and preview their music co
 - **Playlist Operations**: Add, remove, rename, and delete playlists
 - **Export/Import**: Save and restore playlists as JSON files
 - **Playlist Switching**: Easy dropdown selection between playlists
+- **Playlist Playback**: Play entire playlists with auto-advance to next track
+- **Auto-Mix Mode**: Enable DJ-style crossfading between tracks during playlist playback
+- **Playback Controls**: Full queue control with previous, pause, next, and stop buttons
+- **Track Progress**: Visual indicator showing current track position in playlist (e.g., "Track 4 of 156")
 
 ### 🧠 Smart Playlists
 - **Rule-Based Filtering**: Automatically populate playlists based on metadata criteria
@@ -306,6 +315,8 @@ For best results with Beatrove, follow this preparation workflow:
 8. **Add mood & vibe tags** by clicking the 😎 icon to categorize tracks by emotional impact
 9. **View interactive library statistics** with the "📊 Library Stats" button to see visual charts and analytics
 10. Create playlists and organize your collection
+11. **Play entire playlists** with the "▶️ Play All" button for continuous playback
+12. **Enable Auto-Mix** for DJ-style crossfading between tracks during playlist playback
 
 ### Advanced Search Features
 1. **Multi-Criteria Filtering**: Combine multiple filters for precise track discovery
@@ -321,6 +332,23 @@ For best results with Beatrove, follow this preparation workflow:
 3. **Switch styles** during playback to compare different visualizations
 4. **Use Full Track Overview** to see the entire song with playback progress
 5. **View different data representations** - from simple bars to complex frequency mapping
+
+### Playlist Playback & Auto-Mix
+1. **Select a Playlist**: Choose any playlist from the playlist dropdown
+2. **Start Playback**: Click the "▶️ Play All" button to begin playing all tracks in sequence
+3. **Queue Controls**:
+   - **⏮️ Previous**: Jump to the previous track in the playlist
+   - **⏸️/▶️ Pause/Resume**: Pause or resume the current track
+   - **⏭️ Next**: Skip to the next track (supports auto-mix if enabled)
+   - **⏹️ Stop**: Stop playlist playback completely
+4. **Enable Auto-Mix**: Check the "🎚️ Auto-Mix" checkbox for DJ-style crossfading
+5. **Adjust Crossfade Duration**: Use the slider to set crossfade time (1-15 seconds)
+6. **Track Progress**: Monitor your position with the "Playing Track X of Y" indicator
+7. **Crossfade Behavior**:
+   - Tracks fade out smoothly as the next track fades in
+   - Waveform visualization continues during crossfade
+   - Both audio players visible during transition (fading player marked with "⏳ Fading out...")
+   - Manual skip button (⏭️) also triggers crossfade when auto-mix is enabled
 
 ### Smart Playlist Creation
 1. **Access Creation**: Click the "🧠 Smart Playlist" button in the playlist controls

@@ -377,7 +377,33 @@
     <button id="import-playlists-btn" class="control-btn">Import Playlists</button>
     <input type="file" id="import-playlists-input" accept=".json,.csv,application/json,text/csv" class="hidden">
   </div>
-  
+
+  <!-- Play Queue Controls -->
+  <div class="play-queue-controls" id="play-queue-controls">
+    <div class="queue-playback-controls">
+      <button id="play-all-btn" class="control-btn queue-btn" title="Play all tracks in current view">▶️ Play All</button>
+      <button id="queue-prev-btn" class="control-btn queue-btn" disabled title="Previous track">⏮️</button>
+      <button id="queue-pause-btn" class="control-btn queue-btn" disabled title="Pause/Resume">⏸️</button>
+      <button id="queue-next-btn" class="control-btn queue-btn" disabled title="Next track">⏭️</button>
+      <button id="queue-stop-btn" class="control-btn queue-btn" disabled title="Stop playback">⏹️</button>
+    </div>
+    <div class="queue-info" id="queue-info">
+      <span id="queue-status">No queue active</span>
+      <span id="queue-position"></span>
+    </div>
+    <div class="automix-controls">
+      <label class="automix-toggle-label" title="Enable crossfade between tracks">
+        <input type="checkbox" id="automix-toggle">
+        <span>🎚️ Auto-Mix</span>
+      </label>
+      <div class="crossfade-settings" id="crossfade-settings" style="display: none;">
+        <label for="crossfade-duration">Crossfade:</label>
+        <input type="range" id="crossfade-duration" min="1" max="15" value="5" step="1">
+        <span id="crossfade-value">5s</span>
+      </div>
+    </div>
+  </div>
+
   <div class="pagination-controls">
     <div class="pagination-info">
       <span id="tracks-showing">Showing 0-0 of 0 tracks</span>

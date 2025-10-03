@@ -690,6 +690,109 @@ body.light-mode .playlist-btn:hover {
 
 /* Legacy button classes - now using unified track-icons-row button styling */
 
+/* ============= PLAY QUEUE CONTROLS ============= */
+.play-queue-controls {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  margin: 15px 0;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 2px solid var(--accent-color);
+  flex-wrap: wrap;
+}
+
+body.light-mode .play-queue-controls {
+  background: rgba(0, 0, 0, 0.05);
+  border: 2px solid var(--accent-color);
+}
+
+.queue-playback-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.queue-btn {
+  min-width: auto !important;
+  padding: 8px 16px !important;
+  font-size: 14px;
+}
+
+.queue-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+  min-width: 200px;
+  text-align: center;
+}
+
+#queue-status {
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+#queue-position {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.automix-controls {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.automix-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 500;
+}
+
+.automix-toggle-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.crossfade-settings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.crossfade-settings label {
+  font-weight: 500;
+}
+
+#crossfade-duration {
+  width: 100px;
+  cursor: pointer;
+}
+
+#crossfade-value {
+  min-width: 30px;
+  font-weight: 600;
+  color: var(--accent-color);
+}
+
+@media (max-width: 1024px) {
+  .play-queue-controls {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .queue-info {
+    min-width: auto;
+  }
+}
 
 #stats {
   text-align: center;
@@ -1895,12 +1998,49 @@ body.light-mode .track-icons-row .star-btn.favorited img[src$=".svg"] {
   display: block;
   z-index: 9999;
   box-sizing: border-box;
+  filter: brightness(2.5) contrast(1.3) saturate(1.2);
 }
 
 .audio-player-container::-webkit-media-controls-panel,
 .custom-audio-player::-webkit-media-controls-panel {
   background: #181818;
   border-radius: 0 0 18px 18px;
+}
+
+/* Make audio controls more visible */
+.audio-player-container::-webkit-media-controls-play-button,
+.audio-player-container::-webkit-media-controls-pause-button,
+.custom-audio-player::-webkit-media-controls-play-button,
+.custom-audio-player::-webkit-media-controls-pause-button {
+  filter: brightness(3) contrast(1.2);
+  opacity: 1;
+}
+
+.audio-player-container::-webkit-media-controls-current-time-display,
+.audio-player-container::-webkit-media-controls-time-remaining-display,
+.custom-audio-player::-webkit-media-controls-current-time-display,
+.custom-audio-player::-webkit-media-controls-time-remaining-display {
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  font-weight: 600;
+  filter: brightness(1.5);
+}
+
+.audio-player-container::-webkit-media-controls-mute-button,
+.audio-player-container::-webkit-media-controls-volume-slider,
+.audio-player-container::-webkit-media-controls-toggle-closed-captions-button,
+.audio-player-container::-webkit-media-controls-fullscreen-button,
+.custom-audio-player::-webkit-media-controls-mute-button,
+.custom-audio-player::-webkit-media-controls-volume-slider,
+.custom-audio-player::-webkit-media-controls-toggle-closed-captions-button,
+.custom-audio-player::-webkit-media-controls-fullscreen-button {
+  filter: brightness(3) contrast(1.2);
+  opacity: 1;
+}
+
+.audio-player-container::-webkit-media-controls-timeline,
+.custom-audio-player::-webkit-media-controls-timeline {
+  filter: brightness(1.5);
 }
 
 body.light-mode .audio-player-container {
@@ -1921,6 +2061,36 @@ body.light-mode .custom-audio-player {
 body.light-mode .audio-player-container::-webkit-media-controls-panel,
 body.light-mode .custom-audio-player::-webkit-media-controls-panel {
   background: #f5f5f5;
+}
+
+body.light-mode .audio-player-container::-webkit-media-controls-current-time-display,
+body.light-mode .audio-player-container::-webkit-media-controls-time-remaining-display,
+body.light-mode .custom-audio-player::-webkit-media-controls-current-time-display,
+body.light-mode .custom-audio-player::-webkit-media-controls-time-remaining-display {
+  color: #333;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+}
+
+/* Fading audio player (during crossfade) */
+.audio-player-container.fading {
+  bottom: 420px;
+  opacity: 0.8;
+  border-color: rgba(255, 107, 107, 0.6);
+  z-index: 9998; /* Below the current player */
+}
+
+.audio-player-container.fading::before {
+  content: "⏳ Fading out...";
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 107, 107, 0.9);
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Audio player close button */

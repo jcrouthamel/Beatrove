@@ -44,10 +44,20 @@ export class AudioManager {
     this.blobMeta = new Map(); // Test expects Map
     this.cleanupIntervalId = this.blobManager.cleanupIntervalId; // Mirror blob manager interval
 
+    // Callback for when audio ends (used by PlayQueue)
+    this.onAudioEndedCallback = null;
+
+    // Flag to indicate if next track should start at volume 0 (for crossfade)
+    this.startNextAtZeroVolume = false;
+
   }
 
   setVisualizer(visualizer) {
     this.visualizer = visualizer;
+  }
+
+  setOnAudioEnded(callback) {
+    this.onAudioEndedCallback = callback;
   }
 
   cleanupUnusedBlobUrls() {
@@ -84,6 +94,9 @@ export class AudioManager {
     this.blobUrls.clear();
     this.blobMeta.clear();
     this.cleanupIntervalId = null;
+
+    // Clear audio ended callback
+    this.onAudioEndedCallback = null;
 
     if (this.currentAudio) {
       this.currentAudio.pause();
@@ -373,6 +386,13 @@ export class AudioManager {
       audio.setAttribute('playsinline', 'true');
       audio.setAttribute('preload', 'auto');
 
+      // Start at zero volume if crossfading
+      if (this.startNextAtZeroVolume) {
+        audio.volume = 0;
+        this.startNextAtZeroVolume = false; // Reset flag
+        Logger.log('Starting audio at volume 0 for crossfade');
+      }
+
       container.appendChild(audio);
 
       // Add waveform canvas to the audio player popup
@@ -453,7 +473,17 @@ export class AudioManager {
         }
       };
 
-      audio.addEventListener('ended', cleanupHandler);
+      audio.addEventListener('ended', () => {
+        // Call external callback first (for PlayQueue auto-advance)
+        if (this.onAudioEndedCallback) {
+          // Don't cleanup immediately - let the callback handle starting the next track
+          // The next track's playPreview will trigger cleanupCurrentAudioAsync
+          this.onAudioEndedCallback();
+        } else {
+          // No queue callback, cleanup immediately (normal single-track preview)
+          cleanupHandler();
+        }
+      });
 
       audio.addEventListener('error', () => {
         if (this.notificationSystem) {
@@ -527,8 +557,8 @@ export class AudioManager {
         }
       });
 
-      // Connect visualizer only if still current
-      if (this.currentPreviewId === previewId) {
+      // Connect visualizer only if still current (skip during crossfade)
+      if (this.currentPreviewId === previewId && !this.skipVisualizerDuringCrossfade) {
         await this.connectVisualizer(audio, `waveform-${previewId}`);
 
         // Wait for audio metadata to load before showing waveform
@@ -570,25 +600,38 @@ export class AudioManager {
     // Mark that we're no longer playing
     this.isPlayingPreview = false;
 
-    // Disconnect visualizer first
-    this.disconnectVisualizer();
+    // Disconnect visualizer first (unless audio is fading for crossfade)
+    if (!this.currentAudio?._isFading) {
+      this.disconnectVisualizer();
+    } else {
+      Logger.log('Skipping visualizer disconnect for fading audio');
+    }
 
     if (this.currentAudio) {
-      // Call stored cleanup handler if available
-      if (this.currentAudio._cleanupHandler) {
-        this.currentAudio._cleanupHandler();
+      // Don't cleanup if audio is currently fading (for crossfade)
+      if (this.currentAudio._isFading) {
+        Logger.log('Skipping cleanup of fading audio');
+        this.currentAudio = null; // Clear reference but don't remove element
       } else {
-        // Fallback cleanup
-        if (this.currentAudio.parentElement) {
-          this.currentAudio.parentElement.remove();
+        // Call stored cleanup handler if available
+        if (this.currentAudio._cleanupHandler) {
+          this.currentAudio._cleanupHandler();
+        } else {
+          // Fallback cleanup
+          if (this.currentAudio.parentElement) {
+            this.currentAudio.parentElement.remove();
+          }
+          this.currentAudio = null;
         }
-        this.currentAudio = null;
       }
     }
 
-    // Clean up current blob URL
-    if (this.currentBlobUrl) {
-      this.revokeBlobUrl(this.currentBlobUrl);
+    // Clean up current blob URL (unless it's for a fading audio)
+    if (this.currentBlobUrl && !this.currentAudio?._isFading) {
+      this.blobManager.revokeBlobUrl(this.currentBlobUrl);
+      this.currentBlobUrl = null;
+    } else if (this.currentAudio?._isFading) {
+      // Just clear the reference, don't revoke yet (crossfade will handle it)
       this.currentBlobUrl = null;
     }
 
