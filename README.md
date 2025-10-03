@@ -184,16 +184,36 @@ Artbat - Horizon - 8A - 124.wav - 7:23 - 2022 - /path/to/file.wav - Techno - Ene
 
 ```
 beatrove/
-├── index.html              # Main application file
+├── index.html                          # Main application entry point
 ├── assets/
-│   ├── script.js           # Core application logic
-│   ├── style.css           # Application styling
-│   └── favicon.png         # App icon
-├── tracklist.csv           # Default music data (auto-loaded)
-├── generate_music_list.py  # Python script to build tracklist.csv from audio files
-├── music_file_fixer.py     # Python script to standardize audio filenames
-├── User_Documentation.md   # Detailed user guide
-└── README.md              # This file
+│   ├── style.css                       # Application styling and themes
+│   └── js/
+│       ├── main.js                     # Application initialization and state management
+│       ├── audio/
+│       │   ├── audio-manager.js        # Audio playback and Web Audio API
+│       │   ├── audio-visualizer.js     # 6 waveform visualization styles
+│       │   └── play-queue.js           # Playlist queue and auto-mix crossfade
+│       ├── core/
+│       │   ├── blob-manager.js         # Blob URL lifecycle management
+│       │   ├── error-handler.js        # Centralized error handling
+│       │   ├── filter-manager.js       # Multi-criteria track filtering
+│       │   ├── fuzzy-search.js         # Typo-tolerant search algorithm
+│       │   ├── logger.js               # Debug logging utility
+│       │   └── security-utils.js       # Input sanitization and validation
+│       └── ui/
+│           ├── ui-controller.js        # User interaction and event handling
+│           └── ui-renderer.js          # DOM rendering and updates
+├── themes/                             # Animated theme CSS files
+├── tests/                              # Vitest unit test suite
+├── images/                             # Application images and logos
+├── tracklist.csv                       # Default music data (auto-loaded)
+├── generate_music_list.py              # Python script to build tracklist.csv
+├── music_file_fixer.py                 # Python script to standardize filenames
+├── User_Documentation.html             # Comprehensive user guide
+├── CLAUDE.md                           # AI assistant project instructions
+├── package.json                        # npm dependencies for testing
+├── vitest.config.js                    # Test configuration
+└── README.md                           # This file
 ```
 
 ## 🐍 Python Helper Scripts
