@@ -421,6 +421,14 @@ export class UIController {
       console.error('Delete playlist button not found');
     }
 
+    // Edit playlist button
+    const editPlaylistBtn = document.getElementById('edit-playlist-btn');
+    if (editPlaylistBtn) {
+      editPlaylistBtn.addEventListener('click', () => {
+        this.openPlaylistEditor();
+      });
+    }
+
     // Rename playlist button
     const renamePlaylistBtn = document.getElementById('rename-playlist-btn');
     if (renamePlaylistBtn) {
@@ -3657,7 +3665,8 @@ export class UIController {
     const currentPlaylist = this.appState.data.currentPlaylist;
     const selected = currentPlaylist && currentPlaylist !== '' && currentPlaylist !== 'favorites';
 
-    // Enable/disable rename and delete buttons based on selection
+    // Enable/disable edit, rename and delete buttons based on selection
+    document.getElementById('edit-playlist-btn')?.toggleAttribute('disabled', !selected);
     document.getElementById('rename-playlist-btn')?.toggleAttribute('disabled', !selected);
     document.getElementById('delete-playlist-btn')?.toggleAttribute('disabled', !selected);
 
@@ -4197,5 +4206,248 @@ export class UIController {
     this.energyChart = null;
     this.labelsChart = null;
     this.topArtistsChart = null;
+  }
+
+  openPlaylistEditor() {
+    console.log('🔍 Opening playlist editor...');
+    const currentPlaylist = this.appState.data.currentPlaylist;
+    console.log('Current playlist:', currentPlaylist);
+
+    if (!currentPlaylist || currentPlaylist === '' || currentPlaylist === 'favorites') {
+      console.log('Invalid playlist selection, returning');
+      return;
+    }
+
+    // Check if it's a smart playlist or regular playlist
+    const isSmartPlaylist = currentPlaylist.startsWith('smart:');
+    const playlistName = isSmartPlaylist ? currentPlaylist.replace('smart:', '') : currentPlaylist;
+    console.log('Is smart playlist:', isSmartPlaylist, 'Playlist name:', playlistName);
+
+    const playlist = isSmartPlaylist
+      ? this.appState.data.smartPlaylists[playlistName]
+      : this.appState.data.playlists[playlistName];
+
+    console.log('Playlist data:', playlist);
+
+    if (!playlist) {
+      console.error('Playlist not found!');
+      this.notificationSystem.warning('Playlist not found');
+      return;
+    }
+
+    // Get tracks for the playlist
+    let tracks;
+    if (isSmartPlaylist) {
+      // For smart playlists, evaluate rules to get matching tracks
+      console.log('Evaluating smart playlist rules...');
+      const allTracks = this.appState.data.tracksForUI || [];
+      tracks = allTracks.filter(track => {
+        if (playlist.logic === 'AND') {
+          return playlist.rules.every(rule => this.evaluateSmartPlaylistRule(track, rule));
+        } else {
+          return playlist.rules.some(rule => this.evaluateSmartPlaylistRule(track, rule));
+        }
+      });
+    } else {
+      // For regular playlists, get tracks from display names
+      console.log('Loading tracks for regular playlist, track count:', playlist.length);
+      console.log('Playlist display names:', playlist);
+      const allTracks = this.appState.data.tracksForUI || [];
+      tracks = playlist.map(displayName => {
+        const track = allTracks.find(t => t.display === displayName);
+        if (!track) {
+          console.warn('Track not found for display name:', displayName);
+        }
+        return track;
+      }).filter(track => track !== undefined);
+    }
+
+    console.log('Loaded tracks:', tracks.length, tracks);
+
+    // Open the modal
+    const modal = document.getElementById('playlist-editor-modal');
+    const titleSpan = document.getElementById('playlist-editor-title');
+    const countSpan = document.getElementById('playlist-editor-count');
+    const tracksContainer = document.getElementById('playlist-editor-tracks');
+
+    if (!modal || !titleSpan || !countSpan || !tracksContainer) {
+      return;
+    }
+
+    // Set title with smart playlist indicator
+    titleSpan.textContent = isSmartPlaylist ? `🧠 ${playlistName}` : playlistName;
+    countSpan.textContent = tracks.length;
+
+    // Clear and populate tracks
+    tracksContainer.innerHTML = '';
+    tracks.forEach((track, index) => {
+      const trackDiv = document.createElement('div');
+      trackDiv.className = 'playlist-editor-track';
+      trackDiv.dataset.displayName = track.display;
+
+      const infoDiv = document.createElement('div');
+      infoDiv.className = 'playlist-track-info';
+
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'playlist-track-name';
+      nameDiv.textContent = `${track.artist} - ${track.title}`;
+
+      const metaDiv = document.createElement('div');
+      metaDiv.className = 'playlist-track-meta';
+      metaDiv.innerHTML = `
+        <span>${track.bpm} BPM</span>
+        <span>${track.key}</span>
+        <span>${track.genre || 'Unknown'}</span>
+      `;
+
+      infoDiv.appendChild(nameDiv);
+      infoDiv.appendChild(metaDiv);
+
+      // Only add remove button for regular playlists
+      if (!isSmartPlaylist) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button'; // Prevent form submission
+        removeBtn.className = 'playlist-track-remove';
+        removeBtn.textContent = '✕ Remove';
+        removeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Removing track:', track.artist, '-', track.title);
+          trackDiv.remove();
+          const newCount = parseInt(countSpan.textContent) - 1;
+          countSpan.textContent = newCount;
+          console.log('Track removed, new count:', newCount);
+        });
+        trackDiv.appendChild(infoDiv);
+        trackDiv.appendChild(removeBtn);
+      } else {
+        trackDiv.appendChild(infoDiv);
+      }
+
+      tracksContainer.appendChild(trackDiv);
+    });
+
+    // Show/hide smart playlist notice and convert button
+    const smartNotice = document.getElementById('smart-playlist-notice');
+    const convertBtn = document.getElementById('convert-to-regular-btn');
+    if (smartNotice) {
+      smartNotice.style.display = isSmartPlaylist ? 'block' : 'none';
+    }
+    if (convertBtn) {
+      convertBtn.style.display = isSmartPlaylist ? 'inline-block' : 'none';
+    }
+
+    // Show modal
+    modal.classList.remove('hidden');
+
+    // Setup modal button handlers
+    const saveBtn = document.getElementById('save-playlist-editor-btn');
+    const cancelBtn = document.getElementById('cancel-playlist-editor-btn');
+    const closeBtn = document.getElementById('close-playlist-editor-modal');
+
+    const closeModal = () => {
+      modal.classList.add('hidden');
+    };
+
+    const saveChanges = (e) => {
+      console.log('💾 Save button clicked!');
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (isSmartPlaylist) {
+        // Smart playlists can't be edited this way
+        console.log('Smart playlist - cannot edit');
+        this.notificationSystem.info('Smart playlist rules remain unchanged');
+        closeModal();
+        return;
+      }
+
+      // Get remaining tracks
+      const remainingTracks = Array.from(tracksContainer.querySelectorAll('.playlist-editor-track'))
+        .map(div => div.dataset.displayName);
+
+      console.log('Remaining tracks:', remainingTracks);
+
+      // Update playlist
+      this.appState.data.playlists[playlistName] = remainingTracks;
+      this.appState.saveToStorage();
+
+      this.notificationSystem.success(`Playlist "${playlistName}" updated`);
+
+      // Refresh display if current playlist is selected
+      if (this.appState.data.currentPlaylist === currentPlaylist) {
+        this.renderer.render();
+      }
+
+      closeModal();
+    };
+
+    // Convert to regular playlist handler
+    const convertToRegular = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const newName = prompt(`Enter a name for the new regular playlist (current tracks from "${playlistName}"):`, `${playlistName} (Copy)`);
+      if (!newName || !newName.trim()) {
+        return;
+      }
+
+      const trimmedName = newName.trim();
+
+      // Check if name already exists
+      if (this.appState.data.playlists[trimmedName] || this.appState.data.smartPlaylists[trimmedName]) {
+        this.notificationSystem.error(`Playlist "${trimmedName}" already exists`);
+        return;
+      }
+
+      // Get all current tracks from the smart playlist
+      const trackDisplayNames = tracks.map(track => track.display);
+
+      // Create new regular playlist
+      this.appState.data.playlists[trimmedName] = trackDisplayNames;
+      this.appState.saveToStorage();
+
+      this.notificationSystem.success(`Created regular playlist "${trimmedName}" with ${trackDisplayNames.length} tracks`);
+
+      // Update playlist selector
+      this.updatePlaylistSelector();
+
+      closeModal();
+    };
+
+    // Remove any existing event listeners by cloning
+    const newSaveBtn = saveBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    const newCloseBtn = closeBtn.cloneNode(true);
+    const newConvertBtn = convertBtn ? convertBtn.cloneNode(true) : null;
+
+    // Update button text for smart playlists
+    if (isSmartPlaylist) {
+      newSaveBtn.textContent = 'Close';
+      newCancelBtn.style.display = 'none'; // Hide cancel button for smart playlists
+    } else {
+      newSaveBtn.textContent = 'Save & Close';
+      newCancelBtn.style.display = 'inline-block';
+    }
+
+    if (saveBtn.parentNode) saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    if (cancelBtn.parentNode) cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    if (closeBtn.parentNode) closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+    if (convertBtn && newConvertBtn && convertBtn.parentNode) {
+      convertBtn.parentNode.replaceChild(newConvertBtn, convertBtn);
+      newConvertBtn.addEventListener('click', convertToRegular);
+    }
+
+    newSaveBtn.addEventListener('click', saveChanges);
+    newCancelBtn.addEventListener('click', (e) => {
+      console.log('Cancel clicked');
+      e.preventDefault();
+      closeModal();
+    });
+    newCloseBtn.addEventListener('click', (e) => {
+      console.log('Close clicked');
+      e.preventDefault();
+      closeModal();
+    });
   }
 }
