@@ -867,7 +867,8 @@ class BeatroveApp {
       { id: 'import-tags-input', type: 'input' },
       { id: 'import-all-input', type: 'input' },
       { id: 'import-playlists-btn', type: 'button' },
-      { id: 'import-playlists-input', type: 'input' }
+      { id: 'import-playlists-input', type: 'input' },
+      { id: 'audio-folder-input', type: 'input' }
     ];
 
     importElements.forEach(({ id, type }) => {
@@ -892,8 +893,18 @@ class BeatroveApp {
       }
     });
 
+    // Hide all preview buttons
+    const style = document.createElement('style');
+    style.id = 'demo-mode-styles';
+    style.textContent = `
+      .preview-btn {
+        display: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+
     // Log demo mode status
-    console.log('Demo mode enabled - import features disabled');
+    console.log('Demo mode enabled - import and preview features disabled');
   }
 
   setupMemoryOptimization() {

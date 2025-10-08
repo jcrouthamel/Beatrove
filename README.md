@@ -6,6 +6,12 @@
 
 A powerful web application for DJs to manage, filter, and preview their music collections. Built with vanilla HTML, CSS, and JavaScript for fast, responsive performance.
 
+## 🌐 Demo
+
+Try Beatrove live: **[https://totalkaos.net/beatrove/](https://totalkaos.net/beatrove/)**
+
+**Note:** The demo runs in restricted mode with uploads and audio preview disabled for security. To use the full application with all features, clone the repository and run it locally.
+
 ## ✨ Features
 
 ### 🎵 Track Management
