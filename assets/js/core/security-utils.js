@@ -8,6 +8,7 @@
 // ============= CONFIGURATION =============
 export const CONFIG = {
   APP_TITLE: 'DJ Total Kaos - EDM Bangers',
+  DEMO_MODE: false, // Set to true to disable imports for security in demo environments
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
   MAX_TAG_LENGTH: 50,
   MIN_BPM: 60,

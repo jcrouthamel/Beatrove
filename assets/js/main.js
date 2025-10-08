@@ -774,6 +774,9 @@ class BeatroveApp {
       // Set up event listeners
       this.controller.attachEventListeners();
 
+      // Handle demo mode restrictions
+      this.applyDemoModeRestrictions();
+
       // Populate filter dropdowns with track metadata
       this.controller.populateFilterDropdowns();
 
@@ -852,6 +855,45 @@ class BeatroveApp {
       // Ensure appState has the correct accent color
       this.appState.data.accentColor = accentColor;
     }
+  }
+
+  applyDemoModeRestrictions() {
+    if (!CONFIG.DEMO_MODE) return;
+
+    // Disable import buttons in demo mode
+    const importElements = [
+      { id: 'tracklist-upload', type: 'input' },
+      { id: 'import-tags-btn', type: 'button' },
+      { id: 'import-tags-input', type: 'input' },
+      { id: 'import-all-input', type: 'input' },
+      { id: 'import-playlists-btn', type: 'button' },
+      { id: 'import-playlists-input', type: 'input' }
+    ];
+
+    importElements.forEach(({ id, type }) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.disabled = true;
+        element.style.opacity = '0.5';
+        element.style.cursor = 'not-allowed';
+        if (type === 'button') {
+          element.title = 'Import disabled in demo mode';
+        }
+      }
+      // Also disable the label if it's an input
+      if (type === 'input') {
+        const label = document.querySelector(`label[for="${id}"]`);
+        if (label) {
+          label.style.opacity = '0.5';
+          label.style.cursor = 'not-allowed';
+          label.style.pointerEvents = 'none';
+          label.title = 'Import disabled in demo mode';
+        }
+      }
+    });
+
+    // Log demo mode status
+    console.log('Demo mode enabled - import features disabled');
   }
 
   setupMemoryOptimization() {
