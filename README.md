@@ -19,6 +19,12 @@ Try Beatrove live: **[https://totalkaos.net/beatrove/](https://totalkaos.net/bea
 - **Auto-load**: Automatically loads `tracklist.csv` if present
 - **Track Information**: Artist, title, key, BPM, year, record label, genre, energy levels, and file path
 - **Duplicate Detection**: Identifies duplicate tracks in your collection
+- **🔄 DJ Set Comparison**: Compare DJ set tracklists against your library to identify missing tracks
+  - **Smart Matching**: Fuzzy matching algorithm handles artist name variations, collaborations, and typos
+  - **Multiple Format Support**: Parses timestamped tracklists, numbered lists, and various DJ software exports
+  - **Visual Results**: Color-coded display showing matched (✅) and missing (❌) tracks with match confidence scores
+  - **Export Options**: Export missing tracks as CSV or TXT for easy shopping lists
+  - **Playlist Creation**: Generate playlists from matched tracks for quick set recreation
 
 ### 🔍 Advanced Search & Filtering
 - **Multi-Criteria Search**: Combine BPM + Genre + Key + Label filters simultaneously

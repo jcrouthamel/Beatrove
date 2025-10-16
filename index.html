@@ -95,6 +95,8 @@
         <input type="file" id="tracklist-upload" accept=".txt,.csv,.yaml,.yml" class="hidden">
         <input type="file" id="audio-folder-input" webkitdirectory directory multiple class="hidden">
         <button id="duplicates-toggle-btn" class="control-btn">🔍 Duplicate Tracks</button>
+        <button id="compare-tracklist-btn" class="control-btn">🔄 Compare Tracklist</button>
+        <input type="file" id="compare-tracklist-input" accept=".txt,.csv" class="hidden">
       </div>
       <div class="top-controls-row margin-top-small">
         <button id="favorites-toggle-btn" class="control-btn">★ Favorites</button>
@@ -530,6 +532,66 @@
         <button id="convert-to-regular-btn" class="control-btn convert-btn" style="display: none;">Convert to Regular</button>
         <button id="save-playlist-editor-btn" class="control-btn">Save & Close</button>
         <button id="cancel-playlist-editor-btn" class="control-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tracklist Comparison Modal -->
+  <div id="tracklist-compare-modal" class="modal hidden">
+    <div class="modal-content tracklist-compare-content">
+      <div class="modal-header">
+        <h2>🔄 Compare DJ Set Tracklist</h2>
+        <button class="modal-close" id="close-compare-modal">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="compare-upload-section">
+          <div class="upload-dropzone" id="compare-dropzone">
+            <p class="dropzone-text">📂 Drop your DJ set tracklist here or click to upload</p>
+            <p class="dropzone-hint">Supports: TXT, CSV formats with timestamps, plain artist - title, or full tracklist format</p>
+          </div>
+        </div>
+
+        <div class="compare-results-section" id="compare-results" style="display: none;">
+          <div class="compare-stats">
+            <div class="compare-stat-card">
+              <span class="stat-number" id="compare-total-tracks">0</span>
+              <span class="stat-label">Total Tracks</span>
+            </div>
+            <div class="compare-stat-card matched">
+              <span class="stat-number" id="compare-matched-tracks">0</span>
+              <span class="stat-label">Matched in Library</span>
+            </div>
+            <div class="compare-stat-card missing">
+              <span class="stat-number" id="compare-missing-tracks">0</span>
+              <span class="stat-label">Missing from Library</span>
+            </div>
+            <div class="compare-stat-card percentage">
+              <span class="stat-number" id="compare-percentage">0%</span>
+              <span class="stat-label">Match Rate</span>
+            </div>
+          </div>
+
+          <div class="compare-tabs">
+            <button class="compare-tab active" data-tab="all">All Tracks</button>
+            <button class="compare-tab" data-tab="matched">Matched</button>
+            <button class="compare-tab" data-tab="missing">Missing</button>
+          </div>
+
+          <div class="compare-tracks-list" id="compare-tracks-list">
+            <!-- Tracks will be populated here -->
+          </div>
+
+          <div class="compare-export-buttons">
+            <button id="export-missing-csv" class="control-btn" disabled>📥 Export Missing as CSV</button>
+            <button id="export-missing-txt" class="control-btn" disabled>📥 Export Missing as TXT</button>
+            <button id="export-matched-playlist" class="control-btn" disabled>📥 Create Playlist from Matched</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="close-compare-btn" class="control-btn">Close</button>
       </div>
     </div>
   </div>

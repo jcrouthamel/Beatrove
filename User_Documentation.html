@@ -443,13 +443,65 @@
     <li><strong>Energy Levels</strong>: HTML exports display energy ratings as gold stars (★★★★★☆☆☆☆☆)</li>
   </ul>
 
-  <h2 id="tags">14. Tags</h2>
+  <h2 id="compare-tracklist">14. DJ Set Tracklist Comparison</h2>
+  <p>Compare DJ set tracklists against your library to identify which tracks you already have and which ones you need to acquire. This feature is perfect for DJs who want to recreate sets or build their collection based on other DJs' performances.</p>
+
+  <h3>🎯 How to Use</h3>
+  <ol>
+    <li>Click the <strong>🔄 Compare Tracklist</strong> button in the top control panel</li>
+    <li>Upload a DJ set tracklist file (TXT or CSV format)</li>
+    <li>View the comparison results showing matched and missing tracks</li>
+    <li>Export missing tracks or create playlists from matched tracks</li>
+  </ol>
+
+  <h3>📋 Supported Tracklist Formats</h3>
+  <p>The comparison feature intelligently parses multiple tracklist formats:</p>
+  <ul>
+    <li><strong>Timestamped Format:</strong> <code>[00:12] Artist - Title [Label]</code></li>
+    <li><strong>Numbered Format:</strong> <code>1. Artist - Title</code></li>
+    <li><strong>Simple Format:</strong> <code>Artist - Title</code></li>
+    <li><strong>Full Beatrove Format:</strong> <code>artist - title - key - BPM.ext - time - year - path - genre - energy - label</code></li>
+  </ul>
+
+  <h3>🧠 Smart Matching Algorithm</h3>
+  <p>The comparison uses advanced fuzzy matching to handle real-world variations:</p>
+  <ul>
+    <li><strong>Artist Variations:</strong> Matches "Sama" with "Sama (US)" by removing parenthetical info</li>
+    <li><strong>Collaborations:</strong> Matches "Jazzy" with "Jazzy & Luuk van Dijk" by comparing first artists</li>
+    <li><strong>Reverse Collaborations:</strong> Matches "Confidence Man & DJ Seinfeld" with "DJ Seinfeld"</li>
+    <li><strong>Typo Tolerance:</strong> Uses Levenshtein distance for fuzzy artist and title matching</li>
+    <li><strong>Multiple Strategies:</strong> Tries exact match, fuzzy artist, fuzzy title, and combined approaches</li>
+    <li><strong>Confidence Scores:</strong> Shows match confidence percentage for transparency</li>
+  </ul>
+
+  <h3>📊 Results Display</h3>
+  <p>The comparison results show:</p>
+  <ul>
+    <li><strong>Total Tracks:</strong> Number of tracks in the DJ set</li>
+    <li><strong>Matched in Library:</strong> Tracks you already have (✅ green)</li>
+    <li><strong>Missing from Library:</strong> Tracks you need to acquire (❌ red)</li>
+    <li><strong>Match Rate:</strong> Percentage of tracks found in your library</li>
+  </ul>
+
+  <h3>💾 Export Options</h3>
+  <ul>
+    <li><strong>Export Missing as CSV:</strong> Creates a spreadsheet with artist, title, BPM, key, and label</li>
+    <li><strong>Export Missing as TXT:</strong> Creates a text file shopping list of missing tracks</li>
+    <li><strong>Create Playlist from Matched:</strong> Generates a playlist from tracks found in your library for easy set recreation</li>
+  </ul>
+
+  <div class="tip">
+    <strong>Pro Tip:</strong><br>
+    Download tracklists from sites like 1001Tracklists, BBC Radio, or DJ software exports (Rekordbox, Serato, Traktor). The smart parser automatically detects and handles different formats!
+  </div>
+
+  <h2 id="tags">15. Tags</h2>
   <ul>
     <li>Click the <strong>tag icon (🏷️)</strong> to add or edit tags for a track.</li>
     <li>Filter tracks by tag using the tag dropdown.</li>
   </ul>
 
-  <h2 id="mood-vibe-tags">15. Mood & Vibe Tags</h2>
+  <h2 id="mood-vibe-tags">16. Mood & Vibe Tags</h2>
   <ul>
     <li>Click the <strong>mood & vibe icon (😎)</strong> to add emotional and atmospheric tags to tracks.</li>
     <li>Add tags that describe the mood and vibe of your tracks for better set planning.</li>

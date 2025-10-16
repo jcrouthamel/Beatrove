@@ -19,6 +19,9 @@ import { PlayQueueManager } from './audio/play-queue.js';
 import { UIRenderer } from './ui/ui-renderer.js';
 import { UIController } from './ui/ui-controller.js';
 
+// Import feature modules
+import { TracklistCompareUI } from './features/tracklist-compare-ui.js';
+
 // ============= NOTIFICATION SYSTEM =============
 class NotificationSystem {
   constructor() {
@@ -749,6 +752,7 @@ class BeatroveApp {
     this.renderer = new UIRenderer(this.appState);
     this.controller = new UIController(this.appState, this.renderer, this.audioManager, this.notificationSystem, this.rateLimiter, TrackProcessor, SecurityUtils);
     this.visualizer = new AudioVisualizer(this.audioManager);
+    this.tracklistCompareUI = null; // Will be initialized after DOM loads
     this.initialized = false;
   }
 
@@ -773,6 +777,9 @@ class BeatroveApp {
 
       // Set up event listeners
       this.controller.attachEventListeners();
+
+      // Initialize tracklist comparison feature (after DOM is loaded)
+      this.tracklistCompareUI = new TracklistCompareUI(this.notificationSystem, this.appState);
 
       // Handle demo mode restrictions
       this.applyDemoModeRestrictions();
@@ -868,7 +875,9 @@ class BeatroveApp {
       { id: 'import-all-input', type: 'input' },
       { id: 'import-playlists-btn', type: 'button' },
       { id: 'import-playlists-input', type: 'input' },
-      { id: 'audio-folder-input', type: 'input' }
+      { id: 'audio-folder-input', type: 'input' },
+      { id: 'compare-tracklist-btn', type: 'button' },
+      { id: 'compare-tracklist-input', type: 'input' }
     ];
 
     importElements.forEach(({ id, type }) => {
