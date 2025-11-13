@@ -249,10 +249,30 @@ Automatically scans your music directory and generates a properly formatted `tra
 - Validates BPM and musical key formats
 - Progress reporting and detailed error handling
 
-**Requirements:**
-```bash
-pip install tinytag mutagen
-```
+**Python Environment Setup:**
+
+1. **Install Python** (if not already installed)
+   - Requires Python 3.6 or higher
+   - Download from [python.org](https://www.python.org/downloads/) or use your system's package manager
+   - Verify installation: `python3 --version` or `python --version`
+
+2. **Create a Virtual Environment** (recommended)
+   ```bash
+   # Create virtual environment
+   python3 -m venv venv
+
+   # Activate virtual environment
+   # On macOS/Linux:
+   source venv/bin/activate
+
+   # On Windows:
+   venv\Scripts\activate
+   ```
+
+3. **Install Required Dependencies**
+   ```bash
+   pip install tinytag mutagen
+   ```
 
 **Usage:**
 ```bash
@@ -294,10 +314,24 @@ Standardizes your music filenames to match the format expected by Beatrove and t
 - Uses metadata as fallback for missing information
 - Preserves complex track titles with multiple parts
 
-**Requirements:**
-```bash
-pip install tinytag
-```
+**Python Environment Setup:**
+
+1. **Install Python** (if not already installed)
+   - Requires Python 3.6 or higher
+   - See setup instructions in the `generate_music_list.py` section above
+
+2. **Create a Virtual Environment** (recommended - if not already created)
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # macOS/Linux
+   # OR
+   venv\Scripts\activate     # Windows
+   ```
+
+3. **Install Required Dependencies**
+   ```bash
+   pip install tinytag
+   ```
 
 **Usage:**
 ```bash
